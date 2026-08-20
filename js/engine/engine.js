@@ -371,6 +371,10 @@ export function createEngine(config = {}) {
                 dadosAtualizacao
             );
 
+                                                            console.log(
+            `Engine ${entity}: atualização concluída`
+);
+
         }
 
 
