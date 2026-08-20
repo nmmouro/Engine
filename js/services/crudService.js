@@ -97,9 +97,17 @@ export async function criar(entity, dados) {
 
 export async function atualizar(entity, dados) {
 
+    if (!dados?.ID) {
+
+        throw new Error(
+            "ID obrigatório para atualização."
+        );
+    }
+
     return requisicao({
         acao: "atualizar",
         aba: entity,
+        id: dados.ID,
         dados: JSON.stringify(dados)
     });
 }
