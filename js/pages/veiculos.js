@@ -15,11 +15,11 @@
  * ============================================================
  */
 
-import { createState } from "./state.js";
-import { createCrud } from "./crud.js";
-import { createForm } from "./form.js";
-import { createTable } from "./table.js";
-import { createToolbar } from "./toolbar.js";
+import { createState } from "../state.js";
+import { createCrud } from "../crud.js";
+import { createForm } from "../form.js";
+import { createTable } from "../table.js";
+import { createToolbar } from "../toolbar.js";
 
 
 /**
