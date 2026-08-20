@@ -1,19 +1,3 @@
- * ============================================================
- * ENGINE PRINCIPAL
- * ============================================================
- *
- * Responsável por integrar:
- *
- * - State
- * - CRUD
- * - Form
- * - Table
- * - Toolbar
- *
- * O Engine não conhece nenhuma entidade específica.
- * ============================================================
- */
-
 import { createState } from "../state.js";
 import { createCrud } from "../crud.js";
 import { createForm } from "../form.js";
@@ -21,13 +5,6 @@ import { createTable } from "../table.js";
 import { createToolbar } from "../toolbar.js";
 
 
-/**
- * Cria um Engine.
- *
- * @param {Object} config
- *
- * @returns {Object}
- */
 export function createEngine(config = {}) {
 
     const {
