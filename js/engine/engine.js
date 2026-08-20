@@ -333,66 +333,105 @@ export function createEngine(config = {}) {
     // Salvar
     // ------------------------------------------------------------
 
-    async function salvarFormulario(
-        dados
-    ) {
+    async function salvarFormulario(dados) {
 
-        try {
+    try {
 
-            state.carregando = true;
+        state.carregando = true;
 
 
-            if (
-                state.registroEditando
-            ) {
+        // --------------------------------------------------------
+        // EDIÇÃO
+        // --------------------------------------------------------
 
-                await crud.atualizar(
-                    dados
-                );
+        if (state.registroEditando) {
 
-            } else {
-
-                await crud.criar(
-                    dados
-                );
-
-            }
+            const registroOriginal =
+                state.registroEditando;
 
 
-            esconderFormulario();
+            const dadosAtualizacao = {
+
+                ...registroOriginal,
+
+                ...dados,
+
+                ID: registroOriginal.ID
+
+            };
 
 
-            state.registroEditando =
-                null;
-
-
-            state.indiceEditando =
-                null;
-
-
-            await carregar();
-
-
-        } catch (erro) {
-
-            console.error(
-                `Engine ${entity}:`,
-                erro
+            console.log(
+                `Engine ${entity}: atualizando`,
+                dadosAtualizacao
             );
 
 
-            mostrarErro(
-                erro
+            await crud.atualizar(
+                dadosAtualizacao
             );
-
-
-        } finally {
-
-            state.carregando = false;
 
         }
 
+
+        // --------------------------------------------------------
+        // NOVO
+        // --------------------------------------------------------
+
+        else {
+
+            console.log(
+                `Engine ${entity}: criando`,
+                dados
+            );
+
+
+            await crud.criar(
+                dados
+            );
+
+        }
+
+
+        // --------------------------------------------------------
+        // Finalização
+        // --------------------------------------------------------
+
+        esconderFormulario();
+
+
+        state.registroEditando =
+            null;
+
+
+        state.indiceEditando =
+            null;
+
+
+        await carregar();
+
+
+    } catch (erro) {
+
+        console.error(
+            `Engine ${entity}:`,
+            erro
+        );
+
+
+        mostrarErro(
+            erro
+        );
+
+
+    } finally {
+
+        state.carregando =
+            false;
+
     }
+
+}
 
 
     // ------------------------------------------------------------
