@@ -1,3 +1,31 @@
+/**
+ * ============================================================
+ * FORM ENGINE
+ * ============================================================
+ *
+ * Responsável por:
+ * - Criar formulário a partir do Schema
+ * - Preencher formulário com dados
+ * - Ler dados do formulário
+ * - Limpar formulário
+ * - Controlar modo novo/edição
+ *
+ * Não conhece nenhuma entidade específica.
+ * ============================================================
+ */
+
+
+/**
+ * Cria o componente de formulário.
+ *
+ * @param {Object} config
+ * @param {Object} config.schema
+ * @param {HTMLElement|string} config.container
+ * @param {Function} config.onSubmit
+ * @param {Function} config.onCancel
+ *
+ * @returns {Object}
+ */
 export function createForm(config = {}) {
 
     const {
