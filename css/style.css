@@ -1,0 +1,174 @@
+/* ============================================================
+   PAINEL FROTA
+   CSS GLOBAL
+   ============================================================ */
+
+
+/* ============================================================
+   RESET
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+html {
+    width: 100%;
+    min-height: 100%;
+}
+
+
+body {
+    width: 100%;
+    min-height: 100vh;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+
+    background: #f4f6f8;
+
+    color: #1f2937;
+}
+
+
+/* ============================================================
+   ELEMENTOS BÁSICOS
+   ============================================================ */
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+input,
+select,
+textarea {
+    outline: none;
+}
+
+
+/* ============================================================
+   LINKS
+   ============================================================ */
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+/* ============================================================
+   CONTAINER DA PÁGINA
+   ============================================================ */
+
+.page-container {
+    width: 100%;
+    max-width: 1600px;
+
+    min-height: 100vh;
+
+    margin: 0 auto;
+
+    padding: 24px;
+}
+
+
+/* ============================================================
+   CONTAINER INTERNO
+   ============================================================ */
+
+.container {
+    width: 100%;
+    max-width: 1400px;
+
+    margin: 0 auto;
+}
+
+
+/* ============================================================
+   TÍTULOS
+   ============================================================ */
+
+h1,
+h2,
+h3,
+h4 {
+    margin: 0;
+
+    line-height: 1.25;
+}
+
+
+h1 {
+    font-size: 28px;
+}
+
+
+h2 {
+    font-size: 22px;
+}
+
+
+h3 {
+    font-size: 18px;
+}
+
+
+/* ============================================================
+   RESPONSIVIDADE
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    .page-container {
+        padding: 16px;
+    }
+
+
+    h1 {
+        font-size: 24px;
+    }
+
+
+    h2 {
+        font-size: 20px;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .page-container {
+        padding: 12px;
+    }
+
+
+    body {
+        font-size: 13px;
+    }
+
+}
