@@ -1,20 +1,23 @@
-import { createState } from "../state.js";
-import { createCrud } from "../crud.js";
-import { createForm } from "../form.js";
-import { createTable } from "../table.js";
-import { createToolbar } from "../toolbar.js";
+import { createModule } from "../engine/module.js";
+import { SCHEMA_VEICULOS } from "../schemas/veiculos.schema.js";
 
+createModule({
+    entity: "VEICULOS",
 
-export function createEngine(config = {}) {
+    schema: SCHEMA_VEICULOS,
 
-    const {
-        entity,
-        schema,
-        container,
-        stateName = entity,
-        options = {}
-    } = config;
+    container: "#app",
 
+    stateName: "veiculos",
+
+    options: {
+        titulo: "Cadastro de Veículos",
+        tabela: "Veículos Cadastrados",
+        permitirNovo: true,
+        permitirEditar: true,
+        permitirExcluir: true
+    }
+});
 
     // ------------------------------------------------------------
     // Validação
