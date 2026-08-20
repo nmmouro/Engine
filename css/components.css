@@ -725,3 +725,72 @@ textarea.form-control {
     }
 
 }
+
+/* ============================================================
+   MENU PRINCIPAL
+   ============================================================ */
+
+.menu-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
+        );
+
+    gap: 16px;
+}
+
+
+.menu-card {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 10px;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+
+.menu-card:hover {
+
+    transform: translateY(-2px);
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 5px 14px rgba(0, 0, 0, 0.08);
+}
+
+
+.menu-card-title {
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+    color: #1f2937;
+}
+
+
+.menu-card-description {
+
+    font-size: 13px;
+
+    color: #64748b;
+}
