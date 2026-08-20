@@ -340,9 +340,9 @@ export function createEngine(config = {}) {
         state.carregando = true;
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // EDIÇÃO
-        // --------------------------------------------------------
+        // ========================================================
 
         if (state.registroEditando) {
 
@@ -356,6 +356,7 @@ export function createEngine(config = {}) {
 
                 ...dados,
 
+                // O ID nunca pode ser perdido
                 ID: registroOriginal.ID
 
             };
@@ -367,20 +368,39 @@ export function createEngine(config = {}) {
             );
 
 
-            await crud.atualizar(
-                dadosAtualizacao
+            const resposta =
+                await crud.atualizar(
+                    dadosAtualizacao
+                );
+
+
+            console.log(
+                `Engine ${entity}: resposta da atualização`,
+                resposta
             );
 
-                                                            console.log(
-            `Engine ${entity}: atualização concluída`
-);
+
+            // Se o CRUD retornar uma resposta de API
+            // explicitamente negativa, não continuar.
+            if (
+                resposta &&
+                resposta.sucesso === false
+            ) {
+
+                throw new Error(
+                    resposta.erro ||
+                    resposta.message ||
+                    "A API recusou a atualização."
+                );
+
+            }
 
         }
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // NOVO
-        // --------------------------------------------------------
+        // ========================================================
 
         else {
 
@@ -390,16 +410,37 @@ export function createEngine(config = {}) {
             );
 
 
-            await crud.criar(
-                dados
+            const resposta =
+                await crud.criar(
+                    dados
+                );
+
+
+            console.log(
+                `Engine ${entity}: resposta da criação`,
+                resposta
             );
+
+
+            if (
+                resposta &&
+                resposta.sucesso === false
+            ) {
+
+                throw new Error(
+                    resposta.erro ||
+                    resposta.message ||
+                    "A API recusou a criação."
+                );
+
+            }
 
         }
 
 
-        // --------------------------------------------------------
-        // Finalização
-        // --------------------------------------------------------
+        // ========================================================
+        // FINALIZAÇÃO
+        // ========================================================
 
         esconderFormulario();
 
