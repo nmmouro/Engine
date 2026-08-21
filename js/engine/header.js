@@ -3,13 +3,10 @@
  * HEADER ENGINE
  * ============================================================
  *
- * Cabeçalho padrão do Painel Frota.
+ * Exibe:
  *
- * Ordem:
- * 1. Logo
- * 2. Título
- * 3. Data / Hora
- * 4. Botão Tela Cheia
+ * LOGO → TÍTULO → DATA/HORA → TELA CHEIA
+ *
  * ============================================================
  */
 
@@ -17,13 +14,13 @@ export function createHeader(config = {}) {
 
     const {
         container,
-        titulo = "Painel Frota",
-        logo = "img/logo.png"
+        titulo = "",
+        logo = ""
     } = config;
 
 
     // ============================================================
-    // CONTAINER
+    // RESOLVE CONTAINER
     // ============================================================
 
     const elemento =
@@ -33,10 +30,17 @@ export function createHeader(config = {}) {
     if (!elemento) {
 
         throw new Error(
-            `Header: container não encontrado: ${container}`
+            "Header: container não encontrado."
         );
 
     }
+
+
+    // ============================================================
+    // LIMPA CONTAINER
+    // ============================================================
+
+    elemento.innerHTML = "";
 
 
     // ============================================================
@@ -44,7 +48,10 @@ export function createHeader(config = {}) {
     // ============================================================
 
     const header =
-        document.createElement("header");
+        document.createElement(
+            "header"
+        );
+
 
     header.className =
         "engine-header";
@@ -55,25 +62,40 @@ export function createHeader(config = {}) {
     // ============================================================
 
     const logoContainer =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
+
 
     logoContainer.className =
         "engine-header-logo";
 
 
-    const imagem =
-        document.createElement("img");
+    if (logo) {
 
-    imagem.src =
-        logo;
-
-    imagem.alt =
-        "Logo";
+        const imagem =
+            document.createElement(
+                "img"
+            );
 
 
-    logoContainer.appendChild(
-        imagem
-    );
+        imagem.src =
+            logo;
+
+
+        imagem.alt =
+            titulo;
+
+
+        imagem.className =
+            "engine-header-logo-img";
+
+
+        logoContainer.appendChild(
+            imagem
+        );
+
+    }
 
 
     // ============================================================
@@ -81,10 +103,14 @@ export function createHeader(config = {}) {
     // ============================================================
 
     const tituloElemento =
-        document.createElement("h1");
+        document.createElement(
+            "h1"
+        );
+
 
     tituloElemento.className =
         "engine-header-title";
+
 
     tituloElemento.textContent =
         titulo;
@@ -95,11 +121,79 @@ export function createHeader(config = {}) {
     // ============================================================
 
     const dataHora =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
+
 
     dataHora.className =
         "engine-header-datetime";
 
+
+    // ============================================================
+    // BOTÃO TELA CHEIA
+    // ============================================================
+
+    const botaoFullscreen =
+        document.createElement(
+            "button"
+        );
+
+
+    botaoFullscreen.type =
+        "button";
+
+
+    botaoFullscreen.className =
+        "engine-header-fullscreen";
+
+
+    botaoFullscreen.title =
+        "Tela cheia";
+
+
+    botaoFullscreen.setAttribute(
+        "aria-label",
+        "Tela cheia"
+    );
+
+
+    botaoFullscreen.textContent =
+        "⛶";
+
+
+    // ============================================================
+    // ESTRUTURA
+    // ============================================================
+
+    header.appendChild(
+        logoContainer
+    );
+
+
+    header.appendChild(
+        tituloElemento
+    );
+
+
+    header.appendChild(
+        dataHora
+    );
+
+
+    header.appendChild(
+        botaoFullscreen
+    );
+
+
+    elemento.appendChild(
+        header
+    );
+
+
+    // ============================================================
+    // ATUALIZA DATA / HORA
+    // ============================================================
 
     function atualizarDataHora() {
 
@@ -124,7 +218,7 @@ export function createHeader(config = {}) {
 
 
         dataHora.textContent =
-            `${data} ${hora}`;
+            `${data} - ${hora}`;
 
     }
 
@@ -143,57 +237,35 @@ export function createHeader(config = {}) {
     // TELA CHEIA
     // ============================================================
 
-    const btnFullscreen =
-        document.createElement("button");
-
-    btnFullscreen.type =
-        "button";
-
-    btnFullscreen.className =
-        "engine-header-fullscreen";
-
-    btnFullscreen.title =
-        "Tela cheia";
-
-    btnFullscreen.setAttribute(
-        "aria-label",
-        "Tela cheia"
-    );
-
-    btnFullscreen.innerHTML =
-        "⛶";
-
-
-    btnFullscreen.addEventListener(
+    botaoFullscreen.addEventListener(
         "click",
-        alternarTelaCheia
-    );
+        async () => {
 
+            try {
 
-    async function alternarTelaCheia() {
+                if (
+                    !document.fullscreenElement
+                ) {
 
-        try {
+                    await document.documentElement.requestFullscreen();
 
-            if (!document.fullscreenElement) {
+                } else {
 
-                await document.documentElement.requestFullscreen();
+                    await document.exitFullscreen();
 
-            } else {
+                }
 
-                await document.exitFullscreen();
+            } catch (erro) {
+
+                console.error(
+                    "Erro ao alternar tela cheia:",
+                    erro
+                );
 
             }
 
-        } catch (erro) {
-
-            console.error(
-                "Erro ao alternar tela cheia:",
-                erro
-            );
-
         }
-
-    }
+    );
 
 
     // ============================================================
@@ -202,59 +274,29 @@ export function createHeader(config = {}) {
 
     document.addEventListener(
         "fullscreenchange",
-        atualizarBotaoFullscreen
-    );
+        () => {
 
+            if (
+                document.fullscreenElement
+            ) {
 
-    function atualizarBotaoFullscreen() {
+                botaoFullscreen.textContent =
+                    "⛶";
 
-        if (document.fullscreenElement) {
+                botaoFullscreen.title =
+                    "Sair da tela cheia";
 
-            btnFullscreen.innerHTML =
-                "⛶";
+            } else {
 
-            btnFullscreen.title =
-                "Sair da tela cheia";
+                botaoFullscreen.textContent =
+                    "⛶";
 
-        } else {
+                botaoFullscreen.title =
+                    "Tela cheia";
 
-            btnFullscreen.innerHTML =
-                "⛶";
-
-            btnFullscreen.title =
-                "Tela cheia";
+            }
 
         }
-
-    }
-
-
-    // ============================================================
-    // MONTAGEM
-    // ============================================================
-
-    header.appendChild(
-        logoContainer
-    );
-
-
-    header.appendChild(
-        tituloElemento
-    );
-
-
-    header.appendChild(
-        dataHora
-    );
-
-
-    header.appendChild(
-        btnFullscreen
-    );
-
-
-    elemento.appendChild(
-        header
     );
 
 
@@ -274,10 +316,7 @@ export function createHeader(config = {}) {
                 intervalo
             );
 
-            document.removeEventListener(
-                "fullscreenchange",
-                atualizarBotaoFullscreen
-            );
+            header.remove();
 
         }
 
@@ -286,9 +325,11 @@ export function createHeader(config = {}) {
 }
 
 
-// ============================================================
-// RESOLVE ELEMENTO
-// ============================================================
+/**
+ * ============================================================
+ * RESOLVE ELEMENTO
+ * ============================================================
+ */
 
 function resolverElemento(valor) {
 
