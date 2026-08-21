@@ -22,13 +22,36 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         {
             name: "Empregado / Matrícula",
             type: "select",
-            required: true
-        },
+            required: true,
 
+            source: "EMPREGADOS",
+
+            valueField: "ID",
+
+            labelFields: [
+                "Empregado",
+                "Matrícula"
+            ],
+
+            separator: " / "
+
+        },
         {
             name: "Veículo",
             type: "select",
-            required: true
+            required: true,
+
+            source: "VEICULOS",
+
+            valueField: "ID",
+
+            labelFields: [
+                "Modelo",
+                "Placa"
+            ],
+
+            separator: " / "
+
         },
 
         {
