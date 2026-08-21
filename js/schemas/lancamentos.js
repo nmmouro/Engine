@@ -10,19 +10,22 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         {
             name: "ID",
             type: "text",
-            visible: false
+            visible: false,
+            hidden: true
         },
 
         {
             name: "ID Empregado",
             type: "text",
-            visible: false
+            visible: false,
+            hidden: true
         },
 
         {
             name: "ID Veículo",
             type: "text",
-            visible: false
+            visible: false,
+            hidden: true
         },
 
         {
