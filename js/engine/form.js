@@ -81,101 +81,142 @@ export function createForm(config = {}) {
     // Renderização
     // ------------------------------------------------------------
 
-    function render() {
+    async function render() {
 
-        elemento.innerHTML = "";
+    elemento.innerHTML = "";
 
-        const form = document.createElement("form");
+    const form =
+        document.createElement("form");
 
-        form.className = "engine-form";
+    form.className =
+        "engine-form";
 
-        form.noValidate = true;
-
-
-        // --------------------------------------------------------
-        // Campos
-        // --------------------------------------------------------
-
-        schema.fields.forEach(campo => {
-
-            const grupo = criarCampo(campo);
-
-            if (grupo) {
-                form.appendChild(grupo);
-            }
-
-        });
+    form.noValidate = true;
 
 
-        // --------------------------------------------------------
-        // Botões
-        // --------------------------------------------------------
+    // --------------------------------------------------------
+    // Campos
+    // --------------------------------------------------------
 
-        const actions = document.createElement("div");
+    for (const campo of schema.fields) {
 
-        actions.className = "engine-form-actions";
+        const grupo =
+            await criarCampo(campo);
 
+        if (grupo) {
 
-        const btnSalvar = document.createElement("button");
+            form.appendChild(grupo);
 
-        btnSalvar.type = "submit";
+        }
 
-        btnSalvar.className = "btn btn-primary";
-
-        btnSalvar.textContent =
-            modo === "edicao"
-                ? "Atualizar"
-                : "Salvar";
+    }
 
 
-        const btnCancelar = document.createElement("button");
+    // --------------------------------------------------------
+    // Botões
+    // --------------------------------------------------------
 
-        btnCancelar.type = "button";
+    const actions =
+        document.createElement("div");
 
-        btnCancelar.className = "btn btn-secondary";
-
-        btnCancelar.textContent = "Cancelar";
-
-
-        actions.appendChild(btnSalvar);
-        actions.appendChild(btnCancelar);
-
-        form.appendChild(actions);
+    actions.className =
+        "engine-form-actions";
 
 
-        // --------------------------------------------------------
-        // Eventos
-        // --------------------------------------------------------
+    const btnSalvar =
+        document.createElement("button");
 
-        form.addEventListener("submit", evento => {
+    btnSalvar.type = "submit";
+
+    btnSalvar.className =
+        "btn btn-primary";
+
+    btnSalvar.textContent =
+        modo === "edicao"
+            ? "Atualizar"
+            : "Salvar";
+
+
+    const btnCancelar =
+        document.createElement("button");
+
+    btnCancelar.type = "button";
+
+    btnCancelar.className =
+        "btn btn-secondary";
+
+    btnCancelar.textContent =
+        "Cancelar";
+
+
+    actions.appendChild(btnSalvar);
+
+    actions.appendChild(btnCancelar);
+
+    form.appendChild(actions);
+
+
+    // --------------------------------------------------------
+    // Submit
+    // --------------------------------------------------------
+
+    form.addEventListener(
+        "submit",
+        evento => {
 
             evento.preventDefault();
 
-            const dados = getData();
+            const dados =
+                getData();
+
 
             if (!validar(dados)) {
+
                 return;
+
             }
 
-            if (typeof onSubmit === "function") {
-                onSubmit(dados, registroAtual);
+
+            if (
+                typeof onSubmit ===
+                "function"
+            ) {
+
+                onSubmit(
+                    dados,
+                    registroAtual
+                );
+
             }
 
-        });
+        }
+    );
 
 
-        btnCancelar.addEventListener("click", () => {
+    // --------------------------------------------------------
+    // Cancelar
+    // --------------------------------------------------------
 
-            if (typeof onCancel === "function") {
+    btnCancelar.addEventListener(
+        "click",
+        () => {
+
+            if (
+                typeof onCancel ===
+                "function"
+            ) {
+
                 onCancel();
+
             }
 
-        });
+        }
+    );
 
 
-        elemento.appendChild(form);
+    elemento.appendChild(form);
 
-    }
+}
     
 
 // ===========================================================================================================
@@ -315,15 +356,45 @@ function preencherSelect(
     if (!field.source) {
 
         preencherSelect(
+
             input,
-            (field.options || []).map(valor => ({
 
-                value,
+            (field.options || [])
+                .map(valor => {
 
-                label: valor
+                    if (
+                        typeof valor ===
+                        "object" &&
+                        valor !== null
+                    ) {
 
-            })),
+                        return {
+
+                            value:
+                                valor.value ?? "",
+
+                            label:
+                                valor.label ??
+                                valor.value ??
+                                ""
+
+                        };
+
+                    }
+
+
+                    return {
+
+                        value: String(valor),
+
+                        label: String(valor)
+
+                    };
+
+                }),
+
             valorAtual
+
         );
 
         return;
@@ -338,14 +409,18 @@ function preencherSelect(
     input.disabled = true;
 
 
+    input.innerHTML = "";
+
+
     const carregando =
         document.createElement("option");
-
 
     carregando.value = "";
 
     carregando.textContent =
         "Carregando...";
+
+    carregando.selected = true;
 
 
     input.appendChild(
@@ -382,7 +457,6 @@ function preencherSelect(
         const erroOption =
             document.createElement("option");
 
-
         erroOption.value = "";
 
         erroOption.textContent =
@@ -407,43 +481,72 @@ function preencherSelect(
     // Cria um campo
     // ------------------------------------------------------------
 
-    function criarCampo(campo) {
+    async function criarCampo(campo) {
 
-        if (!campo || !campo.name) {
-            return null;
-        }
+    if (
+        !campo ||
+        !campo.name
+    ) {
 
-
-        const grupo = document.createElement("div");
-
-        grupo.className = "form-group";
-
-
-        const label = document.createElement("label");
-
-        label.htmlFor = gerarIdCampo(campo.name);
-
-        label.textContent =
-            campo.label ||
-            campo.name;
-
-
-        const input = criarInput(campo);
-
-
-        if (!input) {
-            return null;
-        }
-
-
-        grupo.appendChild(label);
-
-        grupo.appendChild(input);
-
-
-        return grupo;
+        return null;
 
     }
+
+
+    const grupo =
+        document.createElement("div");
+
+    grupo.className =
+        "form-group";
+
+
+    const label =
+        document.createElement("label");
+
+    label.htmlFor =
+        gerarIdCampo(campo.name);
+
+    label.textContent =
+        campo.label ||
+        campo.name;
+
+
+    const input =
+        criarInput(campo);
+
+
+    if (!input) {
+
+        return null;
+
+    }
+
+
+    // --------------------------------------------------------
+    // SELECT RELACIONAL
+    // --------------------------------------------------------
+
+    if (
+        campo.type === "select" &&
+        campo.source
+    ) {
+
+        await configurarCampoSelect(
+            campo,
+            input
+        );
+
+    }
+
+
+    grupo.appendChild(label);
+
+    grupo.appendChild(input);
+
+
+    return grupo;
+
+}
 
 
     // ------------------------------------------------------------
@@ -673,82 +776,80 @@ function preencherSelect(
 
     function criarSelect(campo) {
 
-        const select = document.createElement("select");
+    const select =
+        document.createElement("select");
 
-        select.className = "form-control";
-
-
-        const options =
-            Array.isArray(campo.options)
-                ? campo.options
-                : [];
+    select.className =
+        "form-control";
 
 
-        // Opção vazia
+    // --------------------------------------------------------
+    // Opção inicial
+    // --------------------------------------------------------
 
-        if (!campo.required) {
+    const vazio =
+        document.createElement("option");
 
-            const vazio =
-                document.createElement("option");
+    vazio.value = "";
 
-            vazio.value = "";
+    vazio.textContent =
+        campo.placeholder ||
+        "Selecione...";
 
-            vazio.textContent =
-                campo.placeholder ||
-                "Selecione...";
+    vazio.selected = true;
 
-            select.appendChild(vazio);
+
+    select.appendChild(vazio);
+
+
+    // --------------------------------------------------------
+    // Opções estáticas
+    // --------------------------------------------------------
+
+    const options =
+        Array.isArray(campo.options)
+            ? campo.options
+            : [];
+
+
+    options.forEach(opcao => {
+
+        const option =
+            document.createElement("option");
+
+
+        if (
+            typeof opcao === "object" &&
+            opcao !== null
+        ) {
+
+            option.value =
+                opcao.value ?? "";
+
+            option.textContent =
+                opcao.label ??
+                opcao.value ??
+                "";
+
+        } else {
+
+            option.value =
+                String(opcao);
+
+            option.textContent =
+                String(opcao);
 
         }
 
 
-        options.forEach(opcao => {
+        select.appendChild(option);
 
-            const option =
-                document.createElement("option");
-
-
-            // Permite:
-            //
-            // "GASOLINA"
-            //
-            // ou:
-            //
-            // { value: "GASOLINA", label: "Gasolina" }
-
-            if (
-                typeof opcao === "object" &&
-                opcao !== null
-            ) {
-
-                option.value =
-                    opcao.value ?? "";
-
-                option.textContent =
-                    opcao.label ??
-                    opcao.value ??
-                    "";
-
-            } else {
-
-                option.value =
-                    String(opcao);
-
-                option.textContent =
-                    String(opcao);
-
-            }
+    });
 
 
-            select.appendChild(option);
+    return select;
 
-        });
-
-
-        return select;
-
-    }
-
+}
 
     // ------------------------------------------------------------
     // Preenche formulário
