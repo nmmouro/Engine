@@ -855,7 +855,7 @@ function preencherSelect(
     // Preenche formulário
     // ------------------------------------------------------------
 
-    function setData(dados = {}) {
+    async function setData(dados = {}) {
 
         registroAtual = dados || {};
 
@@ -863,6 +863,41 @@ function preencherSelect(
             dados && Object.keys(dados).length
                 ? "edicao"
                 : "novo";
+
+// ------------------------------------------------------------
+// Garante que selects relacionais estejam carregados
+// ------------------------------------------------------------
+
+for (const campo of schema.fields) {
+
+    if (
+        campo.type !== "select" ||
+        !campo.source
+    ) {
+
+        continue;
+
+    }
+
+
+    const input =
+        obterInput(campo.name);
+
+
+    if (!input) {
+
+        continue;
+
+    }
+
+
+    await configurarCampoSelect(
+        campo,
+        input,
+        dados[campo.name] ?? ""
+    );
+
+}
 
 
         schema.fields.forEach(campo => {
