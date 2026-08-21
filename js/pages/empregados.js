@@ -2,7 +2,7 @@ import { createModule } from "../engine/module.js";
 
 import {
     SCHEMA_EMPREGADOS
-} from "../schemas/empregadosschema.js";
+} from "../schemas/empregados.js";
 
 
 createModule({
