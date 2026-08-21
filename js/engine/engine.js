@@ -152,107 +152,89 @@ const header =
     // ESTRUTURA DA PÁGINA
     // ============================================================
 
-   const toolbarContainer =
-        criarContainer(
-            "engine-toolbar-container"
-        );
+   // ============================================================
+// ESTRUTURA
+// ============================================================
+
+app.innerHTML = "";
 
 
-    const formContainer =
-        criarContainer(
-            "engine-form-container"
-        );
+// ============================================================
+// HEADER
+// ============================================================
 
-
-    const tableContainer =
-        criarContainer(
-            "engine-table-container"
-        );
-
-
-    app.appendChild(
-        toolbarContainer
+const headerContainer =
+    criarContainer(
+        "engine-header-container"
     );
 
-    app.appendChild(
-        formContainer
+app.appendChild(
+    headerContainer
+);
+
+
+const header =
+    createHeader({
+
+        container:
+            headerContainer,
+
+        titulo:
+            options.titulo ||
+            entity,
+
+        logo:
+            options.logo ||
+            "img/logo.png"
+
+    });
+
+
+// ============================================================
+// TOOLBAR
+// ============================================================
+
+const toolbarContainer =
+    criarContainer(
+        "engine-toolbar-container"
     );
 
-    app.appendChild(
-        tableContainer
+
+// ============================================================
+// FORMULÁRIO
+// ============================================================
+
+const formContainer =
+    criarContainer(
+        "engine-form-container"
     );
 
 
-    // ============================================================
-    // TOOLBAR
-    // ============================================================
+// ============================================================
+// TABELA
+// ============================================================
 
-    const toolbar =
-        createToolbar({
-
-            container:
-                toolbarContainer,
-
-            titulo:
-                options.titulo ||
-                entity,
-
-            permitirNovo:
-                options.permitirNovo !== false,
-
-            onNovo
-
-        });
+const tableContainer =
+    criarContainer(
+        "engine-table-container"
+    );
 
 
-    // ============================================================
-    // FORM
-    // ============================================================
+// ============================================================
+// ADICIONA AO APP
+// ============================================================
 
-    const form =
-        createForm({
+app.appendChild(
+    toolbarContainer
+);
 
-            schema,
+app.appendChild(
+    formContainer
+);
 
-            container:
-                formContainer,
-
-            onSubmit:
-                salvarFormulario,
-
-            onCancel:
-                cancelarFormulario
-
-        });
-
-
-    // ============================================================
-    // TABLE
-    // ============================================================
-
-    const table =
-        createTable({
-
-            schema,
-
-            container:
-                tableContainer,
-
-            actions: {
-
-                editar:
-                    options.permitirEditar !== false
-                        ? editar
-                        : null,
-
-                excluir:
-                    options.permitirExcluir !== false
-                        ? excluir
-                        : null
-
-            }
-
-        });
+app.appendChild(
+    tableContainer
+);
 
 
     // ============================================================
