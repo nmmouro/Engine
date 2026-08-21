@@ -1,7 +1,7 @@
 import { createSchema } from "../engine/schema.js";
 
-export const SCHEMA_VEICULOS = createSchema({
-    entity: "VEICULOS",
+export const SCHEMA_EMPREGADOS = createSchema({
+    entity: "EMPREGADOS",
 
     fields: [
         {
@@ -18,37 +18,35 @@ export const SCHEMA_VEICULOS = createSchema({
             type: "text"
         },
         {
-            name: "Placa",
+            name: "Empregado",
             type: "text",
             required: true
         },
         {
-            name: "Modelo",
+            name: "Matricula",
             type: "text",
             required: true
         },
         {
-            name: "Marca",
+            name: "Diretoria",
             type: "text"
         },
         {
-            name: "Ano",
+            name: "Setor",
             type: "text"
         },
         {
-            name: "Cor",
+            name: "Usuario",
             type: "text"
         },
         {
-            name: "Combustivel",
+            name: "Tipo",
             type: "select",
             options: [
-                "GASOLINA",
-                "ETANOL",
-                "FLEX",
-                "DIESEL",
-                "DIESEL S10",
-                "ELÉTRICO"
+                "ADMIN",
+                "MOTORISTA",
+                "SUPERVISOR",
+                "USUÁRIO"
             ]
         },
         {
@@ -56,8 +54,8 @@ export const SCHEMA_VEICULOS = createSchema({
             type: "select",
             options: [
                 "ATIVO",
-                "EM ANDAMENTO",
-                "MANUTENÇÃO",
+                "FÉRIAS",
+                "VIAGEM",
                 "INATIVO"
             ]
         }
