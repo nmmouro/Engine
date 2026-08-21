@@ -861,95 +861,143 @@ function preencherSelect(
 
     async function setData(dados = {}) {
 
-        registroAtual = dados || {};
+    registroAtual = dados || {};
 
-        modo =
-            dados && Object.keys(dados).length
-                ? "edicao"
-                : "novo";
+    modo =
+        dados && Object.keys(dados).length
+            ? "edicao"
+            : "novo";
 
-// ------------------------------------------------------------
-// Garante que selects relacionais estejam carregados
-// ------------------------------------------------------------
 
-for (const campo of schema.fields) {
+    // ============================================================
+    // GARANTE QUE O FORMULÁRIO EXISTE
+    // ============================================================
 
-    if (
-        campo.type !== "select" ||
-        !campo.source
-    ) {
+    if (!elemento) {
+        return;
+    }
 
-        continue;
+
+    // ============================================================
+    // CARREGA SELECTS RELACIONAIS PRIMEIRO
+    // ============================================================
+
+    for (const campo of schema.fields) {
+
+        if (
+            campo.type !== "select" ||
+            !campo.source
+        ) {
+            continue;
+        }
+
+
+        const input =
+            obterInput(campo.name);
+
+
+        if (!input) {
+            continue;
+        }
+
+
+        // --------------------------------------------------------
+        // Valor do ID relacionado
+        // --------------------------------------------------------
+
+        let valorAtual = "";
+
+
+        if (campo.idField) {
+
+            valorAtual =
+                dados[campo.idField] ?? "";
+
+        } else {
+
+            valorAtual =
+                dados[campo.name] ?? "";
+
+        }
+
+
+        await configurarCampoSelect(
+            campo,
+            input,
+            valorAtual
+        );
 
     }
 
 
-    const input =
-        obterInput(campo.name);
+    // ============================================================
+    // PREENCHE OS DEMAIS CAMPOS
+    // ============================================================
+
+    schema.fields.forEach(campo => {
+
+        // --------------------------------------------------------
+        // Select relacional
+        // --------------------------------------------------------
+
+        if (
+            campo.type === "select" &&
+            campo.source
+        ) {
+            return;
+        }
 
 
-    if (!input) {
-
-        continue;
-
-    }
+        const input =
+            obterInput(campo.name);
 
 
-    await configurarCampoSelect(
-        campo,
-        input,
-        dados[campo.name] ?? ""
-    );
+        if (!input) {
+            return;
+        }
+
+
+        const valor =
+            dados[campo.name];
+
+
+        if (
+            valor === undefined ||
+            valor === null
+        ) {
+            return;
+        }
+
+
+        // --------------------------------------------------------
+        // Checkbox
+        // --------------------------------------------------------
+
+        if (
+            input.type === "checkbox"
+        ) {
+
+            input.checked =
+                Boolean(valor);
+
+            return;
+
+        }
+
+
+        // --------------------------------------------------------
+        // Demais campos
+        // --------------------------------------------------------
+
+        input.value =
+            formatarValor(
+                campo,
+                valor
+            );
+
+    });
 
 }
-
-
-        schema.fields.forEach(campo => {
-
-            const input =
-                obterInput(campo.name);
-
-
-            if (!input) {
-                return;
-            }
-
-
-            const valor =
-                dados[campo.name];
-
-
-            if (campo.type === "checkbox") {
-
-                input.checked =
-                    Boolean(valor);
-
-                return;
-
-            }
-
-
-            if (
-                valor === undefined ||
-                valor === null
-            ) {
-
-                input.value = "";
-
-                return;
-
-            }
-
-
-            input.value =
-                formatarValor(campo, valor);
-
-        });
-
-
-        atualizarBotaoSalvar();
-
-    }
 
 
     // --------------------------------------------------------------------------------------------------------------------------------
