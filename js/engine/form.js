@@ -4,6 +4,7 @@
  * ============================================================
  *
  * Responsável por:
+ *
  * - Criar formulário a partir do Schema
  * - Preencher formulário com dados
  * - Ler dados do formulário
@@ -11,6 +12,7 @@
  * - Controlar modo novo/edição
  * - Suportar selects relacionais
  * - Ocultar campos técnicos
+ * - Converter campos de texto para CAIXA ALTA
  *
  * Não conhece nenhuma entidade específica.
  * ============================================================
@@ -102,7 +104,7 @@ export function createForm(config = {}) {
         for (const campo of schema.fields) {
 
             // ----------------------------------------------------
-            // NÃO CRIAR CAMPOS TÉCNICOS
+            // Não criar campos técnicos
             // ----------------------------------------------------
 
             if (!deveExibirCampo(campo)) {
@@ -245,7 +247,9 @@ export function createForm(config = {}) {
         );
 
 
-        elemento.appendChild(form);
+        elemento.appendChild(
+            form
+        );
 
 
         atualizarBotaoSalvar();
@@ -271,7 +275,7 @@ export function createForm(config = {}) {
 
 
         // --------------------------------------------------------
-        // CAMPOS TÉCNICOS
+        // Campos técnicos
         // --------------------------------------------------------
 
         if (
@@ -285,7 +289,7 @@ export function createForm(config = {}) {
 
 
         // --------------------------------------------------------
-        // HIDDEN / VISIBLE
+        // Hidden / Visible
         // --------------------------------------------------------
 
         if (
@@ -346,29 +350,35 @@ export function createForm(config = {}) {
             field.separator ?? " / ";
 
 
-        return registros.map(registro => {
+        return registros.map(
+            registro => {
 
-            const value =
-                registro[valueField] ?? "";
-
-
-            const label =
-                labelFields
-                    .map(nome =>
-                        registro[nome] ?? ""
-                    )
-                    .join(separator);
+                const value =
+                    registro[valueField] ?? "";
 
 
-            return {
+                const label =
+                    labelFields
+                        .map(nome =>
+                            registro[nome] ?? ""
+                        )
+                        .filter(
+                            valor =>
+                                valor !== ""
+                        )
+                        .join(separator);
 
-                value,
 
-                label
+                return {
 
-            };
+                    value,
 
-        });
+                    label
+
+                };
+
+            }
+        );
 
     }
 
@@ -403,43 +413,52 @@ export function createForm(config = {}) {
         );
 
 
-        opcoes.forEach(opcao => {
+        opcoes.forEach(
+            opcao => {
 
-            const option =
-                document.createElement("option");
-
-
-            option.value =
-                opcao.value ?? "";
-
-
-            option.textContent =
-                opcao.label ?? "";
+                const option =
+                    document.createElement(
+                        "option"
+                    );
 
 
-            // Guarda o texto apresentado
-            // para o getData()
-
-            option.dataset.label =
-                opcao.label ?? "";
+                option.value =
+                    opcao.value ?? "";
 
 
-            if (
-                String(opcao.value) ===
-                String(valorAtual)
-            ) {
+                option.textContent =
+                    opcao.label ?? "";
 
-                option.selected =
-                    true;
+
+                // ------------------------------------------------
+                // Guarda o label
+                // ------------------------------------------------
+
+                option.dataset.label =
+                    opcao.label ?? "";
+
+
+                // ------------------------------------------------
+                // Seleciona valor atual
+                // ------------------------------------------------
+
+                if (
+                    String(opcao.value) ===
+                    String(valorAtual)
+                ) {
+
+                    option.selected =
+                        true;
+
+                }
+
+
+                select.appendChild(
+                    option
+                );
 
             }
-
-
-            select.appendChild(
-                option
-            );
-
-        });
+        );
 
     }
 
@@ -465,40 +484,42 @@ export function createForm(config = {}) {
                 input,
 
                 (field.options || [])
-                    .map(valor => {
+                    .map(
+                        valor => {
 
-                        if (
-                            typeof valor ===
-                            "object" &&
-                            valor !== null
-                        ) {
+                            if (
+                                typeof valor ===
+                                    "object" &&
+                                valor !== null
+                            ) {
+
+                                return {
+
+                                    value:
+                                        valor.value ?? "",
+
+                                    label:
+                                        valor.label ??
+                                        valor.value ??
+                                        ""
+
+                                };
+
+                            }
+
 
                             return {
 
                                 value:
-                                    valor.value ?? "",
+                                    String(valor),
 
                                 label:
-                                    valor.label ??
-                                    valor.value ??
-                                    ""
+                                    String(valor)
 
                             };
 
                         }
-
-
-                        return {
-
-                            value:
-                                String(valor),
-
-                            label:
-                                String(valor)
-
-                        };
-
-                    }),
+                    ),
 
                 valorAtual
 
@@ -522,7 +543,9 @@ export function createForm(config = {}) {
 
 
         const carregando =
-            document.createElement("option");
+            document.createElement(
+                "option"
+            );
 
 
         carregando.value =
@@ -570,7 +593,9 @@ export function createForm(config = {}) {
 
 
             const erroOption =
-                document.createElement("option");
+                document.createElement(
+                    "option"
+                );
 
 
             erroOption.value =
@@ -612,7 +637,9 @@ export function createForm(config = {}) {
 
 
         const grupo =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         grupo.className =
@@ -620,7 +647,9 @@ export function createForm(config = {}) {
 
 
         const label =
-            document.createElement("label");
+            document.createElement(
+                "label"
+            );
 
 
         label.htmlFor =
@@ -692,7 +721,15 @@ export function createForm(config = {}) {
         let input;
 
 
+        // ========================================================
+        // TIPO DO INPUT
+        // ========================================================
+
         switch (campo.type) {
+
+            // ----------------------------------------------------
+            // TEXT
+            // ----------------------------------------------------
 
             case "text":
 
@@ -707,6 +744,10 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // DATE
+            // ----------------------------------------------------
+
             case "date":
 
                 input =
@@ -719,6 +760,10 @@ export function createForm(config = {}) {
 
                 break;
 
+
+            // ----------------------------------------------------
+            // DATETIME
+            // ----------------------------------------------------
 
             case "datetime":
 
@@ -733,6 +778,10 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // TIME
+            // ----------------------------------------------------
+
             case "time":
 
                 input =
@@ -745,6 +794,10 @@ export function createForm(config = {}) {
 
                 break;
 
+
+            // ----------------------------------------------------
+            // NUMBER
+            // ----------------------------------------------------
 
             case "number":
 
@@ -759,6 +812,10 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // EMAIL
+            // ----------------------------------------------------
+
             case "email":
 
                 input =
@@ -772,6 +829,10 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // TEXTAREA
+            // ----------------------------------------------------
+
             case "textarea":
 
                 input =
@@ -782,13 +843,23 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // SELECT
+            // ----------------------------------------------------
+
             case "select":
 
                 input =
-                    criarSelect(campo);
+                    criarSelect(
+                        campo
+                    );
 
                 break;
 
+
+            // ----------------------------------------------------
+            // CHECKBOX
+            // ----------------------------------------------------
 
             case "checkbox":
 
@@ -803,6 +874,10 @@ export function createForm(config = {}) {
                 break;
 
 
+            // ----------------------------------------------------
+            // FILE
+            // ----------------------------------------------------
+
             case "file":
 
                 input =
@@ -815,6 +890,10 @@ export function createForm(config = {}) {
 
                 break;
 
+
+            // ----------------------------------------------------
+            // PADRÃO
+            // ----------------------------------------------------
 
             default:
 
@@ -830,6 +909,10 @@ export function createForm(config = {}) {
 
         }
 
+
+        // ========================================================
+        // ATRIBUTOS
+        // ========================================================
 
         input.id =
             id;
@@ -886,15 +969,12 @@ export function createForm(config = {}) {
         // ========================================================
 
         if (
-            campo.defaultValue !==
-                undefined &&
-            campo.defaultValue !==
-                null
+            campo.defaultValue !== undefined &&
+            campo.defaultValue !== null
         ) {
 
             if (
-                campo.type ===
-                "checkbox"
+                campo.type === "checkbox"
             ) {
 
                 input.checked =
@@ -910,6 +990,16 @@ export function createForm(config = {}) {
             }
 
         }
+
+
+        // ========================================================
+        // CAIXA ALTA
+        // ========================================================
+
+        aplicarCaixaAlta(
+            input,
+            campo
+        );
 
 
         return input;
@@ -965,46 +1055,58 @@ export function createForm(config = {}) {
                 : [];
 
 
-        options.forEach(opcao => {
+        options.forEach(
+            opcao => {
 
-            const option =
-                document.createElement(
-                    "option"
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                if (
+                    typeof opcao ===
+                        "object" &&
+                    opcao !== null
+                ) {
+
+                    option.value =
+                        opcao.value ?? "";
+
+
+                    option.textContent =
+                        opcao.label ??
+                        opcao.value ??
+                        "";
+
+
+                    option.dataset.label =
+                        opcao.label ??
+                        opcao.value ??
+                        "";
+
+                } else {
+
+                    option.value =
+                        String(opcao);
+
+
+                    option.textContent =
+                        String(opcao);
+
+
+                    option.dataset.label =
+                        String(opcao);
+
+                }
+
+
+                select.appendChild(
+                    option
                 );
 
-
-            if (
-                typeof opcao ===
-                    "object" &&
-                opcao !== null
-            ) {
-
-                option.value =
-                    opcao.value ?? "";
-
-
-                option.textContent =
-                    opcao.label ??
-                    opcao.value ??
-                    "";
-
-            } else {
-
-                option.value =
-                    String(opcao);
-
-
-                option.textContent =
-                    String(opcao);
-
             }
-
-
-            select.appendChild(
-                option
-            );
-
-        });
+        );
 
 
         return select;
@@ -1016,7 +1118,9 @@ export function createForm(config = {}) {
     // PREENCHER FORMULÁRIO
     // ============================================================
 
-    async function setData(dados = {}) {
+    async function setData(
+        dados = {}
+    ) {
 
         registroAtual =
             dados || {};
@@ -1131,7 +1235,7 @@ export function createForm(config = {}) {
 
 
                 // ------------------------------------------------
-                // Select relacional
+                // Select relacional já tratado
                 // ------------------------------------------------
 
                 if (
@@ -1173,6 +1277,10 @@ export function createForm(config = {}) {
                 }
 
 
+                // ------------------------------------------------
+                // Checkbox
+                // ------------------------------------------------
+
                 if (
                     input.type ===
                     "checkbox"
@@ -1185,6 +1293,10 @@ export function createForm(config = {}) {
 
                 }
 
+
+                // ------------------------------------------------
+                // Demais campos
+                // ------------------------------------------------
 
                 input.value =
                     formatarValor(
@@ -1214,8 +1326,7 @@ export function createForm(config = {}) {
             campo => {
 
                 // ------------------------------------------------
-                // Campos técnicos não possuem input visual.
-                // Seus valores serão tratados pelo Engine.
+                // Campos técnicos não possuem input visual
                 // ------------------------------------------------
 
                 if (
@@ -1265,13 +1376,19 @@ export function createForm(config = {}) {
                         "";
 
 
+                    // ------------------------------------------------
                     // ID técnico
+                    // ------------------------------------------------
+
                     dados[
                         campo.idField
                     ] = id;
 
 
+                    // ------------------------------------------------
                     // Valor visual
+                    // ------------------------------------------------
+
                     dados[
                         campo.name
                     ] =
@@ -1293,6 +1410,10 @@ export function createForm(config = {}) {
                     input.value;
 
 
+                // ------------------------------------------------
+                // Checkbox
+                // ------------------------------------------------
+
                 if (
                     input.type ===
                     "checkbox"
@@ -1303,6 +1424,10 @@ export function createForm(config = {}) {
 
                 }
 
+
+                // ------------------------------------------------
+                // Date
+                // ------------------------------------------------
 
                 if (
                     campo.type ===
@@ -1316,6 +1441,10 @@ export function createForm(config = {}) {
                 }
 
 
+                // ------------------------------------------------
+                // Time
+                // ------------------------------------------------
+
                 if (
                     campo.type ===
                     "time"
@@ -1324,6 +1453,28 @@ export function createForm(config = {}) {
                     valor =
                         input.value ||
                         "";
+
+                }
+
+
+                // ------------------------------------------------
+                // Campos de texto
+                //
+                // Garante caixa alta também no momento
+                // do envio.
+                // ------------------------------------------------
+
+                if (
+                    campo.type === "text" ||
+                    campo.type === "textarea" ||
+                    campo.type === "email"
+                ) {
+
+                    valor =
+                        String(valor)
+                            .toLocaleUpperCase(
+                                "pt-BR"
+                            );
 
                 }
 
@@ -1536,7 +1687,9 @@ export function createForm(config = {}) {
     // ERRO
     // ============================================================
 
-    function mostrarErro(mensagem) {
+    function mostrarErro(
+        mensagem
+    ) {
 
         console.error(
             "Form:",
@@ -1544,7 +1697,9 @@ export function createForm(config = {}) {
         );
 
 
-        alert(mensagem);
+        alert(
+            mensagem
+        );
 
     }
 
@@ -1556,7 +1711,9 @@ export function createForm(config = {}) {
     function obterInput(nome) {
 
         const id =
-            gerarIdCampo(nome);
+            gerarIdCampo(
+                nome
+            );
 
 
         return elemento.querySelector(
@@ -1641,6 +1798,10 @@ export function createForm(config = {}) {
             String(valor);
 
 
+        // --------------------------------------------------------
+        // yyyy-mm-dd
+        // --------------------------------------------------------
+
         if (
             /^\d{4}-\d{2}-\d{2}$/.test(
                 texto
@@ -1651,6 +1812,10 @@ export function createForm(config = {}) {
 
         }
 
+
+        // --------------------------------------------------------
+        // dd/mm/yyyy
+        // --------------------------------------------------------
 
         const partes =
             texto.split("/");
@@ -1680,7 +1845,7 @@ export function createForm(config = {}) {
 
 
     // ============================================================
-    // DATA/HORA
+    // DATA/HORA → INPUT
     // ============================================================
 
     function converterDataHoraParaInput(
@@ -1698,6 +1863,10 @@ export function createForm(config = {}) {
             String(valor);
 
 
+        // --------------------------------------------------------
+        // Já está correto
+        // --------------------------------------------------------
+
         if (
             /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
                 .test(texto)
@@ -1709,8 +1878,14 @@ export function createForm(config = {}) {
 
 
         return texto
-            .replace(" ", "T")
-            .substring(0, 16);
+            .replace(
+                " ",
+                "T"
+            )
+            .substring(
+                0,
+                16
+            );
 
     }
 
@@ -1746,7 +1921,9 @@ export function createForm(config = {}) {
     // RESOLVE ELEMENTO
     // ============================================================
 
-    function resolverElemento(valor) {
+    function resolverElemento(
+        valor
+    ) {
 
         if (!valor) {
 
@@ -1816,5 +1993,106 @@ export function createForm(config = {}) {
         }
 
     };
+
+}
+
+
+/**
+ * ============================================================
+ * CAIXA ALTA
+ * ============================================================
+ *
+ * Converte automaticamente os campos de texto para maiúsculas
+ * enquanto o usuário digita.
+ *
+ * Afeta:
+ *
+ * - text
+ * - textarea
+ * - email
+ *
+ * Não afeta:
+ *
+ * - date
+ * - time
+ * - datetime
+ * - number
+ * - select
+ * - checkbox
+ * - file
+ *
+ * A conversão também é feita novamente no getData(),
+ * garantindo que o valor enviado esteja em caixa alta.
+ * ============================================================
+ */
+
+function aplicarCaixaAlta(
+    input,
+    campo
+) {
+
+    if (!input || !campo) {
+
+        return;
+
+    }
+
+
+    const tiposTexto = [
+        "text",
+        "textarea",
+        "email"
+    ];
+
+
+    if (
+        !tiposTexto.includes(
+            campo.type
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            const inicio =
+                input.selectionStart;
+
+
+            const fim =
+                input.selectionEnd;
+
+
+            input.value =
+                input.value.toLocaleUpperCase(
+                    "pt-BR"
+                );
+
+
+            // ----------------------------------------------------
+            // Mantém posição do cursor
+            // ----------------------------------------------------
+
+            try {
+
+                input.setSelectionRange(
+                    inicio,
+                    fim
+                );
+
+            } catch (erro) {
+
+                // Alguns elementos podem não
+                // suportar seleção de texto.
+
+            }
+
+        }
+    );
 
 }
