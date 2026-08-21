@@ -15,7 +15,8 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             name: "ID",
             type: "text",
             visible: false,
-            hidden: true
+            hidden: true,
+            readonly: true
         },
 
         {
