@@ -734,3 +734,77 @@ function resolverElemento(valor) {
     return null;
 
 }
+
+/**
+ * ============================================================
+ * RESOLVE SELECT
+ * ============================================================
+ */
+
+function possuiSelectRelacional(schema) {
+
+    return schema.fields.some(
+        field =>
+            field.type === "select" &&
+            field.source
+    );
+
+}
+
+
+async function carregarFontesRelacionadas(schema) {
+
+    const fontes = [
+        ...new Set(
+
+            schema.fields
+                .filter(
+                    field =>
+                        field.type === "select" &&
+                        field.source
+                )
+                .map(
+                    field =>
+                        field.source
+                )
+
+        )
+    ];
+
+
+    const resultado = {};
+
+
+    await Promise.all(
+
+        fontes.map(
+            async source => {
+
+                try {
+
+                    resultado[source] =
+                        await crud.listarFonte(
+                            source
+                        );
+
+                } catch (erro) {
+
+                    console.error(
+                        `Erro ao carregar fonte ${source}:`,
+                        erro
+                    );
+
+                    resultado[source] =
+                        [];
+
+                }
+
+            }
+        )
+
+    );
+
+
+    return resultado;
+
+}
