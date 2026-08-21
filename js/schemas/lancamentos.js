@@ -7,6 +7,10 @@ export const SCHEMA_LANCAMENTOS = createSchema({
 
     fields: [
 
+        // ========================================================
+        // CAMPOS TÉCNICOS
+        // ========================================================
+
         {
             name: "ID",
             type: "text",
@@ -28,6 +32,11 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             hidden: true
         },
 
+
+        // ========================================================
+        // DADOS DO LANÇAMENTO
+        // ========================================================
+
         {
             name: "Data",
             type: "date",
@@ -40,9 +49,16 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             required: true
         },
 
+
+        // ========================================================
+        // EMPREGADO
+        // ========================================================
+
         {
             name: "Empregado / Matrícula",
+
             type: "select",
+
             required: true,
 
             source: "EMPREGADOS",
@@ -59,9 +75,17 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             idField: "ID Empregado"
 
         },
+
+
+        // ========================================================
+        // VEÍCULO
+        // ========================================================
+
         {
             name: "Veículo",
+
             type: "select",
+
             required: true,
 
             source: "VEICULOS",
@@ -79,30 +103,60 @@ export const SCHEMA_LANCAMENTOS = createSchema({
 
         },
 
+
+        // ========================================================
+        // MOTIVO
+        // ========================================================
+
         {
             name: "Passageiro / Setor / Motivo",
+
             type: "text",
+
             required: true
+
         },
+
+
+        // ========================================================
+        // ITINERÁRIO
+        // ========================================================
 
         {
             name: "Itinerário",
+
             type: "text"
+
         },
+
+
+        // ========================================================
+        // QUILOMETRAGEM
+        // ========================================================
 
         {
             name: "Km Final",
+
             type: "number"
+
         },
+
+
+        // ========================================================
+        // STATUS
+        // ========================================================
 
         {
             name: "Status",
+
             type: "select",
+
             options: [
                 "EM ANDAMENTO",
                 "CONCLUÍDO",
                 "CANCELADO"
             ]
+
         }
 
     ]
