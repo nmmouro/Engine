@@ -12,6 +12,17 @@
  * - Toolbar
  *
  * O Engine não conhece nenhuma entidade específica.
+ *
+ * Também suporta:
+ *
+ * - Selects relacionais
+ * - Fontes externas do Schema
+ * - EMPREGADOS
+ * - VEICULOS
+ * - Preservação dos IDs técnicos
+ * - Novo registro
+ * - Edição de registro
+ * - Exclusão
  * ============================================================
  */
 
@@ -26,8 +37,11 @@ import { createToolbar } from "./toolbar.js";
  * ============================================================
  * CREATE ENGINE
  * ============================================================
+ *
+ * @param {Object} config
+ *
+ * @returns {Object}
  */
-
 export function createEngine(config = {}) {
 
     const {
@@ -44,29 +58,21 @@ export function createEngine(config = {}) {
     // ============================================================
 
     if (!entity) {
-
         throw new Error(
             "Engine: entity não informado."
         );
-
     }
 
-
     if (!schema) {
-
         throw new Error(
             `Engine ${entity}: schema não informado.`
         );
-
     }
 
-
     if (!container) {
-
         throw new Error(
             `Engine ${entity}: container não informado.`
         );
-
     }
 
 
@@ -77,13 +83,10 @@ export function createEngine(config = {}) {
     const app =
         resolverElemento(container);
 
-
     if (!app) {
-
         throw new Error(
             `Engine ${entity}: container não encontrado: ${container}`
         );
-
     }
 
 
@@ -104,7 +107,7 @@ export function createEngine(config = {}) {
 
 
     // ============================================================
-    // ESTRUTURA
+    // ESTRUTURA DA PÁGINA
     // ============================================================
 
     app.innerHTML = "";
@@ -132,11 +135,9 @@ export function createEngine(config = {}) {
         toolbarContainer
     );
 
-
     app.appendChild(
         formContainer
     );
-
 
     app.appendChild(
         tableContainer
@@ -224,18 +225,24 @@ export function createEngine(config = {}) {
 
 
     // ============================================================
-    // FONTES RELACIONADAS
+    // CARREGAR FONTES RELACIONADAS
     // ============================================================
-
     /**
-     * Carrega todas as fontes usadas por selects relacionais.
+     * Localiza todas as fontes usadas pelos
+     * selects relacionais.
      *
      * Exemplo:
      *
-     * EMPREGADOS
-     * VEICULOS
+     * source: "EMPREGADOS"
+     * source: "VEICULOS"
+     *
+     * Retorno:
+     *
+     * {
+     *     EMPREGADOS: [...],
+     *     VEICULOS: [...]
+     * }
      */
-
     async function carregarFontesRelacionadas() {
 
         const fontes =
@@ -244,15 +251,13 @@ export function createEngine(config = {}) {
 
                     schema.fields
 
-                        .filter(
-                            campo =>
-                                campo.type === "select" &&
-                                campo.source
+                        .filter(campo =>
+                            campo.type === "select" &&
+                            campo.source
                         )
 
-                        .map(
-                            campo =>
-                                campo.source
+                        .map(campo =>
+                            campo.source
                         )
 
                 )
@@ -263,9 +268,7 @@ export function createEngine(config = {}) {
 
 
         if (fontes.length === 0) {
-
             return resultado;
-
         }
 
 
@@ -275,12 +278,6 @@ export function createEngine(config = {}) {
                 async source => {
 
                     try {
-
-                        /*
-                         * createCrud() representa a entidade
-                         * atual. Para buscar outra aba,
-                         * usamos diretamente o serviço CRUD.
-                         */
 
                         const crudFonte =
                             createCrud(source);
@@ -321,9 +318,20 @@ export function createEngine(config = {}) {
 
 
     // ============================================================
-    // APLICA FONTES NO SCHEMA
+    // APLICA FONTES RELACIONADAS AO SCHEMA
     // ============================================================
-
+    /**
+     * Coloca os registros das fontes dentro
+     * do próprio campo do Schema.
+     *
+     * Isso permite que o form.js utilize:
+     *
+     * campo.records
+     *
+     * e:
+     *
+     * campo.options
+     */
     function aplicarFontesRelacionadas(fontes) {
 
         schema.fields.forEach(campo => {
@@ -340,21 +348,14 @@ export function createEngine(config = {}) {
                 fontes[campo.source] || [];
 
 
-            /*
-             * Guarda os registros no próprio campo.
-             *
-             * Isso permite que o form.js utilize posteriormente
-             * os dados para montar os options.
-             */
-
+            // Guarda os registros completos
             campo.records =
                 registros;
 
 
-            /*
-             * Monta options para compatibilidade com
-             * o comportamento atual do form/table.
-             */
+            // ----------------------------------------------------
+            // Monta options
+            // ----------------------------------------------------
 
             if (
                 campo.valueField &&
@@ -374,9 +375,9 @@ export function createEngine(config = {}) {
                             campo.labelFields
 
                                 .map(
-                                    campoLabel =>
+                                    nome =>
                                         registro?.[
-                                            campoLabel
+                                            nome
                                         ] ?? ""
                                 )
 
@@ -386,7 +387,8 @@ export function createEngine(config = {}) {
                                 )
 
                                 .join(
-                                    campo.separator || " / "
+                                    campo.separator ||
+                                    " / "
                                 );
 
 
@@ -408,14 +410,15 @@ export function createEngine(config = {}) {
 
 
     // ============================================================
-    // CARREGAR DADOS
+    // CARREGAR REGISTROS DA ENTIDADE
     // ============================================================
 
     async function carregar() {
 
         try {
 
-            state.carregando = true;
+            state.carregando =
+                true;
 
 
             table.renderLoading(
@@ -446,7 +449,8 @@ export function createEngine(config = {}) {
             );
 
 
-            state.registros = [];
+            state.registros =
+                [];
 
 
             table.renderVazio(
@@ -461,7 +465,8 @@ export function createEngine(config = {}) {
 
         } finally {
 
-            state.carregando = false;
+            state.carregando =
+                false;
 
         }
 
@@ -484,22 +489,33 @@ export function createEngine(config = {}) {
 
         try {
 
-            /*
-             * Os selects precisam estar carregados também
-             * no formulário de inclusão.
-             */
+            // ----------------------------------------------------
+            // Carrega EMPREGADOS / VEICULOS
+            // ----------------------------------------------------
 
             const fontes =
                 await carregarFontesRelacionadas();
 
+
+            // ----------------------------------------------------
+            // Coloca as fontes no Schema
+            // ----------------------------------------------------
 
             aplicarFontesRelacionadas(
                 fontes
             );
 
 
+            // ----------------------------------------------------
+            // Limpa formulário
+            // ----------------------------------------------------
+
             form.reset();
 
+
+            // ----------------------------------------------------
+            // Mostra formulário
+            // ----------------------------------------------------
 
             mostrarFormulario();
 
@@ -507,7 +523,7 @@ export function createEngine(config = {}) {
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}:`,
+                `Engine ${entity}: erro ao abrir novo`,
                 erro
             );
 
@@ -540,32 +556,41 @@ export function createEngine(config = {}) {
                 indice;
 
 
-            /*
-             * IMPORTANTE:
-             *
-             * Primeiro carregamos EMPREGADOS e VEICULOS.
-             *
-             * Só depois chamamos form.setData().
-             */
+            // ----------------------------------------------------
+            // Carrega fontes relacionais
+            // ----------------------------------------------------
 
             const fontes =
                 await carregarFontesRelacionadas();
 
+
+            // ----------------------------------------------------
+            // Aplica fontes
+            // ----------------------------------------------------
 
             aplicarFontesRelacionadas(
                 fontes
             );
 
 
-            /*
-             * setData precisa ser chamado depois
-             * que os options existem.
-             */
+            // ----------------------------------------------------
+            // Preenche formulário
+            // ----------------------------------------------------
+            //
+            // IMPORTANTE:
+            //
+            // form.setData() precisa ocorrer depois que
+            // EMPREGADOS e VEICULOS estiverem carregados.
+            //
 
             await form.setData(
                 registro
             );
 
+
+            // ----------------------------------------------------
+            // Mostra formulário
+            // ----------------------------------------------------
 
             mostrarFormulario();
 
@@ -591,7 +616,9 @@ export function createEngine(config = {}) {
     // SALVAR FORMULÁRIO
     // ============================================================
 
-    async function salvarFormulario(dados) {
+    async function salvarFormulario(
+        dados
+    ) {
 
         try {
 
@@ -611,13 +638,9 @@ export function createEngine(config = {}) {
                     state.registroEditando;
 
 
-                /*
-                 * Mantém todos os campos originais.
-                 *
-                 * Isso é importante para LANCAMENTOS,
-                 * porque existem campos que não aparecem
-                 * no formulário simplificado.
-                 */
+                // ------------------------------------------------
+                // Mantém os dados originais
+                // ------------------------------------------------
 
                 const dadosAtualizacao = {
 
@@ -625,20 +648,16 @@ export function createEngine(config = {}) {
 
                     ...dados,
 
-                    /*
-                     * ID principal
-                     */
-
+                    // ID principal
                     ID:
                         registroOriginal.ID
 
                 };
 
 
-                /*
-                 * Preserva relacionamento do empregado
-                 * caso o formulário não o tenha alterado.
-                 */
+                // ------------------------------------------------
+                // Preserva ID Empregado
+                // ------------------------------------------------
 
                 if (
                     registroOriginal["ID Empregado"] &&
@@ -651,9 +670,9 @@ export function createEngine(config = {}) {
                 }
 
 
-                /*
-                 * Preserva relacionamento do veículo.
-                 */
+                // ------------------------------------------------
+                // Preserva ID Veículo
+                // ------------------------------------------------
 
                 if (
                     registroOriginal["ID Veículo"] &&
@@ -798,9 +817,7 @@ export function createEngine(config = {}) {
 
 
         if (!confirmar) {
-
             return;
-
         }
 
 
@@ -917,7 +934,9 @@ export function createEngine(config = {}) {
     // MENSAGEM DE ERRO
     // ============================================================
 
-    function mostrarErro(erro) {
+    function mostrarErro(
+        erro
+    ) {
 
         const mensagem =
             erro?.message ||
@@ -925,6 +944,7 @@ export function createEngine(config = {}) {
 
 
         console.error(
+            `Engine ${entity}:`,
             mensagem
         );
 
@@ -982,27 +1002,19 @@ export function createEngine(config = {}) {
  * ============================================================
  * VALIDAR RESPOSTA DA API
  * ============================================================
+ *
+ * Trata os dois formatos utilizados pelo backend:
+ *
+ * 1. resposta.sucesso
+ *
+ * 2. resposta.dados.sucesso
  */
-
 function validarResposta(
     resposta,
     operacao
 ) {
 
-    /*
-     * Resposta normal:
-     *
-     * {
-     *   sucesso: true,
-     *   status: 200,
-     *   dados: {...}
-     * }
-     */
-
-
-    if (
-        !resposta
-    ) {
+    if (!resposta) {
 
         throw new Error(
             `A API não retornou resposta na ${operacao}.`
@@ -1011,9 +1023,9 @@ function validarResposta(
     }
 
 
-    /*
-     * Erro no primeiro nível
-     */
+    // ============================================================
+    // PRIMEIRO NÍVEL
+    // ============================================================
 
     if (
         resposta.sucesso === false
@@ -1028,17 +1040,9 @@ function validarResposta(
     }
 
 
-    /*
-     * Sua API possui uma segunda camada:
-     *
-     * dados:
-     * {
-     *     sucesso: false,
-     *     erro: "..."
-     * }
-     *
-     * Portanto precisamos verificar também.
-     */
+    // ============================================================
+    // SEGUNDO NÍVEL
+    // ============================================================
 
     const interno =
         resposta?.dados;
@@ -1066,13 +1070,12 @@ function validarResposta(
  * RESOLVE ELEMENTO
  * ============================================================
  */
-
-function resolverElemento(valor) {
+function resolverElemento(
+    valor
+) {
 
     if (!valor) {
-
         return null;
-
     }
 
 
@@ -1106,8 +1109,9 @@ function resolverElemento(valor) {
  * CRIA CONTAINER
  * ============================================================
  */
-
-function criarContainer(classe) {
+function criarContainer(
+    classe
+) {
 
     const elemento =
         document.createElement("div");
