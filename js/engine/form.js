@@ -9,22 +9,11 @@
  * - Ler dados do formulário
  * - Limpar formulário
  * - Controlar modo novo/edição
+ * - Suportar selects relacionais
+ * - Ocultar campos técnicos
  *
  * Não conhece nenhuma entidade específica.
  * ============================================================
- */
-
-
-/**
- * Cria o componente de formulário.
- *
- * @param {Object} config
- * @param {Object} config.schema
- * @param {HTMLElement|string} config.container
- * @param {Function} config.onSubmit
- * @param {Function} config.onCancel
- *
- * @returns {Object}
  */
 
 import {
@@ -42,675 +31,813 @@ export function createForm(config = {}) {
     } = config;
 
 
-    // ------------------------------------------------------------
-    // Validações
-    // ------------------------------------------------------------
+    // ============================================================
+    // VALIDAÇÕES
+    // ============================================================
 
     if (!schema) {
+
         throw new Error(
             "Form: schema não informado."
         );
+
     }
 
+
     if (!Array.isArray(schema.fields)) {
+
         throw new Error(
             `Form ${schema.entity}: fields inválido.`
         );
+
     }
 
 
-    const elemento = resolverElemento(container);
+    const elemento =
+        resolverElemento(container);
+
 
     if (!elemento) {
+
         throw new Error(
             `Form: container não encontrado: ${container}`
         );
+
     }
 
 
-    // ------------------------------------------------------------
-    // Estado interno
-    // ------------------------------------------------------------
+    // ============================================================
+    // ESTADO
+    // ============================================================
 
     let registroAtual = null;
 
     let modo = "novo";
 
 
-    // ------------------------------------------------------------
-    // Renderização
-    // ------------------------------------------------------------
+    // ============================================================
+    // RENDERIZAÇÃO
+    // ============================================================
 
     async function render() {
 
-    elemento.innerHTML = "";
-
-    const form =
-        document.createElement("form");
-
-    form.className =
-        "engine-form";
-
-    form.noValidate = true;
+        elemento.innerHTML = "";
 
 
-    // --------------------------------------------------------
-    // Campos
-    // --------------------------------------------------------
-
-    for (const campo of schema.fields) {
-
-        const grupo =
-            await criarCampo(campo);
-
-        if (grupo) {
-
-            form.appendChild(grupo);
-
-        }
-
-    }
+        const form =
+            document.createElement("form");
 
 
-    // --------------------------------------------------------
-    // Botões
-    // --------------------------------------------------------
-
-    const actions =
-        document.createElement("div");
-
-    actions.className =
-        "engine-form-actions";
+        form.className =
+            "engine-form";
 
 
-    const btnSalvar =
-        document.createElement("button");
-
-    btnSalvar.type = "submit";
-
-    btnSalvar.className =
-        "btn btn-primary";
-
-    btnSalvar.textContent =
-        modo === "edicao"
-            ? "Atualizar"
-            : "Salvar";
+        form.noValidate = true;
 
 
-    const btnCancelar =
-        document.createElement("button");
+        // ========================================================
+        // CAMPOS
+        // ========================================================
 
-    btnCancelar.type = "button";
+        for (const campo of schema.fields) {
 
-    btnCancelar.className =
-        "btn btn-secondary";
+            // ----------------------------------------------------
+            // NÃO CRIAR CAMPOS TÉCNICOS
+            // ----------------------------------------------------
 
-    btnCancelar.textContent =
-        "Cancelar";
+            if (!deveExibirCampo(campo)) {
 
-
-    actions.appendChild(btnSalvar);
-
-    actions.appendChild(btnCancelar);
-
-    form.appendChild(actions);
-
-
-    // --------------------------------------------------------
-    // Submit
-    // --------------------------------------------------------
-
-    form.addEventListener(
-        "submit",
-        evento => {
-
-            evento.preventDefault();
-
-            const dados =
-                getData();
-
-
-            if (!validar(dados)) {
-
-                return;
+                continue;
 
             }
 
 
-            if (
-                typeof onSubmit ===
-                "function"
-            ) {
+            const grupo =
+                await criarCampo(campo);
 
-                onSubmit(
-                    dados,
-                    registroAtual
-                );
+
+            if (grupo) {
+
+                form.appendChild(grupo);
 
             }
 
         }
-    );
 
 
-    // --------------------------------------------------------
-    // Cancelar
-    // --------------------------------------------------------
+        // ========================================================
+        // BOTÕES
+        // ========================================================
 
-    btnCancelar.addEventListener(
-        "click",
-        () => {
-
-            if (
-                typeof onCancel ===
-                "function"
-            ) {
-
-                onCancel();
-
-            }
-
-        }
-    );
+        const actions =
+            document.createElement("div");
 
 
-    elemento.appendChild(form);
-
-}
-    
-
-// ===========================================================================================================
-// SELECT RELACIONAL
-// ===========================================================================================================
-
-async function carregarOpcoesRelacionadas(field) {
-
-    if (!field.source) {
-        return [];
-    }
+        actions.className =
+            "engine-form-actions";
 
 
-    const registros =
-        await listar(field.source);
+        const btnSalvar =
+            document.createElement("button");
 
 
-    if (!Array.isArray(registros)) {
+        btnSalvar.type =
+            "submit";
 
-        console.warn(
-            `Nenhum registro encontrado para ${field.source}`
+
+        btnSalvar.className =
+            "btn btn-primary";
+
+
+        btnSalvar.textContent =
+            modo === "edicao"
+                ? "Atualizar"
+                : "Salvar";
+
+
+        const btnCancelar =
+            document.createElement("button");
+
+
+        btnCancelar.type =
+            "button";
+
+
+        btnCancelar.className =
+            "btn btn-secondary";
+
+
+        btnCancelar.textContent =
+            "Cancelar";
+
+
+        actions.appendChild(
+            btnSalvar
         );
 
-        return [];
+
+        actions.appendChild(
+            btnCancelar
+        );
+
+
+        form.appendChild(
+            actions
+        );
+
+
+        // ========================================================
+        // SUBMIT
+        // ========================================================
+
+        form.addEventListener(
+            "submit",
+            evento => {
+
+                evento.preventDefault();
+
+
+                const dados =
+                    getData();
+
+
+                if (!validar(dados)) {
+
+                    return;
+
+                }
+
+
+                if (
+                    typeof onSubmit ===
+                    "function"
+                ) {
+
+                    onSubmit(
+                        dados,
+                        registroAtual
+                    );
+
+                }
+
+            }
+        );
+
+
+        // ========================================================
+        // CANCELAR
+        // ========================================================
+
+        btnCancelar.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    typeof onCancel ===
+                    "function"
+                ) {
+
+                    onCancel();
+
+                }
+
+            }
+        );
+
+
+        elemento.appendChild(form);
+
+
+        atualizarBotaoSalvar();
 
     }
 
 
-    const valueField =
-        field.valueField || "ID";
+    // ============================================================
+    // VERIFICA SE CAMPO DEVE SER EXIBIDO
+    // ============================================================
+
+    function deveExibirCampo(campo) {
+
+        if (!campo) {
+
+            return false;
+
+        }
 
 
-    const labelFields =
-        field.labelFields || [valueField];
+        const nome =
+            campo.name || "";
 
 
-    const separator =
-        field.separator ?? " / ";
+        // --------------------------------------------------------
+        // CAMPOS TÉCNICOS
+        // --------------------------------------------------------
+
+        if (
+            nome === "ID" ||
+            nome.startsWith("ID ")
+        ) {
+
+            return false;
+
+        }
 
 
-    return registros.map(registro => {
+        // --------------------------------------------------------
+        // HIDDEN / VISIBLE
+        // --------------------------------------------------------
 
-        const value =
-            registro[valueField] ?? "";
+        if (
+            campo.hidden === true ||
+            campo.visible === false
+        ) {
 
+            return false;
 
-        const label =
-            labelFields
-                .map(nome =>
-                    registro[nome] ?? ""
-                )
-                .join(separator);
-
-
-        return {
-
-            value,
-
-            label
-
-        };
-
-    });
-
-}
-
-// ============================================================
-// PREENCHER SELECT
-// ============================================================
-
-function preencherSelect(
-    select,
-    opcoes,
-    valorAtual = ""
-) {
-
-    select.innerHTML = "";
+        }
 
 
-    const opcaoInicial =
-        document.createElement("option");
+        return true;
+
+    }
 
 
-    opcaoInicial.value = "";
+    // ============================================================
+    // SELECT RELACIONAL
+    // ============================================================
 
-    opcaoInicial.textContent =
-        "Selecione...";
+    async function carregarOpcoesRelacionadas(field) {
+
+        if (!field.source) {
+
+            return [];
+
+        }
 
 
-    select.appendChild(
-        opcaoInicial
-    );
+        const registros =
+            await listar(
+                field.source
+            );
 
 
-    opcoes.forEach(opcao => {
+        if (!Array.isArray(registros)) {
 
-        const option =
+            console.warn(
+                `Nenhum registro encontrado para ${field.source}`
+            );
+
+            return [];
+
+        }
+
+
+        const valueField =
+            field.valueField || "ID";
+
+
+        const labelFields =
+            field.labelFields ||
+            [valueField];
+
+
+        const separator =
+            field.separator ?? " / ";
+
+
+        return registros.map(registro => {
+
+            const value =
+                registro[valueField] ?? "";
+
+
+            const label =
+                labelFields
+                    .map(nome =>
+                        registro[nome] ?? ""
+                    )
+                    .join(separator);
+
+
+            return {
+
+                value,
+
+                label
+
+            };
+
+        });
+
+    }
+
+
+    // ============================================================
+    // PREENCHER SELECT
+    // ============================================================
+
+    function preencherSelect(
+        select,
+        opcoes,
+        valorAtual = ""
+    ) {
+
+        select.innerHTML = "";
+
+
+        const opcaoInicial =
             document.createElement("option");
 
 
-        option.value =
-            opcao.value ?? "";
+        opcaoInicial.value =
+            "";
 
 
-        option.textContent =
-            opcao.label ?? "";
-
-
-        option.dataset.label =
-            opcao.label ?? "";
-
-
-        if (
-            String(opcao.value) ===
-            String(valorAtual)
-        ) {
-
-            option.selected = true;
-
-        }
+        opcaoInicial.textContent =
+            "Selecione...";
 
 
         select.appendChild(
-            option
+            opcaoInicial
         );
 
-    });
 
-}
+        opcoes.forEach(opcao => {
+
+            const option =
+                document.createElement("option");
+
+
+            option.value =
+                opcao.value ?? "";
+
+
+            option.textContent =
+                opcao.label ?? "";
+
+
+            // Guarda o texto apresentado
+            // para o getData()
+
+            option.dataset.label =
+                opcao.label ?? "";
+
+
+            if (
+                String(opcao.value) ===
+                String(valorAtual)
+            ) {
+
+                option.selected =
+                    true;
+
+            }
+
+
+            select.appendChild(
+                option
+            );
+
+        });
+
+    }
+
+
+    // ============================================================
+    // CONFIGURAR SELECT
+    // ============================================================
 
     async function configurarCampoSelect(
-    field,
-    input,
-    valorAtual = ""
-) {
+        field,
+        input,
+        valorAtual = ""
+    ) {
 
-    // --------------------------------------------------------
-    // SELECT NORMAL
-    // --------------------------------------------------------
+        // ========================================================
+        // SELECT NORMAL
+        // ========================================================
 
-    if (!field.source) {
+        if (!field.source) {
 
-        preencherSelect(
+            preencherSelect(
 
-            input,
+                input,
 
-            (field.options || [])
-                .map(valor => {
+                (field.options || [])
+                    .map(valor => {
 
-                    if (
-                        typeof valor ===
-                        "object" &&
-                        valor !== null
-                    ) {
+                        if (
+                            typeof valor ===
+                            "object" &&
+                            valor !== null
+                        ) {
+
+                            return {
+
+                                value:
+                                    valor.value ?? "",
+
+                                label:
+                                    valor.label ??
+                                    valor.value ??
+                                    ""
+
+                            };
+
+                        }
+
 
                         return {
 
                             value:
-                                valor.value ?? "",
+                                String(valor),
 
                             label:
-                                valor.label ??
-                                valor.value ??
-                                ""
+                                String(valor)
 
                         };
 
-                    }
+                    }),
 
+                valorAtual
 
-                    return {
-
-                        value: String(valor),
-
-                        label: String(valor)
-
-                    };
-
-                }),
-
-            valorAtual
-
-        );
-
-        return;
-
-    }
-
-
-    // --------------------------------------------------------
-    // SELECT RELACIONAL
-    // --------------------------------------------------------
-
-    input.disabled = true;
-
-
-    input.innerHTML = "";
-
-
-    const carregando =
-        document.createElement("option");
-
-    carregando.value = "";
-
-    carregando.textContent =
-        "Carregando...";
-
-    carregando.selected = true;
-
-
-    input.appendChild(
-        carregando
-    );
-
-
-    try {
-
-        const opcoes =
-            await carregarOpcoesRelacionadas(
-                field
             );
 
+            return;
 
-        preencherSelect(
-            input,
-            opcoes,
-            valorAtual
-        );
+        }
 
 
-    } catch (erro) {
+        // ========================================================
+        // SELECT RELACIONAL
+        // ========================================================
 
-        console.error(
-            `Erro ao carregar ${field.source}:`,
-            erro
-        );
-
-
-        input.innerHTML = "";
+        input.disabled =
+            true;
 
 
-        const erroOption =
+        input.innerHTML =
+            "";
+
+
+        const carregando =
             document.createElement("option");
 
-        erroOption.value = "";
 
-        erroOption.textContent =
-            "Erro ao carregar opções";
+        carregando.value =
+            "";
+
+
+        carregando.textContent =
+            "Carregando...";
+
+
+        carregando.selected =
+            true;
 
 
         input.appendChild(
-            erroOption
+            carregando
         );
 
 
-    } finally {
+        try {
 
-        input.disabled = false;
+            const opcoes =
+                await carregarOpcoesRelacionadas(
+                    field
+                );
+
+
+            preencherSelect(
+                input,
+                opcoes,
+                valorAtual
+            );
+
+
+        } catch (erro) {
+
+            console.error(
+                `Erro ao carregar ${field.source}:`,
+                erro
+            );
+
+
+            input.innerHTML =
+                "";
+
+
+            const erroOption =
+                document.createElement("option");
+
+
+            erroOption.value =
+                "";
+
+
+            erroOption.textContent =
+                "Erro ao carregar opções";
+
+
+            input.appendChild(
+                erroOption
+            );
+
+
+        } finally {
+
+            input.disabled =
+                false;
+
+        }
 
     }
 
-}
 
-
-    // ------------------------------------------------------------
-    // Cria um campo
-    // ------------------------------------------------------------
+    // ============================================================
+    // CRIA CAMPO
+    // ============================================================
 
     async function criarCampo(campo) {
 
-    if (
-        !campo ||
-        !campo.name
-    ) {
+        if (
+            !deveExibirCampo(campo)
+        ) {
 
-        return null;
+            return null;
 
-    }
-
-
-    const grupo =
-        document.createElement("div");
-
-    grupo.className =
-        "form-group";
+        }
 
 
-    const label =
-        document.createElement("label");
-
-    label.htmlFor =
-        gerarIdCampo(campo.name);
-
-    label.textContent =
-        campo.label ||
-        campo.name;
+        const grupo =
+            document.createElement("div");
 
 
-    const input =
-        criarInput(campo);
+        grupo.className =
+            "form-group";
 
 
-    if (!input) {
-
-        return null;
-
-    }
+        const label =
+            document.createElement("label");
 
 
-    // --------------------------------------------------------
-    // SELECT RELACIONAL
-    // --------------------------------------------------------
+        label.htmlFor =
+            gerarIdCampo(
+                campo.name
+            );
 
-    if (
-        campo.type === "select" &&
-        campo.source
-    ) {
 
-        await configurarCampoSelect(
-            campo,
+        label.textContent =
+            campo.label ||
+            campo.name;
+
+
+        const input =
+            criarInput(campo);
+
+
+        if (!input) {
+
+            return null;
+
+        }
+
+
+        // ========================================================
+        // SELECT RELACIONAL
+        // ========================================================
+
+        if (
+            campo.type === "select" &&
+            campo.source
+        ) {
+
+            await configurarCampoSelect(
+                campo,
+                input
+            );
+
+        }
+
+
+        grupo.appendChild(
+            label
+        );
+
+
+        grupo.appendChild(
             input
         );
 
+
+        return grupo;
+
     }
 
 
-    grupo.appendChild(label);
-
-    grupo.appendChild(input);
-
-
-    return grupo;
-
-}
-
-
-    // ------------------------------------------------------------
-    // Cria input conforme o tipo
-    // ------------------------------------------------------------
+    // ============================================================
+    // CRIA INPUT
+    // ============================================================
 
     function criarInput(campo) {
 
-        const id = gerarIdCampo(campo.name);
+        const id =
+            gerarIdCampo(
+                campo.name
+            );
+
 
         let input;
 
 
         switch (campo.type) {
 
-
-            // ----------------------------------------------------
-            // TEXT
-            // ----------------------------------------------------
-
             case "text":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "text";
+                input.type =
+                    "text";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // DATE
-            // ----------------------------------------------------
 
             case "date":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "date";
+                input.type =
+                    "date";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // DATETIME
-            // ----------------------------------------------------
 
             case "datetime":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "datetime-local";
+                input.type =
+                    "datetime-local";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // TIME
-            // ----------------------------------------------------
 
             case "time":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "time";
+                input.type =
+                    "time";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // NUMBER
-            // ----------------------------------------------------
 
             case "number":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "number";
+                input.type =
+                    "number";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // EMAIL
-            // ----------------------------------------------------
 
             case "email":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "email";
+                input.type =
+                    "email";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // TEXTAREA
-            // ----------------------------------------------------
 
             case "textarea":
 
-                input = document.createElement("textarea");
+                input =
+                    document.createElement(
+                        "textarea"
+                    );
 
                 break;
 
-
-            // ----------------------------------------------------
-            // SELECT
-            // ----------------------------------------------------
 
             case "select":
 
-                input = criarSelect(campo);
+                input =
+                    criarSelect(campo);
 
                 break;
 
-
-            // ----------------------------------------------------
-            // CHECKBOX
-            // ----------------------------------------------------
 
             case "checkbox":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "checkbox";
+                input.type =
+                    "checkbox";
 
                 break;
 
-
-            // ----------------------------------------------------
-            // FILE
-            // ----------------------------------------------------
 
             case "file":
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "file";
+                input.type =
+                    "file";
 
                 break;
 
 
-            // ----------------------------------------------------
-            // PADRÃO
-            // ----------------------------------------------------
-
             default:
 
-                input = document.createElement("input");
+                input =
+                    document.createElement(
+                        "input"
+                    );
 
-                input.type = "text";
+                input.type =
+                    "text";
 
                 break;
 
         }
 
 
-        input.id = id;
+        input.id =
+            id;
 
-        input.name = campo.name;
+
+        input.name =
+            campo.name;
+
 
         input.className =
             campo.type === "checkbox"
@@ -718,46 +845,62 @@ function preencherSelect(
                 : "form-control";
 
 
-        // --------------------------------------------------------
-        // Obrigatório
-        // --------------------------------------------------------
+        // ========================================================
+        // REQUIRED
+        // ========================================================
 
         if (campo.required) {
-            input.required = true;
+
+            input.required =
+                true;
+
         }
 
 
-        // --------------------------------------------------------
-        // Somente leitura
-        // --------------------------------------------------------
+        // ========================================================
+        // READONLY
+        // ========================================================
 
         if (campo.readonly) {
-            input.readOnly = true;
+
+            input.readOnly =
+                true;
+
         }
 
 
-        // --------------------------------------------------------
-        // Placeholder
-        // --------------------------------------------------------
+        // ========================================================
+        // PLACEHOLDER
+        // ========================================================
 
         if (campo.placeholder) {
-            input.placeholder = campo.placeholder;
+
+            input.placeholder =
+                campo.placeholder;
+
         }
 
 
-        // --------------------------------------------------------
-        // Valor padrão
-        // --------------------------------------------------------
+        // ========================================================
+        // VALOR PADRÃO
+        // ========================================================
 
         if (
-            campo.defaultValue !== undefined &&
-            campo.defaultValue !== null
+            campo.defaultValue !==
+                undefined &&
+            campo.defaultValue !==
+                null
         ) {
 
-            if (campo.type === "checkbox") {
+            if (
+                campo.type ===
+                "checkbox"
+            ) {
 
                 input.checked =
-                    Boolean(campo.defaultValue);
+                    Boolean(
+                        campo.defaultValue
+                    );
 
             } else {
 
@@ -774,413 +917,283 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Cria SELECT
-    // ------------------------------------------------------------
+    // ============================================================
+    // CRIA SELECT
+    // ============================================================
 
     function criarSelect(campo) {
 
-    const select =
-        document.createElement("select");
-
-    select.className =
-        "form-control";
-
-
-    // --------------------------------------------------------
-    // Opção inicial
-    // --------------------------------------------------------
-
-    const vazio =
-        document.createElement("option");
-
-    vazio.value = "";
-
-    vazio.textContent =
-        campo.placeholder ||
-        "Selecione...";
-
-    vazio.selected = true;
+        const select =
+            document.createElement(
+                "select"
+            );
 
 
-    select.appendChild(vazio);
+        select.className =
+            "form-control";
 
 
-    // --------------------------------------------------------
-    // Opções estáticas
-    // --------------------------------------------------------
-
-    const options =
-        Array.isArray(campo.options)
-            ? campo.options
-            : [];
+        const vazio =
+            document.createElement(
+                "option"
+            );
 
 
-    options.forEach(opcao => {
-
-        const option =
-            document.createElement("option");
+        vazio.value =
+            "";
 
 
-        if (
-            typeof opcao === "object" &&
-            opcao !== null
-        ) {
-
-            option.value =
-                opcao.value ?? "";
-
-            option.textContent =
-                opcao.label ??
-                opcao.value ??
-                "";
-
-        } else {
-
-            option.value =
-                String(opcao);
-
-            option.textContent =
-                String(opcao);
-
-        }
+        vazio.textContent =
+            campo.placeholder ||
+            "Selecione...";
 
 
-        select.appendChild(option);
+        vazio.selected =
+            true;
 
-    });
+
+        select.appendChild(
+            vazio
+        );
 
 
-    return select;
+        const options =
+            Array.isArray(
+                campo.options
+            )
+                ? campo.options
+                : [];
 
-}
 
-    // ---------------------------------------------------------------------------------------------------------------------
-    // Preenche formulário
-    // ------------------------------------------------------------
+        options.forEach(opcao => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            if (
+                typeof opcao ===
+                    "object" &&
+                opcao !== null
+            ) {
+
+                option.value =
+                    opcao.value ?? "";
+
+
+                option.textContent =
+                    opcao.label ??
+                    opcao.value ??
+                    "";
+
+            } else {
+
+                option.value =
+                    String(opcao);
+
+
+                option.textContent =
+                    String(opcao);
+
+            }
+
+
+            select.appendChild(
+                option
+            );
+
+        });
+
+
+        return select;
+
+    }
+
+
+    // ============================================================
+    // PREENCHER FORMULÁRIO
+    // ============================================================
 
     async function setData(dados = {}) {
 
-    registroAtual = dados || {};
-
-    modo =
-        dados && Object.keys(dados).length
-            ? "edicao"
-            : "novo";
+        registroAtual =
+            dados || {};
 
 
-    // ============================================================
-    // GARANTE QUE O FORMULÁRIO EXISTE
-    // ============================================================
-
-    if (!elemento) {
-        return;
-    }
+        modo =
+            dados &&
+            Object.keys(dados).length
+                ? "edicao"
+                : "novo";
 
 
-    // ============================================================
-    // CARREGA SELECTS RELACIONAIS PRIMEIRO
-    // ============================================================
-
-    for (const campo of schema.fields) {
-
-        if (
-            campo.type !== "select" ||
-            !campo.source
-        ) {
-            continue;
-        }
-
-
-        const input =
-            obterInput(campo.name);
-
-
-        if (!input) {
-            continue;
-        }
-
-
-        // --------------------------------------------------------
-        // Valor do ID relacionado
-        // --------------------------------------------------------
-
-        let valorAtual = "";
-
-
-        if (campo.idField) {
-
-            valorAtual =
-                dados[campo.idField] ?? "";
-
-        } else {
-
-            valorAtual =
-                dados[campo.name] ?? "";
-
-        }
-
-
-        await configurarCampoSelect(
-            campo,
-            input,
-            valorAtual
-        );
-
-    }
-
-
-    // ============================================================
-    // PREENCHE OS DEMAIS CAMPOS
-    // ============================================================
-
-    schema.fields.forEach(campo => {
-
-        // --------------------------------------------------------
-        // Select relacional
-        // --------------------------------------------------------
-
-        if (
-            campo.type === "select" &&
-            campo.source
-        ) {
-            return;
-        }
-
-
-        const input =
-            obterInput(campo.name);
-
-
-        if (!input) {
-            return;
-        }
-
-
-        const valor =
-            dados[campo.name];
-
-
-        if (
-            valor === undefined ||
-            valor === null
-        ) {
-            return;
-        }
-
-
-        // --------------------------------------------------------
-        // Checkbox
-        // --------------------------------------------------------
-
-        if (
-            input.type === "checkbox"
-        ) {
-
-            input.checked =
-                Boolean(valor);
+        if (!elemento) {
 
             return;
 
         }
 
 
-        // --------------------------------------------------------
-        // Demais campos
-        // --------------------------------------------------------
+        // ========================================================
+        // SELECTS RELACIONAIS
+        // ========================================================
 
-        input.value =
-            formatarValor(
-                campo,
-                valor
-            );
-
-    });
-
-}
-
-
-    // --------------------------------------------------------------------------------------------------------------------------------
-    // Lê formulário
-    // ------------------------------------------------------------
-
-    function getData() {
-
-    const dados = {};
-
-    schema.fields.forEach(campo => {
-
-        const input =
-            obterInput(campo.name);
-
-        if (!input) {
-            return;
-        }
-
-
-        // ====================================================
-        // SELECT RELACIONAL
-        // ====================================================
-
-        if (
-            campo.type === "select" &&
-            campo.source &&
-            campo.idField
+        for (
+            const campo of schema.fields
         ) {
 
-            const option =
-                input.selectedOptions[0];
+            if (
+                !deveExibirCampo(campo)
+            ) {
 
-            const id =
-                input.value || "";
+                continue;
 
-            const label =
-                option?.dataset?.label ||
-                option?.textContent ||
+            }
+
+
+            if (
+                campo.type !== "select" ||
+                !campo.source
+            ) {
+
+                continue;
+
+            }
+
+
+            const input =
+                obterInput(
+                    campo.name
+                );
+
+
+            if (!input) {
+
+                continue;
+
+            }
+
+
+            let valorAtual =
                 "";
 
 
-            // ID técnico
-            dados[campo.idField] =
-                id;
+            // ----------------------------------------------------
+            // Usa o ID técnico
+            // ----------------------------------------------------
+
+            if (campo.idField) {
+
+                valorAtual =
+                    dados[
+                        campo.idField
+                    ] ?? "";
+
+            } else {
+
+                valorAtual =
+                    dados[
+                        campo.name
+                    ] ?? "";
+
+            }
 
 
-            // Descrição apresentada ao usuário
-            dados[campo.name] =
-                id
-                    ? label.trim()
-                    : "";
+            await configurarCampoSelect(
 
+                campo,
 
-            return;
+                input,
+
+                valorAtual
+
+            );
 
         }
 
 
-        // ====================================================
+        // ========================================================
         // DEMAIS CAMPOS
-        // ====================================================
+        // ========================================================
 
-        let valor =
-            input.value;
+        schema.fields.forEach(
+            campo => {
 
+                if (
+                    !deveExibirCampo(campo)
+                ) {
 
-        // ----------------------------------------------------
-        // Checkbox
-        // ----------------------------------------------------
+                    return;
 
-        if (
-            input.type === "checkbox"
-        ) {
-
-            valor =
-                input.checked;
-
-        }
+                }
 
 
-        // ----------------------------------------------------
-        // Campos de data/hora
-        // ----------------------------------------------------
+                // ------------------------------------------------
+                // Select relacional
+                // ------------------------------------------------
 
-        if (
-            campo.type === "date"
-        ) {
+                if (
+                    campo.type === "select" &&
+                    campo.source
+                ) {
 
-            valor =
-                input.value || "";
+                    return;
 
-        }
-
-
-        if (
-            campo.type === "time"
-        ) {
-
-            valor =
-                input.value || "";
-
-        }
+                }
 
 
-        dados[campo.name] =
-            valor;
-
-    });
-
-
-    return dados;
-
-}
-
-    // ------------------------------------------------------------
-    // Limpa formulário
-    // ------------------------------------------------------------
-
-    function reset() {
-
-        registroAtual = null;
-
-        modo = "novo";
+                const input =
+                    obterInput(
+                        campo.name
+                    );
 
 
-        schema.fields.forEach(campo => {
+                if (!input) {
 
-            const input =
-                obterInput(campo.name);
+                    return;
 
-
-            if (!input) {
-                return;
-            }
+                }
 
 
-            if (campo.type === "checkbox") {
-
-                input.checked = false;
-
-            } else {
-
-                input.value = "";
-
-            }
-
-        });
+                const valor =
+                    dados[
+                        campo.name
+                    ];
 
 
-        // Aplica valores padrão novamente
+                if (
+                    valor === undefined ||
+                    valor === null
+                ) {
 
-        schema.fields.forEach(campo => {
+                    return;
 
-            if (
-                campo.defaultValue === undefined
-            ) {
-                return;
-            }
-
-
-            const input =
-                obterInput(campo.name);
+                }
 
 
-            if (!input) {
-                return;
-            }
+                if (
+                    input.type ===
+                    "checkbox"
+                ) {
 
+                    input.checked =
+                        Boolean(valor);
 
-            if (campo.type === "checkbox") {
+                    return;
 
-                input.checked =
-                    Boolean(campo.defaultValue);
+                }
 
-            } else {
 
                 input.value =
-                    campo.defaultValue;
+                    formatarValor(
+                        campo,
+                        valor
+                    );
 
             }
-
-        });
+        );
 
 
         atualizarBotaoSalvar();
@@ -1188,21 +1201,299 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Validação
-    // ------------------------------------------------------------
+    // ============================================================
+    // LER FORMULÁRIO
+    // ============================================================
+
+    function getData() {
+
+        const dados = {};
+
+
+        schema.fields.forEach(
+            campo => {
+
+                // ------------------------------------------------
+                // Campos técnicos não possuem input visual.
+                // Seus valores serão tratados pelo Engine.
+                // ------------------------------------------------
+
+                if (
+                    !deveExibirCampo(campo)
+                ) {
+
+                    return;
+
+                }
+
+
+                const input =
+                    obterInput(
+                        campo.name
+                    );
+
+
+                if (!input) {
+
+                    return;
+
+                }
+
+
+                // =================================================
+                // SELECT RELACIONAL
+                // =================================================
+
+                if (
+                    campo.type === "select" &&
+                    campo.source &&
+                    campo.idField
+                ) {
+
+                    const option =
+                        input.selectedOptions[0];
+
+
+                    const id =
+                        input.value ||
+                        "";
+
+
+                    const label =
+                        option?.dataset?.label ||
+                        option?.textContent ||
+                        "";
+
+
+                    // ID técnico
+                    dados[
+                        campo.idField
+                    ] = id;
+
+
+                    // Valor visual
+                    dados[
+                        campo.name
+                    ] =
+                        id
+                            ? label.trim()
+                            : "";
+
+
+                    return;
+
+                }
+
+
+                // =================================================
+                // DEMAIS CAMPOS
+                // =================================================
+
+                let valor =
+                    input.value;
+
+
+                if (
+                    input.type ===
+                    "checkbox"
+                ) {
+
+                    valor =
+                        input.checked;
+
+                }
+
+
+                if (
+                    campo.type ===
+                    "date"
+                ) {
+
+                    valor =
+                        input.value ||
+                        "";
+
+                }
+
+
+                if (
+                    campo.type ===
+                    "time"
+                ) {
+
+                    valor =
+                        input.value ||
+                        "";
+
+                }
+
+
+                dados[
+                    campo.name
+                ] = valor;
+
+            }
+        );
+
+
+        return dados;
+
+    }
+
+
+    // ============================================================
+    // RESET
+    // ============================================================
+
+    function reset() {
+
+        registroAtual =
+            null;
+
+
+        modo =
+            "novo";
+
+
+        schema.fields.forEach(
+            campo => {
+
+                if (
+                    !deveExibirCampo(campo)
+                ) {
+
+                    return;
+
+                }
+
+
+                const input =
+                    obterInput(
+                        campo.name
+                    );
+
+
+                if (!input) {
+
+                    return;
+
+                }
+
+
+                if (
+                    campo.type ===
+                    "checkbox"
+                ) {
+
+                    input.checked =
+                        false;
+
+                } else {
+
+                    input.value =
+                        "";
+
+                }
+
+            }
+        );
+
+
+        // ========================================================
+        // VALORES PADRÃO
+        // ========================================================
+
+        schema.fields.forEach(
+            campo => {
+
+                if (
+                    !deveExibirCampo(campo)
+                ) {
+
+                    return;
+
+                }
+
+
+                if (
+                    campo.defaultValue ===
+                    undefined
+                ) {
+
+                    return;
+
+                }
+
+
+                const input =
+                    obterInput(
+                        campo.name
+                    );
+
+
+                if (!input) {
+
+                    return;
+
+                }
+
+
+                if (
+                    campo.type ===
+                    "checkbox"
+                ) {
+
+                    input.checked =
+                        Boolean(
+                            campo.defaultValue
+                        );
+
+                } else {
+
+                    input.value =
+                        campo.defaultValue;
+
+                }
+
+            }
+        );
+
+
+        atualizarBotaoSalvar();
+
+    }
+
+
+    // ============================================================
+    // VALIDAÇÃO
+    // ============================================================
 
     function validar(dados) {
 
-        for (const campo of schema.fields) {
+        for (
+            const campo of schema.fields
+        ) {
+
+            if (
+                !deveExibirCampo(campo)
+            ) {
+
+                continue;
+
+            }
+
 
             if (!campo.required) {
+
                 continue;
+
             }
 
 
             const valor =
-                dados[campo.name];
+                dados[
+                    campo.name
+                ];
 
 
             if (
@@ -1215,12 +1506,19 @@ function preencherSelect(
                     `O campo "${campo.label || campo.name}" é obrigatório.`
                 );
 
+
                 const input =
-                    obterInput(campo.name);
+                    obterInput(
+                        campo.name
+                    );
+
 
                 if (input) {
+
                     input.focus();
+
                 }
+
 
                 return false;
 
@@ -1234,9 +1532,9 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Mostra erro
-    // ------------------------------------------------------------
+    // ============================================================
+    // ERRO
+    // ============================================================
 
     function mostrarErro(mensagem) {
 
@@ -1245,19 +1543,21 @@ function preencherSelect(
             mensagem
         );
 
+
         alert(mensagem);
 
     }
 
 
-    // ------------------------------------------------------------
-    // Obtém input
-    // ------------------------------------------------------------
+    // ============================================================
+    // OBTER INPUT
+    // ============================================================
 
     function obterInput(nome) {
 
         const id =
             gerarIdCampo(nome);
+
 
         return elemento.querySelector(
             `#${CSS.escape(id)}`
@@ -1266,9 +1566,9 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Gera ID seguro
-    // ------------------------------------------------------------
+    // ============================================================
+    // GERA ID
+    // ============================================================
 
     function gerarIdCampo(nome) {
 
@@ -1276,27 +1576,43 @@ function preencherSelect(
             `campo-${schema.entity}-${nome}`
         )
             .toLowerCase()
-            .replace(/[^a-z0-9_-]/gi, "-");
+            .replace(
+                /[^a-z0-9_-]/gi,
+                "-"
+            );
 
     }
 
 
-    // ------------------------------------------------------------
-    // Formata valor para input
-    // ------------------------------------------------------------
+    // ============================================================
+    // FORMATA VALOR
+    // ============================================================
 
-    function formatarValor(campo, valor) {
+    function formatarValor(
+        campo,
+        valor
+    ) {
 
-        if (campo.type === "date") {
+        if (
+            campo.type ===
+            "date"
+        ) {
 
-            return converterDataParaInput(valor);
+            return converterDataParaInput(
+                valor
+            );
 
         }
 
 
-        if (campo.type === "datetime") {
+        if (
+            campo.type ===
+            "datetime"
+        ) {
 
-            return converterDataHoraParaInput(valor);
+            return converterDataHoraParaInput(
+                valor
+            );
 
         }
 
@@ -1306,14 +1622,18 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Data brasileira → yyyy-mm-dd
-    // ------------------------------------------------------------
+    // ============================================================
+    // DATA → INPUT
+    // ============================================================
 
-    function converterDataParaInput(valor) {
+    function converterDataParaInput(
+        valor
+    ) {
 
         if (!valor) {
+
             return "";
+
         }
 
 
@@ -1321,10 +1641,10 @@ function preencherSelect(
             String(valor);
 
 
-        // Já está no formato correto
-
         if (
-            /^\d{4}-\d{2}-\d{2}$/.test(texto)
+            /^\d{4}-\d{2}-\d{2}$/.test(
+                texto
+            )
         ) {
 
             return texto;
@@ -1332,13 +1652,13 @@ function preencherSelect(
         }
 
 
-        // dd/mm/yyyy
-
         const partes =
             texto.split("/");
 
 
-        if (partes.length === 3) {
+        if (
+            partes.length === 3
+        ) {
 
             const [
                 dia,
@@ -1347,7 +1667,9 @@ function preencherSelect(
             ] = partes;
 
 
-            return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+            return (
+                `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`
+            );
 
         }
 
@@ -1357,14 +1679,18 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Data/hora → datetime-local
-    // ------------------------------------------------------------
+    // ============================================================
+    // DATA/HORA
+    // ============================================================
 
-    function converterDataHoraParaInput(valor) {
+    function converterDataHoraParaInput(
+        valor
+    ) {
 
         if (!valor) {
+
             return "";
+
         }
 
 
@@ -1373,7 +1699,8 @@ function preencherSelect(
 
 
         if (
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(texto)
+            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+                .test(texto)
         ) {
 
             return texto;
@@ -1388,9 +1715,9 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Atualiza texto do botão
-    // ------------------------------------------------------------
+    // ============================================================
+    // BOTÃO
+    // ============================================================
 
     function atualizarBotaoSalvar() {
 
@@ -1401,7 +1728,9 @@ function preencherSelect(
 
 
         if (!botao) {
+
             return;
+
         }
 
 
@@ -1413,25 +1742,35 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Resolve elemento
-    // ------------------------------------------------------------
+    // ============================================================
+    // RESOLVE ELEMENTO
+    // ============================================================
 
     function resolverElemento(valor) {
 
         if (!valor) {
+
             return null;
+
         }
 
 
-        if (valor instanceof HTMLElement) {
+        if (
+            valor instanceof HTMLElement
+        ) {
+
             return valor;
+
         }
 
 
-        if (typeof valor === "string") {
+        if (
+            typeof valor === "string"
+        ) {
 
-            return document.querySelector(valor);
+            return document.querySelector(
+                valor
+            );
 
         }
 
@@ -1441,16 +1780,16 @@ function preencherSelect(
     }
 
 
-    // ------------------------------------------------------------
-    // Render inicial
-    // ------------------------------------------------------------
+    // ============================================================
+    // RENDER INICIAL
+    // ============================================================
 
     render();
 
 
-    // ------------------------------------------------------------
-    // API pública
-    // ------------------------------------------------------------
+    // ============================================================
+    // API PÚBLICA
+    // ============================================================
 
     return {
 
