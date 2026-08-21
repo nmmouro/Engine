@@ -12,6 +12,9 @@ createModule({
 
     options: {
         titulo: "Cadastro de Veículos",
+        
+        logo: "img/logo.png",
+
         tabela: "Veículos Cadastrados",
         permitirNovo: true,
         permitirEditar: true,
