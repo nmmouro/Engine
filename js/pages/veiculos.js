@@ -1,5 +1,5 @@
 import { createModule } from "../engine/module.js";
-import { SCHEMA_VEICULOS } from "../schemas/veiculos.schema.js";
+import { SCHEMA_VEICULOS } from "../schemas/veiculos.js";
 
 createModule({
     entity: "VEICULOS",
