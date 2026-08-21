@@ -5,6 +5,7 @@
  *
  * Responsável por integrar:
  *
+ * - Header
  * - State
  * - CRUD
  * - Form
@@ -12,17 +13,6 @@
  * - Toolbar
  *
  * O Engine não conhece nenhuma entidade específica.
- *
- * Também suporta:
- *
- * - Selects relacionais
- * - Fontes externas do Schema
- * - EMPREGADOS
- * - VEICULOS
- * - Preservação dos IDs técnicos
- * - Novo registro
- * - Edição de registro
- * - Exclusão
  * ============================================================
  */
 
@@ -31,7 +21,6 @@ import { createCrud } from "./crud.js";
 import { createForm } from "./form.js";
 import { createTable } from "./table.js";
 import { createToolbar } from "./toolbar.js";
-
 import { createHeader } from "./header.js";
 
 
@@ -39,11 +28,8 @@ import { createHeader } from "./header.js";
  * ============================================================
  * CREATE ENGINE
  * ============================================================
- *
- * @param {Object} config
- *
- * @returns {Object}
  */
+
 export function createEngine(config = {}) {
 
     const {
@@ -56,80 +42,51 @@ export function createEngine(config = {}) {
 
 
     // ============================================================
-    // VALIDAÇÃO
+    // VALIDAÇÕES
     // ============================================================
 
     if (!entity) {
+
         throw new Error(
             "Engine: entity não informado."
         );
+
     }
 
+
     if (!schema) {
+
         throw new Error(
             `Engine ${entity}: schema não informado.`
         );
+
     }
 
+
     if (!container) {
+
         throw new Error(
             `Engine ${entity}: container não informado.`
         );
+
     }
 
 
-   // ============================================================
-// CONTAINER PRINCIPAL
-// ============================================================
+    // ============================================================
+    // CONTAINER PRINCIPAL
+    // ============================================================
 
-const app =
-    resolverElemento(container);
-
-
-if (!app) {
-
-    throw new Error(
-        `Engine ${entity}: container não encontrado: ${container}`
-    );
-
-}
+    const app =
+        resolverElemento(container);
 
 
-// ============================================================
-// LIMPA CONTAINER
-// ============================================================
+    if (!app) {
 
-app.innerHTML = "";
+        throw new Error(
+            `Engine ${entity}: container não encontrado: ${container}`
+        );
 
-
-// ============================================================
-// HEADER
-// ============================================================
-
-const headerContainer =
-    criarContainer(
-        "engine-header-container"
-    );
-
-
-app.appendChild(
-    headerContainer
-);
-
-
-const header =
-    createHeader({
-
-        container:
-            headerContainer,
-
-        titulo:
-            options.titulo || entity,
-
-        logo:
-            options.logo || "img/logo.png"
-
-    });
+    }
 
 
     // ============================================================
@@ -149,92 +106,159 @@ const header =
 
 
     // ============================================================
-    // ESTRUTURA DA PÁGINA
+    // LIMPA CONTAINER
     // ============================================================
 
-   // ============================================================
-// ESTRUTURA
-// ============================================================
-
-app.innerHTML = "";
+    app.innerHTML = "";
 
 
-// ============================================================
-// HEADER
-// ============================================================
+    // ============================================================
+    // HEADER
+    // ============================================================
 
-const headerContainer =
-    criarContainer(
-        "engine-header-container"
-    );
-
-app.appendChild(
-    headerContainer
-);
+    const headerContainer =
+        criarContainer(
+            "engine-header-container"
+        );
 
 
-const header =
-    createHeader({
-
-        container:
-            headerContainer,
-
-        titulo:
-            options.titulo ||
-            entity,
-
-        logo:
-            options.logo ||
-            "img/logo.png"
-
-    });
-
-
-// ============================================================
-// TOOLBAR
-// ============================================================
-
-const toolbarContainer =
-    criarContainer(
-        "engine-toolbar-container"
+    app.appendChild(
+        headerContainer
     );
 
 
-// ============================================================
-// FORMULÁRIO
-// ============================================================
+    const header =
+        createHeader({
 
-const formContainer =
-    criarContainer(
-        "engine-form-container"
+            container:
+                headerContainer,
+
+            titulo:
+                options.titulo ||
+                entity,
+
+            logo:
+                options.logo ||
+                "img/logo.png"
+
+        });
+
+
+    // ============================================================
+    // TOOLBAR
+    // ============================================================
+
+    const toolbarContainer =
+        criarContainer(
+            "engine-toolbar-container"
+        );
+
+
+    app.appendChild(
+        toolbarContainer
     );
 
 
-// ============================================================
-// TABELA
-// ============================================================
+    // ============================================================
+    // FORM
+    // ============================================================
 
-const tableContainer =
-    criarContainer(
-        "engine-table-container"
+    const formContainer =
+        criarContainer(
+            "engine-form-container"
+        );
+
+
+    app.appendChild(
+        formContainer
     );
 
 
-// ============================================================
-// ADICIONA AO APP
-// ============================================================
+    // ============================================================
+    // TABELA
+    // ============================================================
 
-app.appendChild(
-    toolbarContainer
-);
+    const tableContainer =
+        criarContainer(
+            "engine-table-container"
+        );
 
-app.appendChild(
-    formContainer
-);
 
-app.appendChild(
-    tableContainer
-);
+    app.appendChild(
+        tableContainer
+    );
+
+
+    // ============================================================
+    // TOOLBAR
+    // ============================================================
+
+    const toolbar =
+        createToolbar({
+
+            container:
+                toolbarContainer,
+
+            titulo:
+                options.titulo ||
+                entity,
+
+            permitirNovo:
+                options.permitirNovo !== false,
+
+            onNovo
+
+        });
+
+
+    // ============================================================
+    // FORM
+    // ============================================================
+
+    const form =
+        createForm({
+
+            schema,
+
+            container:
+                formContainer,
+
+            onSubmit:
+                salvarFormulario,
+
+            onCancel:
+                cancelarFormulario
+
+        });
+
+
+    // ============================================================
+    // TABLE
+    // ============================================================
+
+    const table =
+        createTable({
+
+            schema,
+
+            container:
+                tableContainer,
+
+            actions: {
+
+                editar:
+                    options.permitirEditar !== false
+                        ? editar
+                        : null,
+
+                excluir:
+                    options.permitirExcluir !== false
+                        ? excluir
+                        : null
+
+            }
+
+        });
 
 
     // ============================================================
@@ -246,50 +270,40 @@ app.appendChild(
 
 
     // ============================================================
-    // CARREGAR FONTES RELACIONADAS
+    // FONTES RELACIONADAS
     // ============================================================
-    /**
-     * Localiza todas as fontes usadas pelos
-     * selects relacionais.
-     *
-     * Exemplo:
-     *
-     * source: "EMPREGADOS"
-     * source: "VEICULOS"
-     *
-     * Retorno:
-     *
-     * {
-     *     EMPREGADOS: [...],
-     *     VEICULOS: [...]
-     * }
-     */
+
     async function carregarFontesRelacionadas() {
 
-        const fontes =
-            [
-                ...new Set(
+        const fontes = [
 
-                    schema.fields
+            ...new Set(
 
-                        .filter(campo =>
+                schema.fields
+
+                    .filter(
+                        campo =>
                             campo.type === "select" &&
                             campo.source
-                        )
+                    )
 
-                        .map(campo =>
+                    .map(
+                        campo =>
                             campo.source
-                        )
+                    )
 
-                )
-            ];
+            )
+
+        ];
 
 
         const resultado = {};
 
 
         if (fontes.length === 0) {
+
             return resultado;
+
         }
 
 
@@ -339,99 +353,89 @@ app.appendChild(
 
 
     // ============================================================
-    // APLICA FONTES RELACIONADAS AO SCHEMA
+    // APLICA FONTES RELACIONADAS
     // ============================================================
-    /**
-     * Coloca os registros das fontes dentro
-     * do próprio campo do Schema.
-     *
-     * Isso permite que o form.js utilize:
-     *
-     * campo.records
-     *
-     * e:
-     *
-     * campo.options
-     */
+
     function aplicarFontesRelacionadas(fontes) {
 
-        schema.fields.forEach(campo => {
+        schema.fields.forEach(
+            campo => {
 
-            if (
-                campo.type !== "select" ||
-                !campo.source
-            ) {
-                return;
+                if (
+                    campo.type !== "select" ||
+                    !campo.source
+                ) {
+
+                    return;
+
+                }
+
+
+                const registros =
+                    fontes[campo.source] || [];
+
+
+                campo.records =
+                    registros;
+
+
+                if (
+                    campo.valueField &&
+                    Array.isArray(campo.labelFields)
+                ) {
+
+                    campo.options =
+                        registros.map(
+                            registro => {
+
+                                const value =
+                                    registro?.[
+                                        campo.valueField
+                                    ] ?? "";
+
+
+                                const label =
+                                    campo.labelFields
+
+                                        .map(
+                                            campoLabel =>
+                                                registro?.[
+                                                    campoLabel
+                                                ] ?? ""
+                                        )
+
+                                        .filter(
+                                            valor =>
+                                                valor !== ""
+                                        )
+
+                                        .join(
+                                            campo.separator ||
+                                            " / "
+                                        );
+
+
+                                return {
+
+                                    value,
+
+                                    label
+
+                                };
+
+                            }
+                        );
+
+                }
+
             }
-
-
-            const registros =
-                fontes[campo.source] || [];
-
-
-            // Guarda os registros completos
-            campo.records =
-                registros;
-
-
-            // ----------------------------------------------------
-            // Monta options
-            // ----------------------------------------------------
-
-            if (
-                campo.valueField &&
-                Array.isArray(campo.labelFields)
-            ) {
-
-                campo.options =
-                    registros.map(registro => {
-
-                        const value =
-                            registro?.[
-                                campo.valueField
-                            ] ?? "";
-
-
-                        const label =
-                            campo.labelFields
-
-                                .map(
-                                    nome =>
-                                        registro?.[
-                                            nome
-                                        ] ?? ""
-                                )
-
-                                .filter(
-                                    valor =>
-                                        valor !== ""
-                                )
-
-                                .join(
-                                    campo.separator ||
-                                    " / "
-                                );
-
-
-                        return {
-
-                            value,
-
-                            label
-
-                        };
-
-                    });
-
-            }
-
-        });
+        );
 
     }
 
 
     // ============================================================
-    // CARREGAR REGISTROS DA ENTIDADE
+    // CARREGAR DADOS
     // ============================================================
 
     async function carregar() {
@@ -510,33 +514,17 @@ app.appendChild(
 
         try {
 
-            // ----------------------------------------------------
-            // Carrega EMPREGADOS / VEICULOS
-            // ----------------------------------------------------
-
             const fontes =
                 await carregarFontesRelacionadas();
 
-
-            // ----------------------------------------------------
-            // Coloca as fontes no Schema
-            // ----------------------------------------------------
 
             aplicarFontesRelacionadas(
                 fontes
             );
 
 
-            // ----------------------------------------------------
-            // Limpa formulário
-            // ----------------------------------------------------
-
             form.reset();
 
-
-            // ----------------------------------------------------
-            // Mostra formulário
-            // ----------------------------------------------------
 
             mostrarFormulario();
 
@@ -544,7 +532,7 @@ app.appendChild(
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}: erro ao abrir novo`,
+                `Engine ${entity}:`,
                 erro
             );
 
@@ -577,41 +565,19 @@ app.appendChild(
                 indice;
 
 
-            // ----------------------------------------------------
-            // Carrega fontes relacionais
-            // ----------------------------------------------------
-
             const fontes =
                 await carregarFontesRelacionadas();
 
-
-            // ----------------------------------------------------
-            // Aplica fontes
-            // ----------------------------------------------------
 
             aplicarFontesRelacionadas(
                 fontes
             );
 
 
-            // ----------------------------------------------------
-            // Preenche formulário
-            // ----------------------------------------------------
-            //
-            // IMPORTANTE:
-            //
-            // form.setData() precisa ocorrer depois que
-            // EMPREGADOS e VEICULOS estiverem carregados.
-            //
-
             await form.setData(
                 registro
             );
 
-
-            // ----------------------------------------------------
-            // Mostra formulário
-            // ----------------------------------------------------
 
             mostrarFormulario();
 
@@ -648,7 +614,7 @@ app.appendChild(
 
 
             // ====================================================
-            // EDIÇÃO
+            // ATUALIZAÇÃO
             // ====================================================
 
             if (
@@ -659,17 +625,12 @@ app.appendChild(
                     state.registroEditando;
 
 
-                // ------------------------------------------------
-                // Mantém os dados originais
-                // ------------------------------------------------
-
                 const dadosAtualizacao = {
 
                     ...registroOriginal,
 
                     ...dados,
 
-                    // ID principal
                     ID:
                         registroOriginal.ID
 
@@ -677,7 +638,7 @@ app.appendChild(
 
 
                 // ------------------------------------------------
-                // Preserva ID Empregado
+                // PRESERVA ID EMPREGADO
                 // ------------------------------------------------
 
                 if (
@@ -692,7 +653,7 @@ app.appendChild(
 
 
                 // ------------------------------------------------
-                // Preserva ID Veículo
+                // PRESERVA ID VEÍCULO
                 // ------------------------------------------------
 
                 if (
@@ -718,12 +679,6 @@ app.appendChild(
                     );
 
 
-                console.log(
-                    `Engine ${entity}: resposta da atualização`,
-                    resposta
-                );
-
-
                 validarResposta(
                     resposta,
                     "atualização"
@@ -733,7 +688,7 @@ app.appendChild(
 
 
             // ====================================================
-            // NOVO
+            // NOVO REGISTRO
             // ====================================================
 
             else {
@@ -748,12 +703,6 @@ app.appendChild(
                     await crud.criar(
                         dados
                     );
-
-
-                console.log(
-                    `Engine ${entity}: resposta da criação`,
-                    resposta
-                );
 
 
                 validarResposta(
@@ -838,7 +787,9 @@ app.appendChild(
 
 
         if (!confirmar) {
+
             return;
+
         }
 
 
@@ -952,12 +903,10 @@ app.appendChild(
 
 
     // ============================================================
-    // MENSAGEM DE ERRO
+    // ERRO
     // ============================================================
 
-    function mostrarErro(
-        erro
-    ) {
+    function mostrarErro(erro) {
 
         const mensagem =
             erro?.message ||
@@ -965,7 +914,6 @@ app.appendChild(
 
 
         console.error(
-            `Engine ${entity}:`,
             mensagem
         );
 
@@ -998,6 +946,8 @@ app.appendChild(
 
         crud,
 
+        header,
+
         form,
 
         table,
@@ -1023,13 +973,8 @@ app.appendChild(
  * ============================================================
  * VALIDAR RESPOSTA DA API
  * ============================================================
- *
- * Trata os dois formatos utilizados pelo backend:
- *
- * 1. resposta.sucesso
- *
- * 2. resposta.dados.sucesso
  */
+
 function validarResposta(
     resposta,
     operacao
@@ -1044,10 +989,6 @@ function validarResposta(
     }
 
 
-    // ============================================================
-    // PRIMEIRO NÍVEL
-    // ============================================================
-
     if (
         resposta.sucesso === false
     ) {
@@ -1060,10 +1001,6 @@ function validarResposta(
 
     }
 
-
-    // ============================================================
-    // SEGUNDO NÍVEL
-    // ============================================================
 
     const interno =
         resposta?.dados;
@@ -1091,12 +1028,13 @@ function validarResposta(
  * RESOLVE ELEMENTO
  * ============================================================
  */
-function resolverElemento(
-    valor
-) {
+
+function resolverElemento(valor) {
 
     if (!valor) {
+
         return null;
+
     }
 
 
@@ -1130,12 +1068,13 @@ function resolverElemento(
  * CRIA CONTAINER
  * ============================================================
  */
-function criarContainer(
-    classe
-) {
+
+function criarContainer(classe) {
 
     const elemento =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     elemento.className =
