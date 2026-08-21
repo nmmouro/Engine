@@ -23,12 +23,11 @@ import { createToolbar } from "./toolbar.js";
 
 
 /**
- * Cria um Engine.
- *
- * @param {Object} config
- *
- * @returns {Object}
+ * ============================================================
+ * CREATE ENGINE
+ * ============================================================
  */
+
 export function createEngine(config = {}) {
 
     const {
@@ -40,9 +39,9 @@ export function createEngine(config = {}) {
     } = config;
 
 
-    // ------------------------------------------------------------
-    // Validação
-    // ------------------------------------------------------------
+    // ============================================================
+    // VALIDAÇÃO
+    // ============================================================
 
     if (!entity) {
 
@@ -71,9 +70,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Container principal
-    // ------------------------------------------------------------
+    // ============================================================
+    // CONTAINER PRINCIPAL
+    // ============================================================
 
     const app =
         resolverElemento(container);
@@ -88,25 +87,25 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // State
-    // ------------------------------------------------------------
+    // ============================================================
+    // STATE
+    // ============================================================
 
     const state =
         createState(stateName);
 
 
-    // ------------------------------------------------------------
+    // ============================================================
     // CRUD
-    // ------------------------------------------------------------
+    // ============================================================
 
     const crud =
         createCrud(entity);
 
 
-    // ------------------------------------------------------------
-    // Estrutura da tela
-    // ------------------------------------------------------------
+    // ============================================================
+    // ESTRUTURA
+    // ============================================================
 
     app.innerHTML = "";
 
@@ -144,14 +143,15 @@ export function createEngine(config = {}) {
     );
 
 
-    // ------------------------------------------------------------
-    // Toolbar
-    // ------------------------------------------------------------
+    // ============================================================
+    // TOOLBAR
+    // ============================================================
 
     const toolbar =
         createToolbar({
 
-            container: toolbarContainer,
+            container:
+                toolbarContainer,
 
             titulo:
                 options.titulo ||
@@ -165,9 +165,9 @@ export function createEngine(config = {}) {
         });
 
 
-    // ------------------------------------------------------------
-    // Form
-    // ------------------------------------------------------------
+    // ============================================================
+    // FORM
+    // ============================================================
 
     const form =
         createForm({
@@ -186,9 +186,9 @@ export function createEngine(config = {}) {
         });
 
 
-    // ------------------------------------------------------------
-    // Table
-    // ------------------------------------------------------------
+    // ============================================================
+    // TABLE
+    // ============================================================
 
     const table =
         createTable({
@@ -215,23 +215,208 @@ export function createEngine(config = {}) {
         });
 
 
-    // ------------------------------------------------------------
-    // Inicialização
-    // ------------------------------------------------------------
+    // ============================================================
+    // ESTADO INICIAL
+    // ============================================================
 
     formContainer.style.display =
         "none";
 
 
-    // ------------------------------------------------------------
-    // Carregar dados
-    // ------------------------------------------------------------
+    // ============================================================
+    // FONTES RELACIONADAS
+    // ============================================================
+
+    /**
+     * Carrega todas as fontes usadas por selects relacionais.
+     *
+     * Exemplo:
+     *
+     * EMPREGADOS
+     * VEICULOS
+     */
+
+    async function carregarFontesRelacionadas() {
+
+        const fontes =
+            [
+                ...new Set(
+
+                    schema.fields
+
+                        .filter(
+                            campo =>
+                                campo.type === "select" &&
+                                campo.source
+                        )
+
+                        .map(
+                            campo =>
+                                campo.source
+                        )
+
+                )
+            ];
+
+
+        const resultado = {};
+
+
+        if (fontes.length === 0) {
+
+            return resultado;
+
+        }
+
+
+        await Promise.all(
+
+            fontes.map(
+                async source => {
+
+                    try {
+
+                        /*
+                         * createCrud() representa a entidade
+                         * atual. Para buscar outra aba,
+                         * usamos diretamente o serviço CRUD.
+                         */
+
+                        const crudFonte =
+                            createCrud(source);
+
+
+                        const registros =
+                            await crudFonte.listar();
+
+
+                        resultado[source] =
+                            Array.isArray(registros)
+                                ? registros
+                                : [];
+
+
+                    } catch (erro) {
+
+                        console.error(
+                            `Engine ${entity}: erro ao carregar fonte ${source}`,
+                            erro
+                        );
+
+
+                        resultado[source] =
+                            [];
+
+                    }
+
+                }
+            )
+
+        );
+
+
+        return resultado;
+
+    }
+
+
+    // ============================================================
+    // APLICA FONTES NO SCHEMA
+    // ============================================================
+
+    function aplicarFontesRelacionadas(fontes) {
+
+        schema.fields.forEach(campo => {
+
+            if (
+                campo.type !== "select" ||
+                !campo.source
+            ) {
+                return;
+            }
+
+
+            const registros =
+                fontes[campo.source] || [];
+
+
+            /*
+             * Guarda os registros no próprio campo.
+             *
+             * Isso permite que o form.js utilize posteriormente
+             * os dados para montar os options.
+             */
+
+            campo.records =
+                registros;
+
+
+            /*
+             * Monta options para compatibilidade com
+             * o comportamento atual do form/table.
+             */
+
+            if (
+                campo.valueField &&
+                Array.isArray(campo.labelFields)
+            ) {
+
+                campo.options =
+                    registros.map(registro => {
+
+                        const value =
+                            registro?.[
+                                campo.valueField
+                            ] ?? "";
+
+
+                        const label =
+                            campo.labelFields
+
+                                .map(
+                                    campoLabel =>
+                                        registro?.[
+                                            campoLabel
+                                        ] ?? ""
+                                )
+
+                                .filter(
+                                    valor =>
+                                        valor !== ""
+                                )
+
+                                .join(
+                                    campo.separator || " / "
+                                );
+
+
+                        return {
+
+                            value,
+
+                            label
+
+                        };
+
+                    });
+
+            }
+
+        });
+
+    }
+
+
+    // ============================================================
+    // CARREGAR DADOS
+    // ============================================================
 
     async function carregar() {
 
         try {
 
             state.carregando = true;
+
 
             table.renderLoading(
                 "Carregando..."
@@ -283,205 +468,306 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Novo
-    // ------------------------------------------------------------
+    // ============================================================
+    // NOVO
+    // ============================================================
 
-    function onNovo() {
+    async function onNovo() {
 
         state.registroEditando =
             null;
 
 
-        form.reset();
+        state.indiceEditando =
+            null;
 
 
-        mostrarFormulario();
+        try {
 
+            /*
+             * Os selects precisam estar carregados também
+             * no formulário de inclusão.
+             */
+
+            const fontes =
+                await carregarFontesRelacionadas();
+
+
+            aplicarFontesRelacionadas(
+                fontes
+            );
+
+
+            form.reset();
+
+
+            mostrarFormulario();
+
+
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+        }
 
     }
 
 
-    // ------------------------------------------------------------
-    // Editar
-    // ------------------------------------------------------------
+    // ============================================================
+    // EDITAR
+    // ============================================================
 
-    function editar(
+    async function editar(
         registro,
         indice
     ) {
 
-        state.registroEditando =
-            registro;
+        try {
+
+            state.registroEditando =
+                registro;
 
 
-        state.indiceEditando =
-            indice;
+            state.indiceEditando =
+                indice;
 
 
-        form.setData(
-            registro
-        );
+            /*
+             * IMPORTANTE:
+             *
+             * Primeiro carregamos EMPREGADOS e VEICULOS.
+             *
+             * Só depois chamamos form.setData().
+             */
+
+            const fontes =
+                await carregarFontesRelacionadas();
 
 
-        mostrarFormulario();
+            aplicarFontesRelacionadas(
+                fontes
+            );
+
+
+            /*
+             * setData precisa ser chamado depois
+             * que os options existem.
+             */
+
+            await form.setData(
+                registro
+            );
+
+
+            mostrarFormulario();
+
+
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}: erro ao editar`,
+                erro
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+        }
 
     }
 
 
-    // ------------------------------------------------------------
-    // Salvar
-    // ------------------------------------------------------------
+    // ============================================================
+    // SALVAR FORMULÁRIO
+    // ============================================================
 
     async function salvarFormulario(dados) {
 
-    try {
+        try {
 
-        state.carregando = true;
-
-
-        // ========================================================
-        // EDIÇÃO
-        // ========================================================
-
-        if (state.registroEditando) {
-
-            const registroOriginal =
-                state.registroEditando;
+            state.carregando =
+                true;
 
 
-            const dadosAtualizacao = {
+            // ====================================================
+            // EDIÇÃO
+            // ====================================================
 
-                ...registroOriginal,
+            if (
+                state.registroEditando
+            ) {
 
-                ...dados,
-
-                // O ID nunca pode ser perdido
-                ID: registroOriginal.ID
-
-            };
-
-
-            console.log(
-                `Engine ${entity}: atualizando`,
-                dadosAtualizacao
-            );
+                const registroOriginal =
+                    state.registroEditando;
 
 
-            const resposta =
-                await crud.atualizar(
+                /*
+                 * Mantém todos os campos originais.
+                 *
+                 * Isso é importante para LANCAMENTOS,
+                 * porque existem campos que não aparecem
+                 * no formulário simplificado.
+                 */
+
+                const dadosAtualizacao = {
+
+                    ...registroOriginal,
+
+                    ...dados,
+
+                    /*
+                     * ID principal
+                     */
+
+                    ID:
+                        registroOriginal.ID
+
+                };
+
+
+                /*
+                 * Preserva relacionamento do empregado
+                 * caso o formulário não o tenha alterado.
+                 */
+
+                if (
+                    registroOriginal["ID Empregado"] &&
+                    !dadosAtualizacao["ID Empregado"]
+                ) {
+
+                    dadosAtualizacao["ID Empregado"] =
+                        registroOriginal["ID Empregado"];
+
+                }
+
+
+                /*
+                 * Preserva relacionamento do veículo.
+                 */
+
+                if (
+                    registroOriginal["ID Veículo"] &&
+                    !dadosAtualizacao["ID Veículo"]
+                ) {
+
+                    dadosAtualizacao["ID Veículo"] =
+                        registroOriginal["ID Veículo"];
+
+                }
+
+
+                console.log(
+                    `Engine ${entity}: atualizando`,
                     dadosAtualizacao
                 );
 
 
-            console.log(
-                `Engine ${entity}: resposta da atualização`,
-                resposta
-            );
+                const resposta =
+                    await crud.atualizar(
+                        dadosAtualizacao
+                    );
 
 
-            // Se o CRUD retornar uma resposta de API
-            // explicitamente negativa, não continuar.
-            if (
-                resposta &&
-                resposta.sucesso === false
-            ) {
+                console.log(
+                    `Engine ${entity}: resposta da atualização`,
+                    resposta
+                );
 
-                throw new Error(
-                    resposta.erro ||
-                    resposta.message ||
-                    "A API recusou a atualização."
+
+                validarResposta(
+                    resposta,
+                    "atualização"
                 );
 
             }
 
-        }
 
+            // ====================================================
+            // NOVO
+            // ====================================================
 
-        // ========================================================
-        // NOVO
-        // ========================================================
+            else {
 
-        else {
-
-            console.log(
-                `Engine ${entity}: criando`,
-                dados
-            );
-
-
-            const resposta =
-                await crud.criar(
+                console.log(
+                    `Engine ${entity}: criando`,
                     dados
                 );
 
 
-            console.log(
-                `Engine ${entity}: resposta da criação`,
-                resposta
-            );
+                const resposta =
+                    await crud.criar(
+                        dados
+                    );
 
 
-            if (
-                resposta &&
-                resposta.sucesso === false
-            ) {
+                console.log(
+                    `Engine ${entity}: resposta da criação`,
+                    resposta
+                );
 
-                throw new Error(
-                    resposta.erro ||
-                    resposta.message ||
-                    "A API recusou a criação."
+
+                validarResposta(
+                    resposta,
+                    "criação"
                 );
 
             }
 
+
+            // ====================================================
+            // FINALIZAÇÃO
+            // ====================================================
+
+            esconderFormulario();
+
+
+            state.registroEditando =
+                null;
+
+
+            state.indiceEditando =
+                null;
+
+
+            await carregar();
+
+
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+
+        } finally {
+
+            state.carregando =
+                false;
+
         }
-
-
-        // ========================================================
-        // FINALIZAÇÃO
-        // ========================================================
-
-        esconderFormulario();
-
-
-        state.registroEditando =
-            null;
-
-
-        state.indiceEditando =
-            null;
-
-
-        await carregar();
-
-
-    } catch (erro) {
-
-        console.error(
-            `Engine ${entity}:`,
-            erro
-        );
-
-
-        mostrarErro(
-            erro
-        );
-
-
-    } finally {
-
-        state.carregando =
-            false;
 
     }
 
-}
 
-
-    // ------------------------------------------------------------
-    // Excluir
-    // ------------------------------------------------------------
+    // ============================================================
+    // EXCLUIR
+    // ============================================================
 
     async function excluir(
         registro,
@@ -512,13 +798,16 @@ export function createEngine(config = {}) {
 
 
         if (!confirmar) {
+
             return;
+
         }
 
 
         try {
 
-            state.carregando = true;
+            state.carregando =
+                true;
 
 
             await crud.excluir(
@@ -544,23 +833,26 @@ export function createEngine(config = {}) {
 
         } finally {
 
-            state.carregando = false;
+            state.carregando =
+                false;
 
         }
 
     }
 
 
-    // ------------------------------------------------------------
-    // Cancelar
-    // ------------------------------------------------------------
+    // ============================================================
+    // CANCELAR
+    // ============================================================
 
     function cancelarFormulario() {
 
         form.reset();
 
+
         state.registroEditando =
             null;
+
 
         state.indiceEditando =
             null;
@@ -571,9 +863,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Mostrar formulário
-    // ------------------------------------------------------------
+    // ============================================================
+    // MOSTRAR FORMULÁRIO
+    // ============================================================
 
     function mostrarFormulario() {
 
@@ -585,7 +877,9 @@ export function createEngine(config = {}) {
             "none";
 
 
-        if (toolbar.botaoNovo) {
+        if (
+            toolbar.botaoNovo
+        ) {
 
             toolbar.ocultarNovo();
 
@@ -594,9 +888,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Esconder formulário
-    // ------------------------------------------------------------
+    // ============================================================
+    // ESCONDER FORMULÁRIO
+    // ============================================================
 
     function esconderFormulario() {
 
@@ -608,7 +902,9 @@ export function createEngine(config = {}) {
             "";
 
 
-        if (toolbar.botaoNovo) {
+        if (
+            toolbar.botaoNovo
+        ) {
 
             toolbar.mostrarNovo();
 
@@ -617,15 +913,16 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Mensagem de erro
-    // ------------------------------------------------------------
+    // ============================================================
+    // MENSAGEM DE ERRO
+    // ============================================================
 
     function mostrarErro(erro) {
 
         const mensagem =
             erro?.message ||
             "Ocorreu um erro.";
+
 
         console.error(
             mensagem
@@ -639,35 +936,16 @@ export function createEngine(config = {}) {
     }
 
 
-    // ------------------------------------------------------------
-    // Cria container
-    // ------------------------------------------------------------
-
-    function criarContainer(classe) {
-
-        const elemento =
-            document.createElement("div");
-
-
-        elemento.className =
-            classe;
-
-
-        return elemento;
-
-    }
-
-
-    // ------------------------------------------------------------
-    // Carrega inicialmente
-    // ------------------------------------------------------------
+    // ============================================================
+    // CARREGAMENTO INICIAL
+    // ============================================================
 
     carregar();
 
 
-    // ------------------------------------------------------------
-    // API pública
-    // ------------------------------------------------------------
+    // ============================================================
+    // API PÚBLICA
+    // ============================================================
 
     return {
 
@@ -687,13 +965,98 @@ export function createEngine(config = {}) {
 
         carregar,
 
-        novo: onNovo,
+        novo:
+            onNovo,
 
         editar,
 
-        cancelar: cancelarFormulario
+        cancelar:
+            cancelarFormulario
 
     };
+
+}
+
+
+/**
+ * ============================================================
+ * VALIDAR RESPOSTA DA API
+ * ============================================================
+ */
+
+function validarResposta(
+    resposta,
+    operacao
+) {
+
+    /*
+     * Resposta normal:
+     *
+     * {
+     *   sucesso: true,
+     *   status: 200,
+     *   dados: {...}
+     * }
+     */
+
+
+    if (
+        !resposta
+    ) {
+
+        throw new Error(
+            `A API não retornou resposta na ${operacao}.`
+        );
+
+    }
+
+
+    /*
+     * Erro no primeiro nível
+     */
+
+    if (
+        resposta.sucesso === false
+    ) {
+
+        throw new Error(
+            resposta.erro ||
+            resposta.message ||
+            `Erro na ${operacao}.`
+        );
+
+    }
+
+
+    /*
+     * Sua API possui uma segunda camada:
+     *
+     * dados:
+     * {
+     *     sucesso: false,
+     *     erro: "..."
+     * }
+     *
+     * Portanto precisamos verificar também.
+     */
+
+    const interno =
+        resposta?.dados;
+
+
+    if (
+        interno &&
+        typeof interno === "object" &&
+        interno.sucesso === false
+    ) {
+
+        throw new Error(
+            interno.erro ||
+            interno.message ||
+            `Erro na ${operacao}.`
+        );
+
+    }
 
 }
 
@@ -707,7 +1070,9 @@ export function createEngine(config = {}) {
 function resolverElemento(valor) {
 
     if (!valor) {
+
         return null;
+
     }
 
 
@@ -735,96 +1100,23 @@ function resolverElemento(valor) {
 
 }
 
-/**
- * ============================================================
- * RESOLVE SELECT
- * ============================================================
- */
-
-function possuiSelectRelacional(schema) {
-
-    return schema.fields.some(
-        field =>
-            field.type === "select" &&
-            field.source
-    );
-
-}
-
-
-async function carregarFontesRelacionadas(schema) {
-
-    const fontes = [
-        ...new Set(
-
-            schema.fields
-                .filter(
-                    field =>
-                        field.type === "select" &&
-                        field.source
-                )
-                .map(
-                    field =>
-                        field.source
-                )
-
-        )
-    ];
-
-
-    const resultado = {};
-
-
-    await Promise.all(
-
-        fontes.map(
-            async source => {
-
-                try {
-
-                    resultado[source] =
-                        await crud.listarFonte(
-                            source
-                        );
-
-                } catch (erro) {
-
-                    console.error(
-                        `Erro ao carregar fonte ${source}:`,
-                        erro
-                    );
-
-                    resultado[source] =
-                        [];
-
-                }
-
-            }
-        )
-
-    );
-
-
-    return resultado;
-
-}
 
 /**
  * ============================================================
- * FILTRAR CAMPO TÉCNICO
+ * CRIA CONTAINER
  * ============================================================
  */
 
-function campoTecnico(campo) {
+function criarContainer(classe) {
 
-    const nome =
-        typeof campo === "string"
-            ? campo
-            : campo?.name;
+    const elemento =
+        document.createElement("div");
 
-    return (
-        nome === "ID" ||
-        nome.startsWith("ID ")
-    );
+
+    elemento.className =
+        classe;
+
+
+    return elemento;
 
 }
