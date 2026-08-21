@@ -4,113 +4,29 @@ import {
     SCHEMA_LANCAMENTOS
 } from "../schemas/lancamentos.js";
 
-import {
-    listar
-} from "../services/crudService.js";
 
+createModule({
 
-async function carregarEmpregados() {
+    entity: "LANCAMENTOS",
 
-    const empregados =
-        await listar("EMPREGADOS");
+    schema: SCHEMA_LANCAMENTOS,
 
+    container: "#app",
 
-    return empregados.map(
-        empregado => ({
+    stateName: "lancamentos",
 
-            value: empregado.ID,
+    options: {
 
-            label:
-                `${empregado.Empregado || ""} / ` +
-                `${empregado.Matrícula || ""}`,
+        titulo: "Lançamentos",
 
-            dados: empregado
+        tabela: "Lançamentos Cadastrados",
 
-        })
-    );
+        permitirNovo: true,
 
-}
+        permitirEditar: true,
 
+        permitirExcluir: true
 
-async function carregarVeiculos() {
+    }
 
-    const veiculos =
-        await listar("VEICULOS");
-
-
-    return veiculos.map(
-        veiculo => ({
-
-            value: veiculo.ID,
-
-            label:
-                `${veiculo.Modelo || ""} / ` +
-                `${veiculo.Placa || ""}`,
-
-            dados: veiculo
-
-        })
-    );
-
-}
-
-
-async function iniciar() {
-
-    const [
-        empregados,
-        veiculos
-    ] = await Promise.all([
-
-        carregarEmpregados(),
-
-        carregarVeiculos()
-
-    ]);
-
-
-    createModule({
-
-        entity: "LANCAMENTOS",
-
-        schema: SCHEMA_LANCAMENTOS,
-
-        container: "#app",
-
-        stateName: "lancamentos",
-
-        options: {
-
-            titulo:
-                "Lançamentos",
-
-            tabela:
-                "Lançamentos Cadastrados",
-
-            permitirNovo:
-                true,
-
-            permitirEditar:
-                true,
-
-            permitirExcluir:
-                true,
-
-            selects: {
-
-                "Empregado / Matrícula":
-                    empregados,
-
-                "Veículo":
-                    veiculos
-
-            }
-
-        }
-
-    });
-
-}
-
-
-iniciar();
+});
