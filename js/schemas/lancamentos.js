@@ -8,6 +8,24 @@ export const SCHEMA_LANCAMENTOS = createSchema({
     fields: [
 
         {
+            name: "ID",
+            type: "text",
+            visible: false
+        },
+
+        {
+            name: "ID Empregado",
+            type: "text",
+            visible: false
+        },
+
+        {
+            name: "ID Veículo",
+            type: "text",
+            visible: false
+        },
+
+        {
             name: "Data",
             type: "date",
             required: true
