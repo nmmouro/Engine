@@ -1615,42 +1615,54 @@ export function createForm(config = {}) {
     }
 
 
-    // ============================================================
-    // VALIDAÇÃO
-    // ============================================================
+   // ============================================================
+// VALIDAÇÃO
+// ============================================================
 
-    function validar(dados) {
+function validar(dados) {
 
-        for (
-            const campo of schema.fields
+    for (const campo of schema.fields) {
+
+        // --------------------------------------------------------
+        // Campos que não aparecem no formulário
+        // --------------------------------------------------------
+
+        if (!deveExibirCampo(campo)) {
+
+            continue;
+
+        }
+
+
+        // --------------------------------------------------------
+        // Campo não obrigatório
+        // --------------------------------------------------------
+
+        if (!campo.required) {
+
+            continue;
+
+        }
+
+
+        // --------------------------------------------------------
+        // SELECT RELACIONAL
+        // --------------------------------------------------------
+
+        if (
+            campo.type === "select" &&
+            campo.source &&
+            campo.idField
         ) {
 
-            if (
-                !deveExibirCampo(campo)
-            ) {
-
-                continue;
-
-            }
-
-
-            if (!campo.required) {
-
-                continue;
-
-            }
-
-
-            const valor =
-                dados[
-                    campo.name
-                ];
+            const id =
+                dados[campo.idField];
 
 
             if (
-                valor === undefined ||
-                valor === null ||
-                String(valor).trim() === ""
+                id === undefined ||
+                id === null ||
+                String(id).trim() === ""
             ) {
 
                 mostrarErro(
@@ -1659,9 +1671,7 @@ export function createForm(config = {}) {
 
 
                 const input =
-                    obterInput(
-                        campo.name
-                    );
+                    obterInput(campo.name);
 
 
                 if (input) {
@@ -1675,12 +1685,52 @@ export function createForm(config = {}) {
 
             }
 
+
+            continue;
+
         }
 
 
-        return true;
+        // --------------------------------------------------------
+        // CAMPOS NORMAIS
+        // --------------------------------------------------------
+
+        const valor =
+            dados[campo.name];
+
+
+        if (
+            valor === undefined ||
+            valor === null ||
+            String(valor).trim() === ""
+        ) {
+
+            mostrarErro(
+                `O campo "${campo.label || campo.name}" é obrigatório.`
+            );
+
+
+            const input =
+                obterInput(campo.name);
+
+
+            if (input) {
+
+                input.focus();
+
+            }
+
+
+            return false;
+
+        }
 
     }
+
+
+    return true;
+
+}
 
 
     // ============================================================
