@@ -840,9 +840,9 @@ textarea.form-control {
 
     display: block;
 
-    width: 78px;
+    width: 90px;
 
-    height: 78px;
+    height: 90px;
 
     object-fit: contain;
 
@@ -927,25 +927,34 @@ textarea.form-control {
     }
 
 
-    .engine-header-logo img {
+    .engine-header-logo-img {
 
-        width: 40px;
+        max-width: 100px;
 
-        height: 40px;
+        max-height: 45px;
 
     }
 
 
     .engine-header-title {
 
-        font-size: 18px;
+        font-size: 1.1rem;
 
     }
 
 
     .engine-header-datetime {
 
-        font-size: 12px;
+        font-size: 0.8rem;
+
+    }
+
+
+    .engine-header-fullscreen {
+
+        width: 36px;
+
+        height: 36px;
 
     }
 
