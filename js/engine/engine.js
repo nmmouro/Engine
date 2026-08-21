@@ -32,7 +32,7 @@ import { createForm } from "./form.js";
 import { createTable } from "./table.js";
 import { createToolbar } from "./toolbar.js";
 
-import { createHeader } from "./header.js";
+import { createHeader } from "../header.js";
 
 
 /**
