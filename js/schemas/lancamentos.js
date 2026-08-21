@@ -33,7 +33,9 @@ export const SCHEMA_LANCAMENTOS = createSchema({
                 "Matrícula"
             ],
 
-            separator: " / "
+            separator: " / ",
+
+            idField: "ID Empregado"
 
         },
         {
@@ -50,7 +52,9 @@ export const SCHEMA_LANCAMENTOS = createSchema({
                 "Placa"
             ],
 
-            separator: " / "
+            separator: " / ",
+
+            idField: "ID Veículo"
 
         },
 
