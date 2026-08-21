@@ -41,16 +41,20 @@ export function createTable(config = {}) {
     // ------------------------------------------------------------
 
     if (!schema) {
+
         throw new Error(
             "Table: schema não informado."
         );
+
     }
 
 
     if (!Array.isArray(schema.fields)) {
+
         throw new Error(
             `Table ${schema.entity}: fields inválido.`
         );
+
     }
 
 
@@ -59,9 +63,11 @@ export function createTable(config = {}) {
 
 
     if (!elemento) {
+
         throw new Error(
             `Table: container não encontrado: ${container}`
         );
+
     }
 
 
@@ -175,25 +181,32 @@ export function createTable(config = {}) {
             document.createElement("tr");
 
 
-        schema.fields.forEach(campo => {
+        schema.fields
 
-            const th =
-                document.createElement("th");
+            .filter(
+                campo =>
+                    deveExibirColuna(campo)
+            )
 
+            .forEach(campo => {
 
-            th.textContent =
-                campo.tableLabel ||
-                campo.label ||
-                campo.name;
-
-
-            th.dataset.field =
-                campo.name;
+                const th =
+                    document.createElement("th");
 
 
-            tr.appendChild(th);
+                th.textContent =
+                    campo.tableLabel ||
+                    campo.label ||
+                    campo.name;
 
-        });
+
+                th.dataset.field =
+                    campo.name;
+
+
+                tr.appendChild(th);
+
+            });
 
 
         // --------------------------------------------------------
@@ -231,7 +244,10 @@ export function createTable(config = {}) {
     // Cria linha
     // ------------------------------------------------------------
 
-    function criarLinha(registro, indice) {
+    function criarLinha(
+        registro,
+        indice
+    ) {
 
         const tr =
             document.createElement("tr");
@@ -245,32 +261,39 @@ export function createTable(config = {}) {
         // Campos
         // --------------------------------------------------------
 
-        schema.fields.forEach(campo => {
+        schema.fields
 
-            const td =
-                document.createElement("td");
+            .filter(
+                campo =>
+                    deveExibirColuna(campo)
+            )
 
+            .forEach(campo => {
 
-            td.dataset.field =
-                campo.name;
-
-
-            const valor =
-                registro?.[campo.name];
-
-
-            td.appendChild(
-                renderValor(
-                    campo,
-                    valor,
-                    registro
-                )
-            );
+                const td =
+                    document.createElement("td");
 
 
-            tr.appendChild(td);
+                td.dataset.field =
+                    campo.name;
 
-        });
+
+                const valor =
+                    registro?.[campo.name];
+
+
+                td.appendChild(
+                    renderValor(
+                        campo,
+                        valor,
+                        registro
+                    )
+                );
+
+
+                tr.appendChild(td);
+
+            });
 
 
         // --------------------------------------------------------
@@ -334,7 +357,8 @@ export function createTable(config = {}) {
         // --------------------------------------------------------
 
         if (
-            typeof campo.formatter === "function"
+            typeof campo.formatter ===
+            "function"
         ) {
 
             const resultado =
@@ -344,7 +368,9 @@ export function createTable(config = {}) {
                 );
 
 
-            return criarTexto(resultado);
+            return criarTexto(
+                resultado
+            );
 
         }
 
@@ -371,7 +397,9 @@ export function createTable(config = {}) {
         // Select
         // --------------------------------------------------------
 
-        if (campo.type === "select") {
+        if (
+            campo.type === "select"
+        ) {
 
             return criarTexto(
                 obterLabelOption(
@@ -387,7 +415,9 @@ export function createTable(config = {}) {
         // Date
         // --------------------------------------------------------
 
-        if (campo.type === "date") {
+        if (
+            campo.type === "date"
+        ) {
 
             return criarTexto(
                 formatarData(valor)
@@ -400,7 +430,9 @@ export function createTable(config = {}) {
         // Number
         // --------------------------------------------------------
 
-        if (campo.type === "number") {
+        if (
+            campo.type === "number"
+        ) {
 
             return criarTexto(
                 formatarNumero(valor)
@@ -449,8 +481,32 @@ export function createTable(config = {}) {
         valor
     ) {
 
-        if (!Array.isArray(campo.options)) {
+        // --------------------------------------------------------
+        // Select relacional
+        // --------------------------------------------------------
+
+        if (
+            campo.source &&
+            campo.labelFields
+        ) {
+
             return valor;
+
+        }
+
+
+        // --------------------------------------------------------
+        // Select normal
+        // --------------------------------------------------------
+
+        if (
+            !Array.isArray(
+                campo.options
+            )
+        ) {
+
+            return valor;
+
         }
 
 
@@ -458,30 +514,38 @@ export function createTable(config = {}) {
             campo.options.find(opcao => {
 
                 if (
-                    typeof opcao === "object" &&
+                    typeof opcao ===
+                    "object" &&
                     opcao !== null
                 ) {
 
-                    return String(opcao.value) ===
-                           String(valor);
+                    return (
+                        String(opcao.value) ===
+                        String(valor)
+                    );
 
                 }
 
 
-                return String(opcao) ===
-                       String(valor);
+                return (
+                    String(opcao) ===
+                    String(valor)
+                );
 
             });
 
 
         if (
             encontrada &&
-            typeof encontrada === "object"
+            typeof encontrada ===
+            "object"
         ) {
 
-            return encontrada.label ??
-                   encontrada.value ??
-                   valor;
+            return (
+                encontrada.label ??
+                encontrada.value ??
+                valor
+            );
 
         }
 
@@ -513,7 +577,8 @@ export function createTable(config = {}) {
         // --------------------------------------------------------
 
         if (
-            typeof actions.editar === "function"
+            typeof actions.editar ===
+            "function"
         ) {
 
             const botaoEditar =
@@ -528,6 +593,7 @@ export function createTable(config = {}) {
                 evento => {
 
                     evento.preventDefault();
+
 
                     actions.editar(
                         registro,
@@ -550,7 +616,8 @@ export function createTable(config = {}) {
         // --------------------------------------------------------
 
         if (
-            typeof actions.excluir === "function"
+            typeof actions.excluir ===
+            "function"
         ) {
 
             const botaoExcluir =
@@ -565,6 +632,7 @@ export function createTable(config = {}) {
                 evento => {
 
                     evento.preventDefault();
+
 
                     actions.excluir(
                         registro,
@@ -624,8 +692,11 @@ export function createTable(config = {}) {
     function possuiAcoes() {
 
         return (
-            typeof actions.editar === "function" ||
-            typeof actions.excluir === "function"
+            typeof actions.editar ===
+                "function" ||
+
+            typeof actions.excluir ===
+                "function"
         );
 
     }
@@ -636,7 +707,8 @@ export function createTable(config = {}) {
     // ------------------------------------------------------------
 
     function renderVazio(
-        mensagem = "Nenhum registro encontrado."
+        mensagem =
+            "Nenhum registro encontrado."
     ) {
 
         const vazio =
@@ -651,7 +723,9 @@ export function createTable(config = {}) {
             mensagem;
 
 
-        elemento.appendChild(vazio);
+        elemento.appendChild(
+            vazio
+        );
 
     }
 
@@ -661,7 +735,8 @@ export function createTable(config = {}) {
     // ------------------------------------------------------------
 
     function renderLoading(
-        mensagem = "Carregando..."
+        mensagem =
+            "Carregando..."
     ) {
 
         elemento.innerHTML = "";
@@ -699,7 +774,9 @@ export function createTable(config = {}) {
             indice < 0 ||
             indice >= registros.length
         ) {
+
             return;
+
         }
 
 
@@ -722,7 +799,9 @@ export function createTable(config = {}) {
             indice < 0 ||
             indice >= registros.length
         ) {
+
             return;
+
         }
 
 
@@ -749,13 +828,53 @@ export function createTable(config = {}) {
 
 
     // ------------------------------------------------------------
+    // Decide quais colunas aparecem
+    // ------------------------------------------------------------
+
+    function deveExibirColuna(campo) {
+
+        const nome =
+            typeof campo === "string"
+                ? campo
+                : campo?.name;
+
+
+        if (!nome) {
+
+            return false;
+
+        }
+
+
+        // --------------------------------------------------------
+        // Campos técnicos
+        // --------------------------------------------------------
+
+        if (
+            nome === "ID" ||
+            nome.startsWith("ID ")
+        ) {
+
+            return false;
+
+        }
+
+
+        return true;
+
+    }
+
+
+    // ------------------------------------------------------------
     // Formata data
     // ------------------------------------------------------------
 
     function formatarData(valor) {
 
         if (!valor) {
+
             return "";
+
         }
 
 
@@ -766,7 +885,8 @@ export function createTable(config = {}) {
         // dd/mm/yyyy
 
         if (
-            /^\d{2}\/\d{2}\/\d{4}$/.test(texto)
+            /^\d{2}\/\d{2}\/\d{4}$/
+                .test(texto)
         ) {
 
             return texto;
@@ -777,17 +897,21 @@ export function createTable(config = {}) {
         // yyyy-mm-dd
 
         if (
-            /^\d{4}-\d{2}-\d{2}$/.test(texto)
+            /^\d{4}-\d{2}-\d{2}$/
+                .test(texto)
         ) {
 
             const [
                 ano,
                 mes,
                 dia
-            ] = texto.split("-");
+            ] =
+                texto.split("-");
 
 
-            return `${dia}/${mes}/${ano}`;
+            return (
+                `${dia}/${mes}/${ano}`
+            );
 
         }
 
@@ -804,7 +928,9 @@ export function createTable(config = {}) {
     function formatarNumero(valor) {
 
         if (valor === "") {
+
             return "";
+
         }
 
 
@@ -812,8 +938,12 @@ export function createTable(config = {}) {
             Number(valor);
 
 
-        if (Number.isNaN(numero)) {
+        if (
+            Number.isNaN(numero)
+        ) {
+
             return String(valor);
+
         }
 
 
@@ -831,7 +961,9 @@ export function createTable(config = {}) {
     function resolverElemento(valor) {
 
         if (!valor) {
+
             return null;
+
         }
 
 
