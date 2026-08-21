@@ -318,11 +318,12 @@ function preencherSelect(
 
 
         option.value =
-            opcao.value;
+            opcao.value ?? "";
 
 
         option.textContent =
-            opcao.label;
+            opcao.label ?? "";
+
 
         option.dataset.label =
             opcao.label ?? "";
@@ -854,7 +855,7 @@ function preencherSelect(
 
 }
 
-    // ------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------------------------------
     // Preenche formulário
     // ------------------------------------------------------------
 
@@ -951,7 +952,7 @@ for (const campo of schema.fields) {
     }
 
 
-    // ------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------------------------------------
     // Lê formulário
     // ------------------------------------------------------------
 
@@ -959,12 +960,10 @@ for (const campo of schema.fields) {
 
     const dados = {};
 
-
     schema.fields.forEach(campo => {
 
         const input =
             obterInput(campo.name);
-
 
         if (!input) {
             return;
@@ -984,10 +983,8 @@ for (const campo of schema.fields) {
             const option =
                 input.selectedOptions[0];
 
-
             const id =
                 input.value || "";
-
 
             const label =
                 option?.dataset?.label ||
@@ -995,12 +992,12 @@ for (const campo of schema.fields) {
                 "";
 
 
-            // Campo ID
+            // ID técnico
             dados[campo.idField] =
                 id;
 
 
-            // Campo visual
+            // Descrição apresentada ao usuário
             dados[campo.name] =
                 id
                     ? label.trim()
@@ -1013,14 +1010,53 @@ for (const campo of schema.fields) {
 
 
         // ====================================================
-        // CAMPOS NORMAIS
+        // DEMAIS CAMPOS
         // ====================================================
 
+        let valor =
+            input.value;
+
+
+        // ----------------------------------------------------
+        // Checkbox
+        // ----------------------------------------------------
+
+        if (
+            input.type === "checkbox"
+        ) {
+
+            valor =
+                input.checked;
+
+        }
+
+
+        // ----------------------------------------------------
+        // Campos de data/hora
+        // ----------------------------------------------------
+
+        if (
+            campo.type === "date"
+        ) {
+
+            valor =
+                input.value || "";
+
+        }
+
+
+        if (
+            campo.type === "time"
+        ) {
+
+            valor =
+                input.value || "";
+
+        }
+
+
         dados[campo.name] =
-            obterValorCampo(
-                campo,
-                input
-            );
+            valor;
 
     });
 
