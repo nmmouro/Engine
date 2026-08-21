@@ -808,3 +808,23 @@ async function carregarFontesRelacionadas(schema) {
     return resultado;
 
 }
+
+/**
+ * ============================================================
+ * FILTRAR CAMPO TÉCNICO
+ * ============================================================
+ */
+
+function campoTecnico(campo) {
+
+    const nome =
+        typeof campo === "string"
+            ? campo
+            : campo?.name;
+
+    return (
+        nome === "ID" ||
+        nome.startsWith("ID ")
+    );
+
+}
