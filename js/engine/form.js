@@ -324,6 +324,9 @@ function preencherSelect(
         option.textContent =
             opcao.label;
 
+        option.dataset.label =
+            opcao.label ?? "";
+
 
         if (
             String(opcao.value) ===
@@ -954,40 +957,77 @@ for (const campo of schema.fields) {
 
     function getData() {
 
-        const dados = {};
+    const dados = {};
 
 
-        schema.fields.forEach(campo => {
+    schema.fields.forEach(campo => {
 
-            const input =
-                obterInput(campo.name);
-
-
-            if (!input) {
-                return;
-            }
+        const input =
+            obterInput(campo.name);
 
 
-            if (campo.type === "checkbox") {
-
-                dados[campo.name] =
-                    input.checked;
-
-                return;
-
-            }
+        if (!input) {
+            return;
+        }
 
 
+        // ====================================================
+        // SELECT RELACIONAL
+        // ====================================================
+
+        if (
+            campo.type === "select" &&
+            campo.source &&
+            campo.idField
+        ) {
+
+            const option =
+                input.selectedOptions[0];
+
+
+            const id =
+                input.value || "";
+
+
+            const label =
+                option?.dataset?.label ||
+                option?.textContent ||
+                "";
+
+
+            // Campo ID
+            dados[campo.idField] =
+                id;
+
+
+            // Campo visual
             dados[campo.name] =
-                input.value;
+                id
+                    ? label.trim()
+                    : "";
 
-        });
+
+            return;
+
+        }
 
 
-        return dados;
+        // ====================================================
+        // CAMPOS NORMAIS
+        // ====================================================
 
-    }
+        dados[campo.name] =
+            obterValorCampo(
+                campo,
+                input
+            );
 
+    });
+
+
+    return dados;
+
+}
 
     // ------------------------------------------------------------
     // Limpa formulário
