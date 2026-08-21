@@ -794,3 +794,159 @@ textarea.form-control {
 
     color: #64748b;
 }
+
+
+/* ============================================================
+   HEADER ENGINE
+============================================================ */
+
+.engine-header {
+
+    width: 100%;
+
+    min-height: 64px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+    padding: 10px 18px;
+
+    box-sizing: border-box;
+
+}
+
+
+/* ============================================================
+   LOGO
+============================================================ */
+
+.engine-header-logo {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+}
+
+
+.engine-header-logo img {
+
+    display: block;
+
+    width: 48px;
+
+    height: 48px;
+
+    object-fit: contain;
+
+}
+
+
+/* ============================================================
+   TÍTULO
+============================================================ */
+
+.engine-header-title {
+
+    margin: 0;
+
+    flex: 1;
+
+    font-size: 22px;
+
+    font-weight: 600;
+
+}
+
+
+/* ============================================================
+   DATA / HORA
+============================================================ */
+
+.engine-header-datetime {
+
+    white-space: nowrap;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+}
+
+
+/* ============================================================
+   TELA CHEIA
+============================================================ */
+
+.engine-header-fullscreen {
+
+    width: 42px;
+
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 22px;
+
+    background: transparent;
+
+}
+
+
+/* ============================================================
+   RESPONSIVO
+============================================================ */
+
+@media (max-width: 700px) {
+
+    .engine-header {
+
+        gap: 10px;
+
+        padding: 8px 12px;
+
+    }
+
+
+    .engine-header-logo img {
+
+        width: 40px;
+
+        height: 40px;
+
+    }
+
+
+    .engine-header-title {
+
+        font-size: 18px;
+
+    }
+
+
+    .engine-header-datetime {
+
+        font-size: 12px;
+
+    }
+
+}
