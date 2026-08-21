@@ -32,6 +32,8 @@ import { createForm } from "./form.js";
 import { createTable } from "./table.js";
 import { createToolbar } from "./toolbar.js";
 
+import { createHeader } from "./header.js";
+
 
 /**
  * ============================================================
@@ -76,18 +78,58 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
-    // CONTAINER PRINCIPAL
-    // ============================================================
+   // ============================================================
+// CONTAINER PRINCIPAL
+// ============================================================
 
-    const app =
-        resolverElemento(container);
+const app =
+    resolverElemento(container);
 
-    if (!app) {
-        throw new Error(
-            `Engine ${entity}: container não encontrado: ${container}`
-        );
-    }
+
+if (!app) {
+
+    throw new Error(
+        `Engine ${entity}: container não encontrado: ${container}`
+    );
+
+}
+
+
+// ============================================================
+// LIMPA CONTAINER
+// ============================================================
+
+app.innerHTML = "";
+
+
+// ============================================================
+// HEADER
+// ============================================================
+
+const headerContainer =
+    criarContainer(
+        "engine-header-container"
+    );
+
+
+app.appendChild(
+    headerContainer
+);
+
+
+const header =
+    createHeader({
+
+        container:
+            headerContainer,
+
+        titulo:
+            options.titulo || entity,
+
+        logo:
+            options.logo || "img/logo.png"
+
+    });
 
 
     // ============================================================
@@ -110,10 +152,7 @@ export function createEngine(config = {}) {
     // ESTRUTURA DA PÁGINA
     // ============================================================
 
-    app.innerHTML = "";
-
-
-    const toolbarContainer =
+   const toolbarContainer =
         criarContainer(
             "engine-toolbar-container"
         );
