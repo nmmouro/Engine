@@ -26,6 +26,12 @@
  *
  * @returns {Object}
  */
+
+import {
+    listar
+} from "../services/crudService.js";
+
+
 export function createForm(config = {}) {
 
     const {
@@ -170,6 +176,231 @@ export function createForm(config = {}) {
         elemento.appendChild(form);
 
     }
+    
+
+// ===========================================================================================================
+// SELECT RELACIONAL
+// ===========================================================================================================
+
+async function carregarOpcoesRelacionadas(field) {
+
+    if (!field.source) {
+        return [];
+    }
+
+
+    const registros =
+        await listar(field.source);
+
+
+    if (!Array.isArray(registros)) {
+
+        console.warn(
+            `Nenhum registro encontrado para ${field.source}`
+        );
+
+        return [];
+
+    }
+
+
+    const valueField =
+        field.valueField || "ID";
+
+
+    const labelFields =
+        field.labelFields || [valueField];
+
+
+    const separator =
+        field.separator ?? " / ";
+
+
+    return registros.map(registro => {
+
+        const value =
+            registro[valueField] ?? "";
+
+
+        const label =
+            labelFields
+                .map(nome =>
+                    registro[nome] ?? ""
+                )
+                .join(separator);
+
+
+        return {
+
+            value,
+
+            label
+
+        };
+
+    });
+
+}
+
+// ============================================================
+// PREENCHER SELECT
+// ============================================================
+
+function preencherSelect(
+    select,
+    opcoes,
+    valorAtual = ""
+) {
+
+    select.innerHTML = "";
+
+
+    const opcaoInicial =
+        document.createElement("option");
+
+
+    opcaoInicial.value = "";
+
+    opcaoInicial.textContent =
+        "Selecione...";
+
+
+    select.appendChild(
+        opcaoInicial
+    );
+
+
+    opcoes.forEach(opcao => {
+
+        const option =
+            document.createElement("option");
+
+
+        option.value =
+            opcao.value;
+
+
+        option.textContent =
+            opcao.label;
+
+
+        if (
+            String(opcao.value) ===
+            String(valorAtual)
+        ) {
+
+            option.selected = true;
+
+        }
+
+
+        select.appendChild(
+            option
+        );
+
+    });
+
+}
+
+    async function configurarCampoSelect(
+    field,
+    input,
+    valorAtual = ""
+) {
+
+    // --------------------------------------------------------
+    // SELECT NORMAL
+    // --------------------------------------------------------
+
+    if (!field.source) {
+
+        preencherSelect(
+            input,
+            (field.options || []).map(valor => ({
+
+                value,
+
+                label: valor
+
+            })),
+            valorAtual
+        );
+
+        return;
+
+    }
+
+
+    // --------------------------------------------------------
+    // SELECT RELACIONAL
+    // --------------------------------------------------------
+
+    input.disabled = true;
+
+
+    const carregando =
+        document.createElement("option");
+
+
+    carregando.value = "";
+
+    carregando.textContent =
+        "Carregando...";
+
+
+    input.appendChild(
+        carregando
+    );
+
+
+    try {
+
+        const opcoes =
+            await carregarOpcoesRelacionadas(
+                field
+            );
+
+
+        preencherSelect(
+            input,
+            opcoes,
+            valorAtual
+        );
+
+
+    } catch (erro) {
+
+        console.error(
+            `Erro ao carregar ${field.source}:`,
+            erro
+        );
+
+
+        input.innerHTML = "";
+
+
+        const erroOption =
+            document.createElement("option");
+
+
+        erroOption.value = "";
+
+        erroOption.textContent =
+            "Erro ao carregar opções";
+
+
+        input.appendChild(
+            erroOption
+        );
+
+
+    } finally {
+
+        input.disabled = false;
+
+    }
+
+}
 
 
     // ------------------------------------------------------------
