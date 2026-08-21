@@ -23,7 +23,7 @@ export const SCHEMA_EMPREGADOS = createSchema({
             required: true
         },
         {
-            name: "Matricula",
+            name: "Matrícula",
             type: "text",
             required: true
         },
@@ -36,7 +36,7 @@ export const SCHEMA_EMPREGADOS = createSchema({
             type: "text"
         },
         {
-            name: "Usuario",
+            name: "Usuário",
             type: "text"
         },
         {
