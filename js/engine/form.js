@@ -41,7 +41,7 @@ import {
 } from "./form/values.js";
 
 import {
-    validarFormulario
+    validar
 } from "./form/validation.js";
 
 import {
