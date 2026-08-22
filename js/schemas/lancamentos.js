@@ -39,16 +39,50 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Data",
-            type: "date",
-            required: true
-        },
+    name: "Data",
+    label: "Data",
+    type: "date",
+    required: true,
+    defaultValue: () => {
+
+        const agora = new Date();
+
+        return (
+            agora.getFullYear() +
+            "-" +
+            String(
+                agora.getMonth() + 1
+            ).padStart(2, "0") +
+            "-" +
+            String(
+                agora.getDate()
+            ).padStart(2, "0")
+        );
+
+    }
+}
 
         {
-            name: "Hora",
-            type: "time",
-            required: true
-        },
+    name: "Hora",
+    label: "Horário Inicial",
+    type: "time",
+    required: true,
+    defaultValue: () => {
+
+        const agora = new Date();
+
+        return (
+            String(
+                agora.getHours()
+            ).padStart(2, "0") +
+            ":" +
+            String(
+                agora.getMinutes()
+            ).padStart(2, "0")
+        );
+
+    }
+}
 
 
         // ========================================================
