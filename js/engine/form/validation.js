@@ -1,45 +1,97 @@
 /**
  * ============================================================
- * FORM VALIDATION
+ * FORM — VALIDATION
+ * ============================================================
+ *
+ * Responsável por:
+ *
+ * - Validar campos obrigatórios
+ * - Validar selects relacionais
+ * - Exibir mensagem de erro
+ * - Posicionar o foco no campo inválido
+ *
+ * Não conhece nenhuma entidade específica.
  * ============================================================
  */
 
-export function validarFormulario(
-    config = {}
-) {
+
+/**
+ * ============================================================
+ * VALIDAR FORMULÁRIO
+ * ============================================================
+ *
+ * @param {Object} config
+ *
+ * config.schema
+ * config.dados
+ * config.obterInput
+ * config.deveExibirCampo
+ *
+ * @returns {Boolean}
+ * ============================================================
+ */
+
+export function validar(config = {}) {
 
     const {
         schema,
         dados,
-        obterInput
+        obterInput,
+        deveExibirCampo
     } = config;
 
 
-    for (
-        const campo of schema.fields
-    ) {
+    // ============================================================
+    // VALIDAÇÕES INICIAIS
+    // ============================================================
+
+    if (!schema) {
+
+        console.error(
+            "validation.js: schema não foi fornecido."
+        );
+
+        return false;
+
+    }
+
+
+    if (!Array.isArray(schema.fields)) {
+
+        console.error(
+            "validation.js: schema.fields não é um array."
+        );
+
+        return false;
+
+    }
+
+
+    if (!dados) {
+
+        console.error(
+            "validation.js: dados não foram fornecidos."
+        );
+
+        return false;
+
+    }
+
+
+    // ============================================================
+    // VERIFICA CAMPOS
+    // ============================================================
+
+    for (const campo of schema.fields) {
+
 
         // ========================================================
         // CAMPO OCULTO
         // ========================================================
 
         if (
-            campo.hidden === true ||
-            campo.visible === false
-        ) {
-
-            continue;
-
-        }
-
-
-        const nome =
-            campo.name || "";
-
-
-        if (
-            nome === "ID" ||
-            nome.startsWith("ID ")
+            typeof deveExibirCampo === "function" &&
+            !deveExibirCampo(campo)
         ) {
 
             continue;
@@ -48,7 +100,7 @@ export function validarFormulario(
 
 
         // ========================================================
-        // NÃO OBRIGATÓRIO
+        // CAMPO NÃO OBRIGATÓRIO
         // ========================================================
 
         if (!campo.required) {
@@ -68,23 +120,20 @@ export function validarFormulario(
             campo.idField
         ) {
 
-            const id =
-                dados[
-                    campo.idField
-                ];
+            const valor =
+                dados[campo.idField];
 
 
             if (
-                !valorValido(id)
+                valor === undefined ||
+                valor === null ||
+                String(valor).trim() === ""
             ) {
 
-                return mostrarErroCampo({
-
+                return mostrarErroValidacao(
                     campo,
-
                     obterInput
-
-                });
+                );
 
             }
 
@@ -99,81 +148,52 @@ export function validarFormulario(
         // ========================================================
 
         const valor =
-            dados[
-                campo.name
-            ];
+            dados[campo.name];
 
 
         if (
-            !valorValido(valor)
+            valor === undefined ||
+            valor === null ||
+            String(valor).trim() === ""
         ) {
 
-            return mostrarErroCampo({
-
+            return mostrarErroValidacao(
                 campo,
-
                 obterInput
-
-            });
+            );
 
         }
 
     }
 
 
+    // ============================================================
+    // FORMULÁRIO VÁLIDO
+    // ============================================================
+
     return true;
 
 }
 
 
-// ============================================================
-// VALOR VÁLIDO
-// ============================================================
+/**
+ * ============================================================
+ * MOSTRAR ERRO DE VALIDAÇÃO
+ * ============================================================
+ */
 
-function valorValido(valor) {
-
-    if (
-        valor === undefined ||
-        valor === null
-    ) {
-
-        return false;
-
-    }
-
-
-    if (
-        typeof valor === "boolean"
-    ) {
-
-        return true;
-
-    }
-
-
-    return (
-        String(valor).trim() !== ""
-    );
-
-}
-
-
-// ============================================================
-// MOSTRAR ERRO
-// ============================================================
-
-function mostrarErroCampo(
-    config
+function mostrarErroValidacao(
+    campo,
+    obterInput
 ) {
 
-    const {
-        campo,
-        obterInput
-    } = config;
+    const nome =
+        campo.label ||
+        campo.name;
 
 
     const mensagem =
-        `O campo "${campo.label || campo.name}" é obrigatório.`;
+        `O campo "${nome}" é obrigatório.`;
 
 
     console.error(
@@ -186,6 +206,10 @@ function mostrarErroCampo(
         mensagem
     );
 
+
+    // ============================================================
+    // FOCAR CAMPO
+    // ============================================================
 
     if (
         typeof obterInput ===
