@@ -1,15 +1,25 @@
 /**
  * ============================================================
- * FORM SELECT
+ * FORM / SELECT
  * ============================================================
  */
 
-export async function configurarCampoSelect(
-    field,
-    input,
-    valorAtual = "",
-    listar = null
-) {
+export async function configurarCampoSelect(config = {}) {
+
+    const {
+        field,
+        input,
+        listar,
+        valorAtual = ""
+    } = config;
+
+
+    if (!field || !input) {
+
+        return;
+
+    }
+
 
     // ============================================================
     // SELECT NORMAL
@@ -21,40 +31,9 @@ export async function configurarCampoSelect(
 
             input,
 
-            (field.options || [])
-                .map(valor => {
-
-                    if (
-                        typeof valor === "object" &&
-                        valor !== null
-                    ) {
-
-                        return {
-
-                            value:
-                                valor.value ?? "",
-
-                            label:
-                                valor.label ??
-                                valor.value ??
-                                ""
-
-                        };
-
-                    }
-
-
-                    return {
-
-                        value:
-                            String(valor),
-
-                        label:
-                            String(valor)
-
-                    };
-
-                }),
+            normalizarOpcoes(
+                field.options || []
+            ),
 
             valorAtual
 
@@ -66,19 +45,8 @@ export async function configurarCampoSelect(
 
 
     // ============================================================
-    // LISTAR NÃO FORNECIDO
+    // SELECT RELACIONAL
     // ============================================================
-
-    if (
-        typeof listar !== "function"
-    ) {
-
-        throw new Error(
-            "select.js: função listar não fornecida."
-        );
-
-    }
-
 
     input.disabled =
         true;
@@ -109,6 +77,18 @@ export async function configurarCampoSelect(
 
     try {
 
+        if (
+            typeof listar !==
+            "function"
+        ) {
+
+            throw new Error(
+                "select.js: função listar não foi fornecida."
+            );
+
+        }
+
+
         const registros =
             await listar(
                 field.source
@@ -116,7 +96,7 @@ export async function configurarCampoSelect(
 
 
         const opcoes =
-            criarOpcoesRelacionadas(
+            montarOpcoesRelacionadas(
                 field,
                 registros
             );
@@ -127,6 +107,7 @@ export async function configurarCampoSelect(
             opcoes,
             valorAtual
         );
+
 
     } catch (erro) {
 
@@ -158,6 +139,7 @@ export async function configurarCampoSelect(
             option
         );
 
+
     } finally {
 
         input.disabled =
@@ -168,111 +150,61 @@ export async function configurarCampoSelect(
 }
 
 
-// ============================================================
-// CRIAR SELECT
-// ============================================================
+/**
+ * ============================================================
+ * NORMALIZAR OPÇÕES
+ * ============================================================
+ */
 
-export function criarSelect(campo) {
+function normalizarOpcoes(opcoes) {
 
-    const select =
-        document.createElement(
-            "select"
-        );
-
-
-    select.className =
-        "form-control";
-
-
-    const vazio =
-        document.createElement(
-            "option"
-        );
-
-
-    vazio.value =
-        "";
-
-
-    vazio.textContent =
-        campo.placeholder ||
-        "Selecione...";
-
-
-    vazio.selected =
-        true;
-
-
-    select.appendChild(
-        vazio
-    );
-
-
-    const options =
-        Array.isArray(
-            campo.options
-        )
-            ? campo.options
-            : [];
-
-
-    options.forEach(
-        opcao => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
+    return opcoes.map(
+        valor => {
 
             if (
-                typeof opcao === "object" &&
-                opcao !== null
+                typeof valor ===
+                    "object" &&
+                valor !== null
             ) {
 
-                option.value =
-                    opcao.value ?? "";
+                return {
 
+                    value:
+                        valor.value ?? "",
 
-                option.textContent =
-                    opcao.label ??
-                    opcao.value ??
-                    "";
+                    label:
+                        valor.label ??
+                        valor.value ??
+                        ""
 
-            } else {
-
-                option.value =
-                    String(opcao);
-
-
-                option.textContent =
-                    String(opcao);
+                };
 
             }
 
 
-            option.dataset.label =
-                option.textContent;
+            return {
 
+                value:
+                    String(valor),
 
-            select.appendChild(
-                option
-            );
+                label:
+                    String(valor)
+
+            };
 
         }
     );
 
-
-    return select;
-
 }
 
 
-// ============================================================
-// OPÇÕES RELACIONADAS
-// ============================================================
+/**
+ * ============================================================
+ * MONTAR OPÇÕES RELACIONADAS
+ * ============================================================
+ */
 
-function criarOpcoesRelacionadas(
+function montarOpcoesRelacionadas(
     field,
     registros
 ) {
@@ -285,7 +217,8 @@ function criarOpcoesRelacionadas(
 
 
     const valueField =
-        field.valueField || "ID";
+        field.valueField ||
+        "ID";
 
 
     const labelFields =
@@ -333,11 +266,13 @@ function criarOpcoesRelacionadas(
 }
 
 
-// ============================================================
-// PREENCHER SELECT
-// ============================================================
+/**
+ * ============================================================
+ * PREENCHER SELECT
+ * ============================================================
+ */
 
-export function preencherSelect(
+function preencherSelect(
     select,
     opcoes,
     valorAtual = ""
