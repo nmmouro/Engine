@@ -3,24 +3,43 @@
  * FORM ENGINE
  * ============================================================
  *
- * Responsável por:
+ * Orquestrador do formulário.
  *
- * - Criar formulário a partir do Schema
- * - Preencher formulário com dados
- * - Ler dados do formulário
- * - Limpar formulário
- * - Controlar modo novo/edição
- * - Suportar selects relacionais
- * - Ocultar campos técnicos
- * - Converter campos de texto para CAIXA ALTA
- *
- * Não conhece nenhuma entidade específica.
+ * Responsabilidades:
+ * - Criar formulário
+ * - Renderizar campos
+ * - Controlar novo/edição
+ * - Submeter
+ * - Cancelar
+ * - Coordenar os módulos auxiliares
  * ============================================================
  */
 
 import {
     listar
-} from "../services/crudService.js";
+} from "../../services/crudService.js";
+
+import {
+    criarCampo
+} from "./field.js";
+
+import {
+    deveExibirCampo
+} from "./visibility.js";
+
+import {
+    configurarCampoSelect
+} from "./select.js";
+
+import {
+    getFormData,
+    setFormData,
+    resetFormData
+} from "./values.js";
+
+import {
+    validarFormulario
+} from "./validation.js";
 
 
 export function createForm(config = {}) {
@@ -78,7 +97,42 @@ export function createForm(config = {}) {
 
 
     // ============================================================
-    // RENDERIZAÇÃO
+    // GERAR ID
+    // ============================================================
+
+    function gerarIdCampo(nome) {
+
+        return (
+            `campo-${schema.entity}-${nome}`
+        )
+            .toLowerCase()
+            .replace(
+                /[^a-z0-9_-]/gi,
+                "-"
+            );
+
+    }
+
+
+    // ============================================================
+    // OBTER INPUT
+    // ============================================================
+
+    function obterInput(nome) {
+
+        const id =
+            gerarIdCampo(nome);
+
+
+        return elemento.querySelector(
+            `#${CSS.escape(id)}`
+        );
+
+    }
+
+
+    // ============================================================
+    // RENDERIZAR
     // ============================================================
 
     async function render() {
@@ -94,20 +148,21 @@ export function createForm(config = {}) {
             "engine-form";
 
 
-        form.noValidate = true;
+        form.noValidate =
+            true;
 
 
         // ========================================================
         // CAMPOS
         // ========================================================
 
-        for (const campo of schema.fields) {
+        for (
+            const campo of schema.fields
+        ) {
 
-            // ----------------------------------------------------
-            // Não criar campos técnicos
-            // ----------------------------------------------------
-
-            if (!deveExibirCampo(campo)) {
+            if (
+                !deveExibirCampo(campo)
+            ) {
 
                 continue;
 
@@ -115,12 +170,25 @@ export function createForm(config = {}) {
 
 
             const grupo =
-                await criarCampo(campo);
+                await criarCampo({
+
+                    campo,
+
+                    schema,
+
+                    gerarIdCampo,
+
+                    configurarCampoSelect,
+                    listar
+
+                });
 
 
             if (grupo) {
 
-                form.appendChild(grupo);
+                form.appendChild(
+                    grupo
+                );
 
             }
 
@@ -200,10 +268,26 @@ export function createForm(config = {}) {
 
 
                 const dados =
-                    getData();
+                    getFormData({
+
+                        schema,
+
+                        obterInput
+
+                    });
 
 
-                if (!validar(dados)) {
+                if (
+                    !validarFormulario({
+
+                        schema,
+
+                        dados,
+
+                        obterInput
+
+                    })
+                ) {
 
                     return;
 
@@ -258,864 +342,7 @@ export function createForm(config = {}) {
 
 
     // ============================================================
-    // VERIFICA SE CAMPO DEVE SER EXIBIDO
-    // ============================================================
-
-    function deveExibirCampo(campo) {
-
-        if (!campo) {
-
-            return false;
-
-        }
-
-
-        const nome =
-            campo.name || "";
-
-
-        // --------------------------------------------------------
-        // Campos técnicos
-        // --------------------------------------------------------
-
-        if (
-            nome === "ID" ||
-            nome.startsWith("ID ")
-        ) {
-
-            return false;
-
-        }
-
-
-        // --------------------------------------------------------
-        // Hidden / Visible
-        // --------------------------------------------------------
-
-        if (
-            campo.hidden === true ||
-            campo.visible === false
-        ) {
-
-            return false;
-
-        }
-
-
-        return true;
-
-    }
-
-
-    // ============================================================
-    // SELECT RELACIONAL
-    // ============================================================
-
-    async function carregarOpcoesRelacionadas(field) {
-
-        if (!field.source) {
-
-            return [];
-
-        }
-
-
-        const registros =
-            await listar(
-                field.source
-            );
-
-
-        if (!Array.isArray(registros)) {
-
-            console.warn(
-                `Nenhum registro encontrado para ${field.source}`
-            );
-
-            return [];
-
-        }
-
-
-        const valueField =
-            field.valueField || "ID";
-
-
-        const labelFields =
-            field.labelFields ||
-            [valueField];
-
-
-        const separator =
-            field.separator ?? " / ";
-
-
-        return registros.map(
-            registro => {
-
-                const value =
-                    registro[valueField] ?? "";
-
-
-                const label =
-                    labelFields
-                        .map(nome =>
-                            registro[nome] ?? ""
-                        )
-                        .filter(
-                            valor =>
-                                valor !== ""
-                        )
-                        .join(separator);
-
-
-                return {
-
-                    value,
-
-                    label
-
-                };
-
-            }
-        );
-
-    }
-
-
-    // ============================================================
-    // PREENCHER SELECT
-    // ============================================================
-
-    function preencherSelect(
-        select,
-        opcoes,
-        valorAtual = ""
-    ) {
-
-        select.innerHTML = "";
-
-
-        const opcaoInicial =
-            document.createElement("option");
-
-
-        opcaoInicial.value =
-            "";
-
-
-        opcaoInicial.textContent =
-            "Selecione...";
-
-
-        select.appendChild(
-            opcaoInicial
-        );
-
-
-        opcoes.forEach(
-            opcao => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                option.value =
-                    opcao.value ?? "";
-
-
-                option.textContent =
-                    opcao.label ?? "";
-
-
-                // ------------------------------------------------
-                // Guarda o label
-                // ------------------------------------------------
-
-                option.dataset.label =
-                    opcao.label ?? "";
-
-
-                // ------------------------------------------------
-                // Seleciona valor atual
-                // ------------------------------------------------
-
-                if (
-                    String(opcao.value) ===
-                    String(valorAtual)
-                ) {
-
-                    option.selected =
-                        true;
-
-                }
-
-
-                select.appendChild(
-                    option
-                );
-
-            }
-        );
-
-    }
-
-
-    // ============================================================
-    // CONFIGURAR SELECT
-    // ============================================================
-
-    async function configurarCampoSelect(
-        field,
-        input,
-        valorAtual = ""
-    ) {
-
-        // ========================================================
-        // SELECT NORMAL
-        // ========================================================
-
-        if (!field.source) {
-
-            preencherSelect(
-
-                input,
-
-                (field.options || [])
-                    .map(
-                        valor => {
-
-                            if (
-                                typeof valor ===
-                                    "object" &&
-                                valor !== null
-                            ) {
-
-                                return {
-
-                                    value:
-                                        valor.value ?? "",
-
-                                    label:
-                                        valor.label ??
-                                        valor.value ??
-                                        ""
-
-                                };
-
-                            }
-
-
-                            return {
-
-                                value:
-                                    String(valor),
-
-                                label:
-                                    String(valor)
-
-                            };
-
-                        }
-                    ),
-
-                valorAtual
-
-            );
-
-            return;
-
-        }
-
-
-        // ========================================================
-        // SELECT RELACIONAL
-        // ========================================================
-
-        input.disabled =
-            true;
-
-
-        input.innerHTML =
-            "";
-
-
-        const carregando =
-            document.createElement(
-                "option"
-            );
-
-
-        carregando.value =
-            "";
-
-
-        carregando.textContent =
-            "Carregando...";
-
-
-        carregando.selected =
-            true;
-
-
-        input.appendChild(
-            carregando
-        );
-
-
-        try {
-
-            const opcoes =
-                await carregarOpcoesRelacionadas(
-                    field
-                );
-
-
-            preencherSelect(
-                input,
-                opcoes,
-                valorAtual
-            );
-
-
-        } catch (erro) {
-
-            console.error(
-                `Erro ao carregar ${field.source}:`,
-                erro
-            );
-
-
-            input.innerHTML =
-                "";
-
-
-            const erroOption =
-                document.createElement(
-                    "option"
-                );
-
-
-            erroOption.value =
-                "";
-
-
-            erroOption.textContent =
-                "Erro ao carregar opções";
-
-
-            input.appendChild(
-                erroOption
-            );
-
-
-        } finally {
-
-            input.disabled =
-                false;
-
-        }
-
-    }
-
-
-    // ============================================================
-    // CRIA CAMPO
-    // ============================================================
-
-    async function criarCampo(campo) {
-
-        if (
-            !deveExibirCampo(campo)
-        ) {
-
-            return null;
-
-        }
-
-
-        const grupo =
-            document.createElement(
-                "div"
-            );
-
-
-        grupo.className =
-            "form-group";
-
-
-        const label =
-            document.createElement(
-                "label"
-            );
-
-
-        label.htmlFor =
-            gerarIdCampo(
-                campo.name
-            );
-
-
-        label.textContent =
-            campo.label ||
-            campo.name;
-
-
-        const input =
-            criarInput(campo);
-
-
-        if (!input) {
-
-            return null;
-
-        }
-
-
-        // ========================================================
-        // SELECT RELACIONAL
-        // ========================================================
-
-        if (
-            campo.type === "select" &&
-            campo.source
-        ) {
-
-            await configurarCampoSelect(
-                campo,
-                input
-            );
-
-        }
-
-
-        grupo.appendChild(
-            label
-        );
-
-
-        grupo.appendChild(
-            input
-        );
-
-
-        return grupo;
-
-    }
-
-
-    // ============================================================
-    // CRIA INPUT
-    // ============================================================
-
-    function criarInput(campo) {
-
-        const id =
-            gerarIdCampo(
-                campo.name
-            );
-
-
-        let input;
-
-
-        // ========================================================
-        // TIPO DO INPUT
-        // ========================================================
-
-        switch (campo.type) {
-
-            // ----------------------------------------------------
-            // TEXT
-            // ----------------------------------------------------
-
-            case "text":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "text";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // DATE
-            // ----------------------------------------------------
-
-            case "date":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "date";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // DATETIME
-            // ----------------------------------------------------
-
-            case "datetime":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "datetime-local";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // TIME
-            // ----------------------------------------------------
-
-            case "time":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "time";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // NUMBER
-            // ----------------------------------------------------
-
-            case "number":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "number";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // EMAIL
-            // ----------------------------------------------------
-
-            case "email":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "email";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // TEXTAREA
-            // ----------------------------------------------------
-
-            case "textarea":
-
-                input =
-                    document.createElement(
-                        "textarea"
-                    );
-
-                break;
-
-
-            // ----------------------------------------------------
-            // SELECT
-            // ----------------------------------------------------
-
-            case "select":
-
-                input =
-                    criarSelect(
-                        campo
-                    );
-
-                break;
-
-
-            // ----------------------------------------------------
-            // CHECKBOX
-            // ----------------------------------------------------
-
-            case "checkbox":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "checkbox";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // FILE
-            // ----------------------------------------------------
-
-            case "file":
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "file";
-
-                break;
-
-
-            // ----------------------------------------------------
-            // PADRÃO
-            // ----------------------------------------------------
-
-            default:
-
-                input =
-                    document.createElement(
-                        "input"
-                    );
-
-                input.type =
-                    "text";
-
-                break;
-
-        }
-
-
-        // ========================================================
-        // ATRIBUTOS
-        // ========================================================
-
-        input.id =
-            id;
-
-
-        input.name =
-            campo.name;
-
-
-        input.className =
-            campo.type === "checkbox"
-                ? "form-checkbox"
-                : "form-control";
-
-
-        // ========================================================
-        // REQUIRED
-        // ========================================================
-
-        if (campo.required) {
-
-            input.required =
-                true;
-
-        }
-
-
-        // ========================================================
-        // READONLY
-        // ========================================================
-
-        if (campo.readonly) {
-
-            input.readOnly =
-                true;
-
-        }
-
-
-        // ========================================================
-        // PLACEHOLDER
-        // ========================================================
-
-        if (campo.placeholder) {
-
-            input.placeholder =
-                campo.placeholder;
-
-        }
-
-
-        // ========================================================
-        // VALOR PADRÃO
-        // ========================================================
-
-        if (
-            campo.defaultValue !== undefined &&
-            campo.defaultValue !== null
-        ) {
-
-            if (
-                campo.type === "checkbox"
-            ) {
-
-                input.checked =
-                    Boolean(
-                        campo.defaultValue
-                    );
-
-            } else {
-
-                input.value =
-                    campo.defaultValue;
-
-            }
-
-        }
-
-
-        // ========================================================
-        // CAIXA ALTA
-        // ========================================================
-
-        aplicarCaixaAlta(
-            input,
-            campo
-        );
-
-
-        return input;
-
-    }
-
-
-    // ============================================================
-    // CRIA SELECT
-    // ============================================================
-
-    function criarSelect(campo) {
-
-        const select =
-            document.createElement(
-                "select"
-            );
-
-
-        select.className =
-            "form-control";
-
-
-        const vazio =
-            document.createElement(
-                "option"
-            );
-
-
-        vazio.value =
-            "";
-
-
-        vazio.textContent =
-            campo.placeholder ||
-            "Selecione...";
-
-
-        vazio.selected =
-            true;
-
-
-        select.appendChild(
-            vazio
-        );
-
-
-        const options =
-            Array.isArray(
-                campo.options
-            )
-                ? campo.options
-                : [];
-
-
-        options.forEach(
-            opcao => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                if (
-                    typeof opcao ===
-                        "object" &&
-                    opcao !== null
-                ) {
-
-                    option.value =
-                        opcao.value ?? "";
-
-
-                    option.textContent =
-                        opcao.label ??
-                        opcao.value ??
-                        "";
-
-
-                    option.dataset.label =
-                        opcao.label ??
-                        opcao.value ??
-                        "";
-
-                } else {
-
-                    option.value =
-                        String(opcao);
-
-
-                    option.textContent =
-                        String(opcao);
-
-
-                    option.dataset.label =
-                        String(opcao);
-
-                }
-
-
-                select.appendChild(
-                    option
-                );
-
-            }
-        );
-
-
-        return select;
-
-    }
-
-
-    // ============================================================
-    // PREENCHER FORMULÁRIO
+    // SET DATA
     // ============================================================
 
     async function setData(
@@ -1133,179 +360,17 @@ export function createForm(config = {}) {
                 : "novo";
 
 
-        if (!elemento) {
+        await setFormData({
 
-            return;
+            schema,
 
-        }
+            dados,
 
+            obterInput,
 
-        // ========================================================
-        // SELECTS RELACIONAIS
-        // ========================================================
+            configurarCampoSelect
 
-        for (
-            const campo of schema.fields
-        ) {
-
-            if (
-                !deveExibirCampo(campo)
-            ) {
-
-                continue;
-
-            }
-
-
-            if (
-                campo.type !== "select" ||
-                !campo.source
-            ) {
-
-                continue;
-
-            }
-
-
-            const input =
-                obterInput(
-                    campo.name
-                );
-
-
-            if (!input) {
-
-                continue;
-
-            }
-
-
-            let valorAtual =
-                "";
-
-
-            // ----------------------------------------------------
-            // Usa o ID técnico
-            // ----------------------------------------------------
-
-            if (campo.idField) {
-
-                valorAtual =
-                    dados[
-                        campo.idField
-                    ] ?? "";
-
-            } else {
-
-                valorAtual =
-                    dados[
-                        campo.name
-                    ] ?? "";
-
-            }
-
-
-            await configurarCampoSelect(
-
-                campo,
-
-                input,
-
-                valorAtual
-
-            );
-
-        }
-
-
-        // ========================================================
-        // DEMAIS CAMPOS
-        // ========================================================
-
-        schema.fields.forEach(
-            campo => {
-
-                if (
-                    !deveExibirCampo(campo)
-                ) {
-
-                    return;
-
-                }
-
-
-                // ------------------------------------------------
-                // Select relacional já tratado
-                // ------------------------------------------------
-
-                if (
-                    campo.type === "select" &&
-                    campo.source
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    obterInput(
-                        campo.name
-                    );
-
-
-                if (!input) {
-
-                    return;
-
-                }
-
-
-                const valor =
-                    dados[
-                        campo.name
-                    ];
-
-
-                if (
-                    valor === undefined ||
-                    valor === null
-                ) {
-
-                    return;
-
-                }
-
-
-                // ------------------------------------------------
-                // Checkbox
-                // ------------------------------------------------
-
-                if (
-                    input.type ===
-                    "checkbox"
-                ) {
-
-                    input.checked =
-                        Boolean(valor);
-
-                    return;
-
-                }
-
-
-                // ------------------------------------------------
-                // Demais campos
-                // ------------------------------------------------
-
-                input.value =
-                    formatarValor(
-                        campo,
-                        valor
-                    );
-
-            }
-        );
+        });
 
 
         atualizarBotaoSalvar();
@@ -1314,180 +379,18 @@ export function createForm(config = {}) {
 
 
     // ============================================================
-    // LER FORMULÁRIO
+    // GET DATA
     // ============================================================
 
     function getData() {
 
-        const dados = {};
+        return getFormData({
 
+            schema,
 
-        schema.fields.forEach(
-            campo => {
+            obterInput
 
-                // ------------------------------------------------
-                // Campos técnicos não possuem input visual
-                // ------------------------------------------------
-
-                if (
-                    !deveExibirCampo(campo)
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    obterInput(
-                        campo.name
-                    );
-
-
-                if (!input) {
-
-                    return;
-
-                }
-
-
-                // =================================================
-                // SELECT RELACIONAL
-                // =================================================
-
-                if (
-                    campo.type === "select" &&
-                    campo.source &&
-                    campo.idField
-                ) {
-
-                    const option =
-                        input.selectedOptions[0];
-
-
-                    const id =
-                        input.value ||
-                        "";
-
-
-                    const label =
-                        option?.dataset?.label ||
-                        option?.textContent ||
-                        "";
-
-
-                    // ------------------------------------------------
-                    // ID técnico
-                    // ------------------------------------------------
-
-                    dados[
-                        campo.idField
-                    ] = id;
-
-
-                    // ------------------------------------------------
-                    // Valor visual
-                    // ------------------------------------------------
-
-                    dados[
-                        campo.name
-                    ] =
-                        id
-                            ? label.trim()
-                            : "";
-
-
-                    return;
-
-                }
-
-
-                // =================================================
-                // DEMAIS CAMPOS
-                // =================================================
-
-                let valor =
-                    input.value;
-
-
-                // ------------------------------------------------
-                // Checkbox
-                // ------------------------------------------------
-
-                if (
-                    input.type ===
-                    "checkbox"
-                ) {
-
-                    valor =
-                        input.checked;
-
-                }
-
-
-                // ------------------------------------------------
-                // Date
-                // ------------------------------------------------
-
-                if (
-                    campo.type ===
-                    "date"
-                ) {
-
-                    valor =
-                        input.value ||
-                        "";
-
-                }
-
-
-                // ------------------------------------------------
-                // Time
-                // ------------------------------------------------
-
-                if (
-                    campo.type ===
-                    "time"
-                ) {
-
-                    valor =
-                        input.value ||
-                        "";
-
-                }
-
-
-                // ------------------------------------------------
-                // Campos de texto
-                //
-                // Garante caixa alta também no momento
-                // do envio.
-                // ------------------------------------------------
-
-                if (
-                    campo.type === "text" ||
-                    campo.type === "textarea" ||
-                    campo.type === "email"
-                ) {
-
-                    valor =
-                        String(valor)
-                            .toLocaleUpperCase(
-                                "pt-BR"
-                            );
-
-                }
-
-
-                dados[
-                    campo.name
-                ] = valor;
-
-            }
-        );
-
-
-        return dados;
+        });
 
     }
 
@@ -1506,108 +409,13 @@ export function createForm(config = {}) {
             "novo";
 
 
-        schema.fields.forEach(
-            campo => {
+        resetFormData({
 
-                if (
-                    !deveExibirCampo(campo)
-                ) {
+            schema,
 
-                    return;
+            obterInput
 
-                }
-
-
-                const input =
-                    obterInput(
-                        campo.name
-                    );
-
-
-                if (!input) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
-
-                    input.checked =
-                        false;
-
-                } else {
-
-                    input.value =
-                        "";
-
-                }
-
-            }
-        );
-
-
-        // ========================================================
-        // VALORES PADRÃO
-        // ========================================================
-
-        schema.fields.forEach(
-            campo => {
-
-                if (
-                    !deveExibirCampo(campo)
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.defaultValue ===
-                    undefined
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    obterInput(
-                        campo.name
-                    );
-
-
-                if (!input) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
-
-                    input.checked =
-                        Boolean(
-                            campo.defaultValue
-                        );
-
-                } else {
-
-                    input.value =
-                        campo.defaultValue;
-
-                }
-
-            }
-        );
+        });
 
 
         atualizarBotaoSalvar();
@@ -1615,327 +423,21 @@ export function createForm(config = {}) {
     }
 
 
-   // ============================================================
-// VALIDAÇÃO
-// ============================================================
-
-function validar(dados) {
-
-    for (const campo of schema.fields) {
-
-        // --------------------------------------------------------
-        // Campos que não aparecem no formulário
-        // --------------------------------------------------------
-
-        if (!deveExibirCampo(campo)) {
-
-            continue;
-
-        }
-
-
-        // --------------------------------------------------------
-        // Campo não obrigatório
-        // --------------------------------------------------------
-
-        if (!campo.required) {
-
-            continue;
-
-        }
-
-
-        // --------------------------------------------------------
-        // SELECT RELACIONAL
-        // --------------------------------------------------------
-
-        if (
-            campo.type === "select" &&
-            campo.source &&
-            campo.idField
-        ) {
-
-            const id =
-                dados[campo.idField];
-
-
-            if (
-                id === undefined ||
-                id === null ||
-                String(id).trim() === ""
-            ) {
-
-                mostrarErro(
-                    `O campo "${campo.label || campo.name}" é obrigatório.`
-                );
-
-
-                const input =
-                    obterInput(campo.name);
-
-
-                if (input) {
-
-                    input.focus();
-
-                }
-
-
-                return false;
-
-            }
-
-
-            continue;
-
-        }
-
-
-        // --------------------------------------------------------
-        // CAMPOS NORMAIS
-        // --------------------------------------------------------
-
-        const valor =
-            dados[campo.name];
-
-
-        if (
-            valor === undefined ||
-            valor === null ||
-            String(valor).trim() === ""
-        ) {
-
-            mostrarErro(
-                `O campo "${campo.label || campo.name}" é obrigatório.`
-            );
-
-
-            const input =
-                obterInput(campo.name);
-
-
-            if (input) {
-
-                input.focus();
-
-            }
-
-
-            return false;
-
-        }
-
-    }
-
-
-    return true;
-
-}
-
-
     // ============================================================
-    // ERRO
+    // VALIDAÇÃO
     // ============================================================
 
-    function mostrarErro(
-        mensagem
-    ) {
+    function validar(dados) {
 
-        console.error(
-            "Form:",
-            mensagem
-        );
+        return validarFormulario({
 
+            schema,
 
-        alert(
-            mensagem
-        );
+            dados,
 
-    }
+            obterInput
 
-
-    // ============================================================
-    // OBTER INPUT
-    // ============================================================
-
-    function obterInput(nome) {
-
-        const id =
-            gerarIdCampo(
-                nome
-            );
-
-
-        return elemento.querySelector(
-            `#${CSS.escape(id)}`
-        );
-
-    }
-
-
-    // ============================================================
-    // GERA ID
-    // ============================================================
-
-    function gerarIdCampo(nome) {
-
-        return (
-            `campo-${schema.entity}-${nome}`
-        )
-            .toLowerCase()
-            .replace(
-                /[^a-z0-9_-]/gi,
-                "-"
-            );
-
-    }
-
-
-    // ============================================================
-    // FORMATA VALOR
-    // ============================================================
-
-    function formatarValor(
-        campo,
-        valor
-    ) {
-
-        if (
-            campo.type ===
-            "date"
-        ) {
-
-            return converterDataParaInput(
-                valor
-            );
-
-        }
-
-
-        if (
-            campo.type ===
-            "datetime"
-        ) {
-
-            return converterDataHoraParaInput(
-                valor
-            );
-
-        }
-
-
-        return String(valor);
-
-    }
-
-
-    // ============================================================
-    // DATA → INPUT
-    // ============================================================
-
-    function converterDataParaInput(
-        valor
-    ) {
-
-        if (!valor) {
-
-            return "";
-
-        }
-
-
-        const texto =
-            String(valor);
-
-
-        // --------------------------------------------------------
-        // yyyy-mm-dd
-        // --------------------------------------------------------
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                texto
-            )
-        ) {
-
-            return texto;
-
-        }
-
-
-        // --------------------------------------------------------
-        // dd/mm/yyyy
-        // --------------------------------------------------------
-
-        const partes =
-            texto.split("/");
-
-
-        if (
-            partes.length === 3
-        ) {
-
-            const [
-                dia,
-                mes,
-                ano
-            ] = partes;
-
-
-            return (
-                `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`
-            );
-
-        }
-
-
-        return "";
-
-    }
-
-
-    // ============================================================
-    // DATA/HORA → INPUT
-    // ============================================================
-
-    function converterDataHoraParaInput(
-        valor
-    ) {
-
-        if (!valor) {
-
-            return "";
-
-        }
-
-
-        const texto =
-            String(valor);
-
-
-        // --------------------------------------------------------
-        // Já está correto
-        // --------------------------------------------------------
-
-        if (
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
-                .test(texto)
-        ) {
-
-            return texto;
-
-        }
-
-
-        return texto
-            .replace(
-                " ",
-                "T"
-            )
-            .substring(
-                0,
-                16
-            );
+        });
 
     }
 
@@ -1968,12 +470,10 @@ function validar(dados) {
 
 
     // ============================================================
-    // RESOLVE ELEMENTO
+    // RESOLVER ELEMENTO
     // ============================================================
 
-    function resolverElemento(
-        valor
-    ) {
+    function resolverElemento(valor) {
 
         if (!valor) {
 
@@ -2043,106 +543,5 @@ function validar(dados) {
         }
 
     };
-
-}
-
-
-/**
- * ============================================================
- * CAIXA ALTA
- * ============================================================
- *
- * Converte automaticamente os campos de texto para maiúsculas
- * enquanto o usuário digita.
- *
- * Afeta:
- *
- * - text
- * - textarea
- * - email
- *
- * Não afeta:
- *
- * - date
- * - time
- * - datetime
- * - number
- * - select
- * - checkbox
- * - file
- *
- * A conversão também é feita novamente no getData(),
- * garantindo que o valor enviado esteja em caixa alta.
- * ============================================================
- */
-
-function aplicarCaixaAlta(
-    input,
-    campo
-) {
-
-    if (!input || !campo) {
-
-        return;
-
-    }
-
-
-    const tiposTexto = [
-        "text",
-        "textarea",
-        "email"
-    ];
-
-
-    if (
-        !tiposTexto.includes(
-            campo.type
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    input.addEventListener(
-        "input",
-        () => {
-
-            const inicio =
-                input.selectionStart;
-
-
-            const fim =
-                input.selectionEnd;
-
-
-            input.value =
-                input.value.toLocaleUpperCase(
-                    "pt-BR"
-                );
-
-
-            // ----------------------------------------------------
-            // Mantém posição do cursor
-            // ----------------------------------------------------
-
-            try {
-
-                input.setSelectionRange(
-                    inicio,
-                    fim
-                );
-
-            } catch (erro) {
-
-                // Alguns elementos podem não
-                // suportar seleção de texto.
-
-            }
-
-        }
-    );
 
 }
