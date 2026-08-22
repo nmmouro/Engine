@@ -232,62 +232,62 @@ export function createForm(config = {}) {
         );
 
 
-        // ========================================================
-        // SUBMIT
-        // ========================================================
+        // ============================================================
+// SUBMIT
+// ============================================================
 
-        form.addEventListener(
-            "submit",
-            evento => {
+form.addEventListener(
+    "submit",
+    evento => {
 
-                evento.preventDefault();
-
-
-                const dados =
-                    getFormData({
-
-                        schema,
-
-                        elemento,
-
-                        gerarIdCampo
-
-                    });
+        evento.preventDefault();
 
 
-                if (
-                    !validarFormulario({
+        // --------------------------------------------------------
+        // Lê os dados do formulário
+        // --------------------------------------------------------
 
-                        schema,
-
-                        dados,
-
-                        elemento,
-
-                        gerarIdCampo
-
-                    })
-                ) {
-
-                    return;
-
+        const dados =
+            getFormData(
+                schema,
+                {
+                    obterInput,
+                    deveExibirCampo
                 }
+            );
 
 
-                if (
-                    typeof onSubmit ===
-                    "function"
-                ) {
+        // --------------------------------------------------------
+        // Validação
+        // --------------------------------------------------------
 
-                    onSubmit(
-                        dados,
-                        registroAtual
-                    );
+        if (
+            !validar(dados)
+        ) {
 
-                }
+            return;
 
-            }
-        );
+        }
+
+
+        // --------------------------------------------------------
+        // Envia para o Engine
+        // --------------------------------------------------------
+
+        if (
+            typeof onSubmit ===
+            "function"
+        ) {
+
+            onSubmit(
+                dados,
+                registroAtual
+            );
+
+        }
+
+    }
+);
 
 
         // ========================================================
