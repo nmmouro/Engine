@@ -4,195 +4,11 @@
  * ============================================================
  *
  * Responsável por:
+ * - Ler valores do formulário
  * - Preencher formulário
- * - Ler formulário
  * - Limpar formulário
- * - Aplicar valores padrão
- *
- * Não conhece nenhuma entidade específica.
  * ============================================================
  */
-
-
-/**
- * ============================================================
- * SET FORM DATA
- * ============================================================
- */
-export async function setFormData(
-    schema,
-    dados = {},
-    options = {}
-) {
-
-    const {
-        obterInput,
-        deveExibirCampo,
-        configurarCampoSelect,
-        formatarValor
-    } = options;
-
-
-    if (typeof obterInput !== "function") {
-
-        throw new Error(
-            "values.js: obterInput não foi fornecida."
-        );
-
-    }
-
-
-    if (typeof deveExibirCampo !== "function") {
-
-        throw new Error(
-            "values.js: deveExibirCampo não foi fornecida."
-        );
-
-    }
-
-
-    if (typeof formatarValor !== "function") {
-
-        throw new Error(
-            "values.js: formatarValor não foi fornecida."
-        );
-
-    }
-
-
-    // ============================================================
-    // SELECTS RELACIONAIS
-    // ============================================================
-
-    for (const campo of schema.fields) {
-
-        if (!deveExibirCampo(campo)) {
-            continue;
-        }
-
-
-        if (
-            campo.type !== "select" ||
-            !campo.source
-        ) {
-            continue;
-        }
-
-
-        const input =
-            obterInput(campo.name);
-
-
-        if (!input) {
-            continue;
-        }
-
-
-        let valorAtual = "";
-
-
-        if (campo.idField) {
-
-            valorAtual =
-                dados[campo.idField] ?? "";
-
-        } else {
-
-            valorAtual =
-                dados[campo.name] ?? "";
-
-        }
-
-
-        if (
-            typeof configurarCampoSelect ===
-            "function"
-        ) {
-
-            await configurarCampoSelect(
-                campo,
-                input,
-                valorAtual
-            );
-
-        }
-
-    }
-
-
-    // ============================================================
-    // DEMAIS CAMPOS
-    // ============================================================
-
-    schema.fields.forEach(campo => {
-
-        if (!deveExibirCampo(campo)) {
-            return;
-        }
-
-
-        // --------------------------------------------------------
-        // Select relacional
-        // --------------------------------------------------------
-
-        if (
-            campo.type === "select" &&
-            campo.source
-        ) {
-            return;
-        }
-
-
-        const input =
-            obterInput(campo.name);
-
-
-        if (!input) {
-            return;
-        }
-
-
-        const valor =
-            dados[campo.name];
-
-
-        if (
-            valor === undefined ||
-            valor === null
-        ) {
-            return;
-        }
-
-
-        // --------------------------------------------------------
-        // Checkbox
-        // --------------------------------------------------------
-
-        if (
-            input.type === "checkbox"
-        ) {
-
-            input.checked =
-                Boolean(valor);
-
-            return;
-
-        }
-
-
-        // --------------------------------------------------------
-        // Demais campos
-        // --------------------------------------------------------
-
-        input.value =
-            formatarValor(
-                campo,
-                valor
-            );
-
-    });
-
-}
 
 
 /**
@@ -200,30 +16,20 @@ export async function setFormData(
  * GET FORM DATA
  * ============================================================
  */
-export function getFormData(
+
+export function getFormData({
     schema,
-    options = {}
-) {
+    obterInput,
+    deveExibirCampo
+}) {
 
-    const {
-        obterInput,
-        deveExibirCampo
-    } = options;
-
-
-    if (typeof obterInput !== "function") {
+    if (
+        typeof obterInput !==
+        "function"
+    ) {
 
         throw new Error(
             "values.js: obterInput não foi fornecida."
-        );
-
-    }
-
-
-    if (typeof deveExibirCampo !== "function") {
-
-        throw new Error(
-            "values.js: deveExibirCampo não foi fornecida."
         );
 
     }
@@ -232,117 +38,109 @@ export function getFormData(
     const dados = {};
 
 
-    schema.fields.forEach(campo => {
+    schema.fields.forEach(
+        campo => {
 
-        if (!deveExibirCampo(campo)) {
-            return;
-        }
+            // ----------------------------------------------------
+            // Campos técnicos
+            // ----------------------------------------------------
 
+            if (
+                typeof deveExibirCampo ===
+                "function" &&
+                !deveExibirCampo(campo)
+            ) {
 
-        const input =
-            obterInput(campo.name);
+                return;
 
-
-        if (!input) {
-            return;
-        }
-
-
-        // ========================================================
-        // SELECT RELACIONAL
-        // ========================================================
-
-        if (
-            campo.type === "select" &&
-            campo.source &&
-            campo.idField
-        ) {
-
-            const option =
-                input.selectedOptions?.[0];
+            }
 
 
-            const id =
-                input.value || "";
+            const input =
+                obterInput(
+                    campo.name
+                );
 
 
-            const label =
-                option?.dataset?.label ||
-                option?.textContent ||
-                "";
+            if (!input) {
+
+                return;
+
+            }
 
 
-            // ID técnico
-            dados[campo.idField] =
-                id;
+            // ====================================================
+            // SELECT RELACIONAL
+            // ====================================================
+
+            if (
+                campo.type === "select" &&
+                campo.source &&
+                campo.idField
+            ) {
+
+                const option =
+                    input.selectedOptions[0];
 
 
-            // Valor visual
-            dados[campo.name] =
-                id
-                    ? label.trim()
-                    : "";
+                const id =
+                    input.value || "";
 
 
-            return;
-
-        }
-
-
-        // ========================================================
-        // DEMAIS CAMPOS
-        // ========================================================
-
-        let valor =
-            input.value;
+                const label =
+                    option?.dataset?.label ||
+                    option?.textContent ||
+                    "";
 
 
-        // --------------------------------------------------------
-        // Checkbox
-        // --------------------------------------------------------
-
-        if (
-            input.type === "checkbox"
-        ) {
-
-            valor =
-                input.checked;
-
-        }
+                dados[
+                    campo.idField
+                ] = id;
 
 
-        // --------------------------------------------------------
-        // Data
-        // --------------------------------------------------------
-
-        if (
-            campo.type === "date"
-        ) {
-
-            valor =
-                input.value || "";
-
-        }
+                dados[
+                    campo.name
+                ] =
+                    id
+                        ? label.trim()
+                        : "";
 
 
-        // --------------------------------------------------------
-        // Hora
-        // --------------------------------------------------------
+                return;
 
-        if (
-            campo.type === "time"
-        ) {
+            }
 
-            valor =
-                input.value || "";
+
+            // ====================================================
+            // CHECKBOX
+            // ====================================================
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                dados[
+                    campo.name
+                ] =
+                    input.checked;
+
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // CAMPOS NORMAIS
+            // ====================================================
+
+            dados[
+                campo.name
+            ] =
+                input.value;
 
         }
-
-
-        dados[campo.name] =
-            valor;
-
-    });
+    );
 
 
     return dados;
@@ -352,21 +150,22 @@ export function getFormData(
 
 /**
  * ============================================================
- * RESET FORM DATA
+ * SET FORM DATA
  * ============================================================
  */
-export function resetFormData(
+
+export function setFormData({
     schema,
-    options = {}
-) {
+    dados = {},
+    obterInput,
+    deveExibirCampo,
+    formatarValor
+}) {
 
-    const {
-        obterInput,
-        deveExibirCampo
-    } = options;
-
-
-    if (typeof obterInput !== "function") {
+    if (
+        typeof obterInput !==
+        "function"
+    ) {
 
         throw new Error(
             "values.js: obterInput não foi fornecida."
@@ -375,94 +174,252 @@ export function resetFormData(
     }
 
 
-    if (typeof deveExibirCampo !== "function") {
+    schema.fields.forEach(
+        campo => {
+
+            // ----------------------------------------------------
+            // Campos técnicos
+            // ----------------------------------------------------
+
+            if (
+                typeof deveExibirCampo ===
+                "function" &&
+                !deveExibirCampo(campo)
+            ) {
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Select relacional
+            //
+            // É tratado pelo select.js.
+            // ----------------------------------------------------
+
+            if (
+                campo.type === "select" &&
+                campo.source
+            ) {
+
+                return;
+
+            }
+
+
+            const input =
+                obterInput(
+                    campo.name
+                );
+
+
+            if (!input) {
+
+                return;
+
+            }
+
+
+            const valor =
+                dados[
+                    campo.name
+                ];
+
+
+            if (
+                valor === undefined ||
+                valor === null
+            ) {
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Checkbox
+            // ----------------------------------------------------
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    Boolean(valor);
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Formatação
+            // ----------------------------------------------------
+
+            if (
+                typeof formatarValor ===
+                "function"
+            ) {
+
+                input.value =
+                    formatarValor(
+                        campo,
+                        valor
+                    );
+
+            } else {
+
+                input.value =
+                    String(valor);
+
+            }
+
+        }
+    );
+
+}
+
+
+/**
+ * ============================================================
+ * RESET FORM DATA
+ * ============================================================
+ */
+
+export function resetFormData({
+    schema,
+    obterInput,
+    deveExibirCampo
+}) {
+
+    if (
+        typeof obterInput !==
+        "function"
+    ) {
 
         throw new Error(
-            "values.js: deveExibirCampo não foi fornecida."
+            "values.js: obterInput não foi fornecida."
         );
 
     }
 
 
-    // ============================================================
-    // LIMPA CAMPOS
-    // ============================================================
+    schema.fields.forEach(
+        campo => {
 
-    schema.fields.forEach(campo => {
+            // ----------------------------------------------------
+            // Campos técnicos
+            // ----------------------------------------------------
 
-        if (!deveExibirCampo(campo)) {
-            return;
-        }
+            if (
+                typeof deveExibirCampo ===
+                "function" &&
+                !deveExibirCampo(campo)
+            ) {
 
+                return;
 
-        const input =
-            obterInput(campo.name);
-
-
-        if (!input) {
-            return;
-        }
+            }
 
 
-        if (
-            input.type === "checkbox"
-        ) {
+            const input =
+                obterInput(
+                    campo.name
+                );
 
-            input.checked = false;
 
-        } else {
+            if (!input) {
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Checkbox
+            // ----------------------------------------------------
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    false;
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Demais campos
+            // ----------------------------------------------------
 
             input.value = "";
 
         }
-
-    });
+    );
 
 
     // ============================================================
-    // APLICA DEFAULT VALUE
+    // VALORES PADRÃO
     // ============================================================
 
-    schema.fields.forEach(campo => {
+    schema.fields.forEach(
+        campo => {
 
-        if (!deveExibirCampo(campo)) {
-            return;
-        }
+            if (
+                typeof deveExibirCampo ===
+                "function" &&
+                !deveExibirCampo(campo)
+            ) {
 
+                return;
 
-        if (
-            campo.defaultValue ===
-            undefined
-        ) {
-            return;
-        }
-
-
-        const input =
-            obterInput(campo.name);
+            }
 
 
-        if (!input) {
-            return;
-        }
+            if (
+                campo.defaultValue ===
+                undefined
+            ) {
+
+                return;
+
+            }
 
 
-        if (
-            input.type === "checkbox"
-        ) {
-
-            input.checked =
-                Boolean(
-                    campo.defaultValue
+            const input =
+                obterInput(
+                    campo.name
                 );
 
-        } else {
 
-            input.value =
-                campo.defaultValue;
+            if (!input) {
+
+                return;
+
+            }
+
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    Boolean(
+                        campo.defaultValue
+                    );
+
+            } else {
+
+                input.value =
+                    campo.defaultValue;
+
+            }
 
         }
-
-    });
+    );
 
 }
