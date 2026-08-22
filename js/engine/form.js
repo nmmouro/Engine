@@ -137,35 +137,38 @@ export function createForm(config = {}) {
         // CAMPOS
         // ========================================================
 
-        for (const campo of schema.fields) {
+       for (
+    const campo of schema.fields
+) {
 
-            if (!deveExibirCampo(campo)) {
+    if (
+        !deveExibirCampo(campo)
+    ) {
 
-                continue;
+        continue;
 
+    }
+
+
+    const grupo =
+        await criarCampo(
+            campo,
+            {
+                gerarIdCampo,
+                configurarCampoSelect
             }
+        );
 
 
-            const grupo =
-                await criarCampo({
+    if (grupo) {
 
-                    campo,
+        form.appendChild(
+            grupo
+        );
 
-                    schema,
+    }
 
-                    obterIdCampo:
-                        gerarIdCampo
-
-                });
-
-
-            if (grupo) {
-
-                form.appendChild(grupo);
-
-            }
-
-        }
+}
 
 
         // ========================================================
