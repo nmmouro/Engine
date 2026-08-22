@@ -3,26 +3,27 @@
  * ENGINE PRINCIPAL
  * ============================================================
  *
- * Responsável por integrar:
+ * Integra:
  *
  * - Header
+ * - Toolbar
  * - State
  * - CRUD
  * - Form
  * - Table
- * - Toolbar
  *
  * O Engine não conhece nenhuma entidade específica.
+ *
+ * A entidade é informada pelo módulo:
+ *
+ * createModule({
+ *     entity: "VEICULOS",
+ *     schema: SCHEMA_VEICULOS
+ * });
+ *
  * ============================================================
  */
 
-import {
-    listar,
-    obter,
-    salvar,
-    atualizar,
-    excluir
-} from "../services/crudService.js";
 import { createState } from "./state.js";
 import { createCrud } from "./crud.js";
 import { createForm } from "./form.js";
@@ -31,11 +32,9 @@ import { createToolbar } from "./toolbar.js";
 import { createHeader } from "./header.js";
 
 
-/**
- * ============================================================
- * CREATE ENGINE
- * ============================================================
- */
+// ============================================================
+// CREATE ENGINE
+// ============================================================
 
 export function createEngine(config = {}) {
 
@@ -48,9 +47,9 @@ export function createEngine(config = {}) {
     } = config;
 
 
-    // ============================================================
+    // ========================================================
     // VALIDAÇÕES
-    // ============================================================
+    // ========================================================
 
     if (!entity) {
 
@@ -79,9 +78,20 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
-    // CONTAINER PRINCIPAL
-    // ============================================================
+    if (
+        !Array.isArray(schema.fields)
+    ) {
+
+        throw new Error(
+            `Engine ${entity}: schema.fields inválido.`
+        );
+
+    }
+
+
+    // ========================================================
+    // CONTAINER
+    // ========================================================
 
     const app =
         resolverElemento(container);
@@ -96,32 +106,51 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // STATE
-    // ============================================================
+    // ========================================================
 
     const state =
         createState(stateName);
 
 
-    // ============================================================
+    // ========================================================
     // CRUD
-    // ============================================================
+    // ========================================================
+    //
+    // IMPORTANTE:
+    //
+    // O Engine não chama mais:
+    //
+    // salvar(...)
+    // atualizar(...)
+    // excluir(...)
+    //
+    // diretamente.
+    //
+    // Tudo passa pelo objeto:
+    //
+    // crud.listar()
+    // crud.criar()
+    // crud.atualizar()
+    // crud.excluir()
+    //
+    // ========================================================
 
     const crud =
         createCrud(entity);
 
 
-    // ============================================================
-    // LIMPA CONTAINER
-    // ============================================================
+    // ========================================================
+    // LIMPAR APP
+    // ========================================================
 
     app.innerHTML = "";
 
 
-    // ============================================================
+    // ========================================================
     // HEADER
-    // ============================================================
+    // ========================================================
 
     const headerContainer =
         criarContainer(
@@ -151,9 +180,9 @@ export function createEngine(config = {}) {
         });
 
 
-    // ============================================================
+    // ========================================================
     // TOOLBAR
-    // ============================================================
+    // ========================================================
 
     const toolbarContainer =
         criarContainer(
@@ -166,9 +195,9 @@ export function createEngine(config = {}) {
     );
 
 
-    // ============================================================
-    // FORM
-    // ============================================================
+    // ========================================================
+    // FORM CONTAINER
+    // ========================================================
 
     const formContainer =
         criarContainer(
@@ -181,9 +210,9 @@ export function createEngine(config = {}) {
     );
 
 
-    // ============================================================
-    // TABELA
-    // ============================================================
+    // ========================================================
+    // TABLE CONTAINER
+    // ========================================================
 
     const tableContainer =
         criarContainer(
@@ -196,9 +225,9 @@ export function createEngine(config = {}) {
     );
 
 
-    // ============================================================
+    // ========================================================
     // TOOLBAR
-    // ============================================================
+    // ========================================================
 
     const toolbar =
         createToolbar({
@@ -213,14 +242,15 @@ export function createEngine(config = {}) {
             permitirNovo:
                 options.permitirNovo !== false,
 
-            onNovo
+            onNovo:
+                onNovo
 
         });
 
 
-    // ============================================================
+    // ========================================================
     // FORM
-    // ============================================================
+    // ========================================================
 
     const form =
         createForm({
@@ -229,8 +259,6 @@ export function createEngine(config = {}) {
 
             container:
                 formContainer,
-
-            listar,
 
             onSubmit:
                 salvarFormulario,
@@ -241,9 +269,9 @@ export function createEngine(config = {}) {
         });
 
 
-    // ============================================================
+    // ========================================================
     // TABLE
-    // ============================================================
+    // ========================================================
 
     const table =
         createTable({
@@ -262,7 +290,7 @@ export function createEngine(config = {}) {
 
                 excluir:
                     options.permitirExcluir !== false
-                        ? excluir
+                        ? excluirRegistro
                         : null
 
             }
@@ -270,17 +298,17 @@ export function createEngine(config = {}) {
         });
 
 
-    // ============================================================
-    // ESTADO INICIAL
-    // ============================================================
+    // ========================================================
+    // ESTADO VISUAL INICIAL
+    // ========================================================
 
     formContainer.style.display =
         "none";
 
 
-    // ============================================================
+    // ========================================================
     // FONTES RELACIONADAS
-    // ============================================================
+    // ========================================================
 
     async function carregarFontesRelacionadas() {
 
@@ -309,7 +337,9 @@ export function createEngine(config = {}) {
         const resultado = {};
 
 
-        if (fontes.length === 0) {
+        if (
+            fontes.length === 0
+        ) {
 
             return resultado;
 
@@ -361,11 +391,13 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
-    // APLICA FONTES RELACIONADAS
-    // ============================================================
+    // ========================================================
+    // APLICAR FONTES RELACIONADAS
+    // ========================================================
 
-    function aplicarFontesRelacionadas(fontes) {
+    function aplicarFontesRelacionadas(
+        fontes
+    ) {
 
         schema.fields.forEach(
             campo => {
@@ -381,12 +413,17 @@ export function createEngine(config = {}) {
 
 
                 const registros =
-                    fontes[campo.source] || [];
+                    fontes[campo.source] ||
+                    [];
 
 
                 campo.records =
                     registros;
 
+
+                // ------------------------------------------------
+                // Monta options
+                // ------------------------------------------------
 
                 if (
                     campo.valueField &&
@@ -443,9 +480,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
-    // CARREGAR DADOS
-    // ============================================================
+    // ========================================================
+    // CARREGAR REGISTROS
+    // ========================================================
 
     async function carregar() {
 
@@ -478,7 +515,7 @@ export function createEngine(config = {}) {
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}:`,
+                `Engine ${entity}: erro ao carregar`,
                 erro
             );
 
@@ -507,9 +544,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // NOVO
-    // ============================================================
+    // ========================================================
 
     async function onNovo() {
 
@@ -541,7 +578,7 @@ export function createEngine(config = {}) {
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}:`,
+                `Engine ${entity}: erro ao abrir novo`,
                 erro
             );
 
@@ -555,14 +592,27 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // EDITAR
-    // ============================================================
+    // ========================================================
 
     async function editar(
         registro,
         indice
     ) {
+
+        if (!registro) {
+
+            mostrarErro(
+                new Error(
+                    "Registro não informado para edição."
+                )
+            );
+
+            return;
+
+        }
+
 
         try {
 
@@ -608,9 +658,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // SALVAR FORMULÁRIO
-    // ============================================================
+    // ========================================================
 
     async function salvarFormulario(
         dados
@@ -622,9 +672,9 @@ export function createEngine(config = {}) {
                 true;
 
 
-            // ====================================================
-            // ATUALIZAÇÃO
-            // ====================================================
+            // ==================================================
+            // EDIÇÃO
+            // ==================================================
 
             if (
                 state.registroEditando
@@ -647,7 +697,7 @@ export function createEngine(config = {}) {
 
 
                 // ------------------------------------------------
-                // PRESERVA ID EMPREGADO
+                // PRESERVAR ID EMPREGADO
                 // ------------------------------------------------
 
                 if (
@@ -662,7 +712,7 @@ export function createEngine(config = {}) {
 
 
                 // ------------------------------------------------
-                // PRESERVA ID VEÍCULO
+                // PRESERVAR ID VEÍCULO
                 // ------------------------------------------------
 
                 if (
@@ -696,9 +746,9 @@ export function createEngine(config = {}) {
             }
 
 
-            // ====================================================
-            // NOVO REGISTRO
-            // ====================================================
+            // ==================================================
+            // NOVO
+            // ==================================================
 
             else {
 
@@ -722,11 +772,11 @@ export function createEngine(config = {}) {
             }
 
 
-            // ====================================================
+            // ==================================================
             // FINALIZAÇÃO
-            // ====================================================
+            // ==================================================
 
-            esconderFormulario();
+            form.reset();
 
 
             state.registroEditando =
@@ -737,13 +787,16 @@ export function createEngine(config = {}) {
                 null;
 
 
+            esconderFormulario();
+
+
             await carregar();
 
 
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}:`,
+                `Engine ${entity}: erro ao salvar`,
                 erro
             );
 
@@ -763,11 +816,11 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // EXCLUIR
-    // ============================================================
+    // ========================================================
 
-    async function excluir(
+    async function excluirRegistro(
         registro,
         indice
     ) {
@@ -776,7 +829,11 @@ export function createEngine(config = {}) {
             registro?.ID;
 
 
-        if (!id) {
+        if (
+            id === undefined ||
+            id === null ||
+            id === ""
+        ) {
 
             mostrarErro(
                 new Error(
@@ -819,7 +876,7 @@ export function createEngine(config = {}) {
         } catch (erro) {
 
             console.error(
-                `Engine ${entity}:`,
+                `Engine ${entity}: erro ao excluir`,
                 erro
             );
 
@@ -839,9 +896,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // CANCELAR
-    // ============================================================
+    // ========================================================
 
     function cancelarFormulario() {
 
@@ -861,9 +918,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // MOSTRAR FORMULÁRIO
-    // ============================================================
+    // ========================================================
 
     function mostrarFormulario() {
 
@@ -876,7 +933,7 @@ export function createEngine(config = {}) {
 
 
         if (
-            toolbar.botaoNovo
+            toolbar?.botaoNovo
         ) {
 
             toolbar.ocultarNovo();
@@ -886,9 +943,9 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // ESCONDER FORMULÁRIO
-    // ============================================================
+    // ========================================================
 
     function esconderFormulario() {
 
@@ -901,7 +958,7 @@ export function createEngine(config = {}) {
 
 
         if (
-            toolbar.botaoNovo
+            toolbar?.botaoNovo
         ) {
 
             toolbar.mostrarNovo();
@@ -911,19 +968,22 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // ERRO
-    // ============================================================
+    // ========================================================
 
-    function mostrarErro(erro) {
+    function mostrarErro(
+        erro
+    ) {
 
         const mensagem =
             erro?.message ||
-            "Ocorreu um erro.";
+            "Ocorreu um erro no Engine.";
 
 
         console.error(
-            mensagem
+            `Engine ${entity}:`,
+            erro
         );
 
 
@@ -934,16 +994,16 @@ export function createEngine(config = {}) {
     }
 
 
-    // ============================================================
+    // ========================================================
     // CARREGAMENTO INICIAL
-    // ============================================================
+    // ========================================================
 
     carregar();
 
 
-    // ============================================================
+    // ========================================================
     // API PÚBLICA
-    // ============================================================
+    // ========================================================
 
     return {
 
@@ -978,11 +1038,9 @@ export function createEngine(config = {}) {
 }
 
 
-/**
- * ============================================================
- * VALIDAR RESPOSTA DA API
- * ============================================================
- */
+// ============================================================
+// VALIDAR RESPOSTA
+// ============================================================
 
 function validarResposta(
     resposta,
@@ -1018,6 +1076,7 @@ function validarResposta(
     if (
         interno &&
         typeof interno === "object" &&
+        !Array.isArray(interno) &&
         interno.sucesso === false
     ) {
 
@@ -1032,13 +1091,13 @@ function validarResposta(
 }
 
 
-/**
- * ============================================================
- * RESOLVE ELEMENTO
- * ============================================================
- */
+// ============================================================
+// RESOLVER ELEMENTO
+// ============================================================
 
-function resolverElemento(valor) {
+function resolverElemento(
+    valor
+) {
 
     if (!valor) {
 
@@ -1072,13 +1131,13 @@ function resolverElemento(valor) {
 }
 
 
-/**
- * ============================================================
- * CRIA CONTAINER
- * ============================================================
- */
+// ============================================================
+// CRIAR CONTAINER
+// ============================================================
 
-function criarContainer(classe) {
+function criarContainer(
+    classe
+) {
 
     const elemento =
         document.createElement(
