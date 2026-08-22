@@ -421,7 +421,7 @@ form.addEventListener(
 
     function validar(dados) {
 
-        return validarFormulario({
+        return validarDados(
 
             schema,
 
