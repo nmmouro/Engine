@@ -16,35 +16,8 @@
  */
 
 import {
-    criarCampo
-} from "./form/field.js";
-
-import {
-    configurarCampoSelect
-} from "./form/select.js";
-
-import {
-    deveExibirCampo
-} from "./form/visibility.js";
-
-import {
-    setFormData,
-    getFormData,
-    resetFormData
-} from "./form/values.js";
-
-import {
-    validar
-} from "./form/validation.js";
-
-import {
-    formatarValor
-} from "./form/formatters.js";
-
-import {
-    aplicarCaixaAlta
-} from "./form/uppercase.js";
-
+    listar
+} from "../services/crudService.js";
 
 /**
  * ============================================================
