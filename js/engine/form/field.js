@@ -1,42 +1,41 @@
 /**
  * ============================================================
- * FORM ENGINE - FIELD
+ * FORM FIELD
  * ============================================================
  *
- * Responsável por:
- * - Criar campos do formulário
- * - Criar inputs
- * - Criar selects
- * - Aplicar propriedades do Schema
- *
- * Não conhece nenhuma entidade específica.
+ * Criação dos campos do formulário.
  * ============================================================
  */
 
+import {
+    criarSelect
+} from "./select.js";
 
-/**
- * ============================================================
- * CRIAR CAMPO
- * ============================================================
- */
+import {
+    aplicarCaixaAlta
+} from "./uppercase.js";
 
-export async function criarCampo(
-    campo,
-    config = {}
-) {
+
+export async function criarCampo(config = {}) {
 
     const {
+        campo,
+        schema,
         gerarIdCampo,
         configurarCampoSelect
     } = config;
 
 
-    // ==========================================================
-    // VALIDAÇÃO
-    // ==========================================================
+    if (!campo) {
+
+        return null;
+
+    }
+
 
     if (
-        typeof gerarIdCampo !== "function"
+        typeof gerarIdCampo !==
+        "function"
     ) {
 
         throw new Error(
@@ -46,30 +45,13 @@ export async function criarCampo(
     }
 
 
-    if (
-        !campo ||
-        !campo.name
-    ) {
-
-        return null;
-
-    }
-
-
-    // ==========================================================
-    // GRUPO
-    // ==========================================================
-
     const grupo =
         document.createElement("div");
+
 
     grupo.className =
         "form-group";
 
-
-    // ==========================================================
-    // LABEL
-    // ==========================================================
 
     const label =
         document.createElement("label");
@@ -86,17 +68,14 @@ export async function criarCampo(
         campo.name;
 
 
-    // ==========================================================
-    // INPUT
-    // ==========================================================
-
     const input =
-        criarInput(
+        criarInput({
+
             campo,
-            {
-                gerarIdCampo
-            }
-        );
+
+            gerarIdCampo
+
+        });
 
 
     if (!input) {
@@ -106,14 +85,15 @@ export async function criarCampo(
     }
 
 
-    // ==========================================================
+    // ============================================================
     // SELECT RELACIONAL
-    // ==========================================================
+    // ============================================================
 
     if (
         campo.type === "select" &&
         campo.source &&
-        typeof configurarCampoSelect === "function"
+        typeof configurarCampoSelect ===
+        "function"
     ) {
 
         await configurarCampoSelect(
@@ -123,10 +103,6 @@ export async function criarCampo(
 
     }
 
-
-    // ==========================================================
-    // MONTA CAMPO
-    // ==========================================================
 
     grupo.appendChild(
         label
@@ -143,36 +119,26 @@ export async function criarCampo(
 }
 
 
-/**
- * ============================================================
- * CRIAR INPUT
- * ============================================================
- */
+// ============================================================
+// CRIAR INPUT
+// ============================================================
 
-export function criarInput(
-    campo,
-    config = {}
-) {
+export function criarInput(config = {}) {
 
     const {
+        campo,
         gerarIdCampo
     } = config;
 
 
     if (
-        typeof gerarIdCampo !== "function"
+        typeof gerarIdCampo !==
+        "function"
     ) {
 
         throw new Error(
             "field.js: gerarIdCampo não foi fornecida."
         );
-
-    }
-
-
-    if (!campo) {
-
-        return null;
 
     }
 
@@ -186,16 +152,7 @@ export function criarInput(
     let input;
 
 
-    // ==========================================================
-    // TIPO DO CAMPO
-    // ==========================================================
-
     switch (campo.type) {
-
-
-        // ------------------------------------------------------
-        // TEXT
-        // ------------------------------------------------------
 
         case "text":
 
@@ -210,10 +167,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // DATE
-        // ------------------------------------------------------
-
         case "date":
 
             input =
@@ -226,10 +179,6 @@ export function criarInput(
 
             break;
 
-
-        // ------------------------------------------------------
-        // DATETIME
-        // ------------------------------------------------------
 
         case "datetime":
 
@@ -244,10 +193,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // TIME
-        // ------------------------------------------------------
-
         case "time":
 
             input =
@@ -260,10 +205,6 @@ export function criarInput(
 
             break;
 
-
-        // ------------------------------------------------------
-        // NUMBER
-        // ------------------------------------------------------
 
         case "number":
 
@@ -278,10 +219,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // EMAIL
-        // ------------------------------------------------------
-
         case "email":
 
             input =
@@ -295,10 +232,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // TEXTAREA
-        // ------------------------------------------------------
-
         case "textarea":
 
             input =
@@ -309,10 +242,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // SELECT
-        // ------------------------------------------------------
-
         case "select":
 
             input =
@@ -322,10 +251,6 @@ export function criarInput(
 
             break;
 
-
-        // ------------------------------------------------------
-        // CHECKBOX
-        // ------------------------------------------------------
 
         case "checkbox":
 
@@ -340,10 +265,6 @@ export function criarInput(
             break;
 
 
-        // ------------------------------------------------------
-        // FILE
-        // ------------------------------------------------------
-
         case "file":
 
             input =
@@ -356,10 +277,6 @@ export function criarInput(
 
             break;
 
-
-        // ------------------------------------------------------
-        // PADRÃO
-        // ------------------------------------------------------
 
         default:
 
@@ -376,9 +293,9 @@ export function criarInput(
     }
 
 
-    // ==========================================================
+    // ============================================================
     // ATRIBUTOS
-    // ==========================================================
+    // ============================================================
 
     input.id =
         id;
@@ -394,13 +311,11 @@ export function criarInput(
             : "form-control";
 
 
-    // ==========================================================
+    // ============================================================
     // REQUIRED
-    // ==========================================================
+    // ============================================================
 
-    if (
-        campo.required
-    ) {
+    if (campo.required) {
 
         input.required =
             true;
@@ -408,13 +323,11 @@ export function criarInput(
     }
 
 
-    // ==========================================================
+    // ============================================================
     // READONLY
-    // ==========================================================
+    // ============================================================
 
-    if (
-        campo.readonly
-    ) {
+    if (campo.readonly) {
 
         input.readOnly =
             true;
@@ -422,27 +335,11 @@ export function criarInput(
     }
 
 
-    // ==========================================================
-    // DISABLED
-    // ==========================================================
-
-    if (
-        campo.disabled
-    ) {
-
-        input.disabled =
-            true;
-
-    }
-
-
-    // ==========================================================
+    // ============================================================
     // PLACEHOLDER
-    // ==========================================================
+    // ============================================================
 
-    if (
-        campo.placeholder
-    ) {
+    if (campo.placeholder) {
 
         input.placeholder =
             campo.placeholder;
@@ -450,55 +347,15 @@ export function criarInput(
     }
 
 
-    // ==========================================================
-    // MIN
-    // ==========================================================
-
-    if (
-        campo.min !== undefined
-    ) {
-
-        input.min =
-            campo.min;
-
-    }
-
-
-    // ==========================================================
-    // MAX
-    // ==========================================================
-
-    if (
-        campo.max !== undefined
-    ) {
-
-        input.max =
-            campo.max;
-
-    }
-
-
-    // ==========================================================
-    // STEP
-    // ==========================================================
-
-    if (
-        campo.step !== undefined
-    ) {
-
-        input.step =
-            campo.step;
-
-    }
-
-
-    // ==========================================================
+    // ============================================================
     // VALOR PADRÃO
-    // ==========================================================
+    // ============================================================
 
     if (
-        campo.defaultValue !== undefined &&
-        campo.defaultValue !== null
+        campo.defaultValue !==
+        undefined &&
+        campo.defaultValue !==
+        null
     ) {
 
         if (
@@ -520,120 +377,16 @@ export function criarInput(
     }
 
 
+    // ============================================================
+    // CAIXA ALTA
+    // ============================================================
+
+    aplicarCaixaAlta(
+        input,
+        campo
+    );
+
+
     return input;
-
-}
-
-
-/**
- * ============================================================
- * CRIAR SELECT
- * ============================================================
- */
-
-export function criarSelect(
-    campo
-) {
-
-    const select =
-        document.createElement(
-            "select"
-        );
-
-
-    select.className =
-        "form-control";
-
-
-    // ==========================================================
-    // OPÇÃO VAZIA
-    // ==========================================================
-
-    const vazio =
-        document.createElement(
-            "option"
-        );
-
-
-    vazio.value =
-        "";
-
-
-    vazio.textContent =
-        campo.placeholder ||
-        "Selecione...";
-
-
-    vazio.selected =
-        true;
-
-
-    select.appendChild(
-        vazio
-    );
-
-
-    // ==========================================================
-    // OPÇÕES
-    // ==========================================================
-
-    const options =
-        Array.isArray(
-            campo.options
-        )
-            ? campo.options
-            : [];
-
-
-    options.forEach(
-        opcao => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-
-            if (
-                typeof opcao === "object" &&
-                opcao !== null
-            ) {
-
-                option.value =
-                    opcao.value ?? "";
-
-
-                option.textContent =
-                    opcao.label ??
-                    opcao.value ??
-                    "";
-
-            } else {
-
-                option.value =
-                    String(opcao);
-
-
-                option.textContent =
-                    String(opcao);
-
-            }
-
-
-            // Guarda o texto visual
-
-            option.dataset.label =
-                option.textContent;
-
-
-            select.appendChild(
-                option
-            );
-
-        }
-    );
-
-
-    return select;
 
 }
