@@ -61,17 +61,23 @@ export function validar(config = {}) {
             ) {
 
                 mostrarErro(
-                    campo
+                    `O campo "${campo.label || campo.name}" é obrigatório.`
                 );
 
 
-                focarCampo(
-                    campo,
-                    obterInput
-                );
+                const input =
+                    obterInput(campo.name);
+
+
+                if (input) {
+
+                    input.focus();
+
+                }
 
 
                 return false;
+
 
             }
 
@@ -96,14 +102,19 @@ export function validar(config = {}) {
         ) {
 
             mostrarErro(
-                campo
+                `O campo "${campo.label || campo.name}" é obrigatório.`
             );
 
 
-            focarCampo(
-                campo,
-                obterInput
-            );
+            const input =
+                obterInput(campo.name);
+
+
+            if (input) {
+
+                input.focus();
+
+            }
 
 
             return false;
