@@ -1,12 +1,13 @@
 /**
  * ============================================================
- * FORM FIELD
+ * FORM ENGINE - FIELD
  * ============================================================
  *
  * Responsável por:
- * - Criar campos
+ * - Criar campos do formulário
  * - Criar inputs
  * - Criar selects
+ * - Aplicar propriedades do Schema
  *
  * Não conhece nenhuma entidade específica.
  * ============================================================
@@ -18,17 +19,21 @@
  * CRIAR CAMPO
  * ============================================================
  */
-export async function criarCampo({
+
+export async function criarCampo(
     campo,
-    gerarIdCampo,
-    configurarCampoSelect,
-    aplicarCaixaAlta
-}) {
+    config = {}
+) {
 
-    if (!campo) {
-        return null;
-    }
+    const {
+        gerarIdCampo,
+        configurarCampoSelect
+    } = config;
 
+
+    // ==========================================================
+    // VALIDAÇÃO
+    // ==========================================================
 
     if (
         typeof gerarIdCampo !== "function"
@@ -41,9 +46,19 @@ export async function criarCampo({
     }
 
 
-    // ============================================================
-    // CONTAINER DO CAMPO
-    // ============================================================
+    if (
+        !campo ||
+        !campo.name
+    ) {
+
+        return null;
+
+    }
+
+
+    // ==========================================================
+    // GRUPO
+    // ==========================================================
 
     const grupo =
         document.createElement("div");
@@ -52,9 +67,9 @@ export async function criarCampo({
         "form-group";
 
 
-    // ============================================================
+    // ==========================================================
     // LABEL
-    // ============================================================
+    // ==========================================================
 
     const label =
         document.createElement("label");
@@ -71,50 +86,47 @@ export async function criarCampo({
         campo.name;
 
 
-    // ============================================================
+    // ==========================================================
     // INPUT
-    // ============================================================
+    // ==========================================================
 
     const input =
-        criarInput({
+        criarInput(
             campo,
-            gerarIdCampo,
-            aplicarCaixaAlta
-        });
+            {
+                gerarIdCampo
+            }
+        );
 
 
     if (!input) {
+
         return null;
+
     }
 
 
-    // ============================================================
+    // ==========================================================
     // SELECT RELACIONAL
-    // ============================================================
+    // ==========================================================
 
     if (
         campo.type === "select" &&
-        campo.source
+        campo.source &&
+        typeof configurarCampoSelect === "function"
     ) {
 
-        if (
-            typeof configurarCampoSelect ===
-            "function"
-        ) {
-
-            await configurarCampoSelect(
-                campo,
-                input
-            );
-
-        }
+        await configurarCampoSelect(
+            campo,
+            input
+        );
 
     }
 
 
-    // ============================================================
-    // MONTAGEM
-    // ============================================================
+    // ==========================================================
+    // MONTA CAMPO
+    // ==========================================================
 
     grupo.appendChild(
         label
@@ -136,14 +148,32 @@ export async function criarCampo({
  * CRIAR INPUT
  * ============================================================
  */
-export function criarInput({
+
+export function criarInput(
     campo,
-    gerarIdCampo,
-    aplicarCaixaAlta
-}) {
+    config = {}
+) {
+
+    const {
+        gerarIdCampo
+    } = config;
+
+
+    if (
+        typeof gerarIdCampo !== "function"
+    ) {
+
+        throw new Error(
+            "field.js: gerarIdCampo não foi fornecida."
+        );
+
+    }
+
 
     if (!campo) {
+
         return null;
+
     }
 
 
@@ -156,11 +186,16 @@ export function criarInput({
     let input;
 
 
-    // ============================================================
+    // ==========================================================
     // TIPO DO CAMPO
-    // ============================================================
+    // ==========================================================
 
     switch (campo.type) {
+
+
+        // ------------------------------------------------------
+        // TEXT
+        // ------------------------------------------------------
 
         case "text":
 
@@ -175,6 +210,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // DATE
+        // ------------------------------------------------------
+
         case "date":
 
             input =
@@ -187,6 +226,10 @@ export function criarInput({
 
             break;
 
+
+        // ------------------------------------------------------
+        // DATETIME
+        // ------------------------------------------------------
 
         case "datetime":
 
@@ -201,6 +244,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // TIME
+        // ------------------------------------------------------
+
         case "time":
 
             input =
@@ -213,6 +260,10 @@ export function criarInput({
 
             break;
 
+
+        // ------------------------------------------------------
+        // NUMBER
+        // ------------------------------------------------------
 
         case "number":
 
@@ -227,6 +278,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // EMAIL
+        // ------------------------------------------------------
+
         case "email":
 
             input =
@@ -240,6 +295,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // TEXTAREA
+        // ------------------------------------------------------
+
         case "textarea":
 
             input =
@@ -250,6 +309,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // SELECT
+        // ------------------------------------------------------
+
         case "select":
 
             input =
@@ -259,6 +322,10 @@ export function criarInput({
 
             break;
 
+
+        // ------------------------------------------------------
+        // CHECKBOX
+        // ------------------------------------------------------
 
         case "checkbox":
 
@@ -273,6 +340,10 @@ export function criarInput({
             break;
 
 
+        // ------------------------------------------------------
+        // FILE
+        // ------------------------------------------------------
+
         case "file":
 
             input =
@@ -285,6 +356,10 @@ export function criarInput({
 
             break;
 
+
+        // ------------------------------------------------------
+        // PADRÃO
+        // ------------------------------------------------------
 
         default:
 
@@ -301,9 +376,9 @@ export function criarInput({
     }
 
 
-    // ============================================================
+    // ==========================================================
     // ATRIBUTOS
-    // ============================================================
+    // ==========================================================
 
     input.id =
         id;
@@ -319,11 +394,13 @@ export function criarInput({
             : "form-control";
 
 
-    // ============================================================
+    // ==========================================================
     // REQUIRED
-    // ============================================================
+    // ==========================================================
 
-    if (campo.required) {
+    if (
+        campo.required
+    ) {
 
         input.required =
             true;
@@ -331,11 +408,13 @@ export function criarInput({
     }
 
 
-    // ============================================================
+    // ==========================================================
     // READONLY
-    // ============================================================
+    // ==========================================================
 
-    if (campo.readonly) {
+    if (
+        campo.readonly
+    ) {
 
         input.readOnly =
             true;
@@ -343,11 +422,27 @@ export function criarInput({
     }
 
 
-    // ============================================================
-    // PLACEHOLDER
-    // ============================================================
+    // ==========================================================
+    // DISABLED
+    // ==========================================================
 
-    if (campo.placeholder) {
+    if (
+        campo.disabled
+    ) {
+
+        input.disabled =
+            true;
+
+    }
+
+
+    // ==========================================================
+    // PLACEHOLDER
+    // ==========================================================
+
+    if (
+        campo.placeholder
+    ) {
 
         input.placeholder =
             campo.placeholder;
@@ -355,9 +450,51 @@ export function criarInput({
     }
 
 
-    // ============================================================
+    // ==========================================================
+    // MIN
+    // ==========================================================
+
+    if (
+        campo.min !== undefined
+    ) {
+
+        input.min =
+            campo.min;
+
+    }
+
+
+    // ==========================================================
+    // MAX
+    // ==========================================================
+
+    if (
+        campo.max !== undefined
+    ) {
+
+        input.max =
+            campo.max;
+
+    }
+
+
+    // ==========================================================
+    // STEP
+    // ==========================================================
+
+    if (
+        campo.step !== undefined
+    ) {
+
+        input.step =
+            campo.step;
+
+    }
+
+
+    // ==========================================================
     // VALOR PADRÃO
-    // ============================================================
+    // ==========================================================
 
     if (
         campo.defaultValue !== undefined &&
@@ -383,23 +520,6 @@ export function criarInput({
     }
 
 
-    // ============================================================
-    // CAIXA ALTA
-    // ============================================================
-
-    if (
-        typeof aplicarCaixaAlta ===
-        "function"
-    ) {
-
-        aplicarCaixaAlta(
-            input,
-            campo
-        );
-
-    }
-
-
     return input;
 
 }
@@ -410,7 +530,10 @@ export function criarInput({
  * CRIAR SELECT
  * ============================================================
  */
-export function criarSelect(campo) {
+
+export function criarSelect(
+    campo
+) {
 
     const select =
         document.createElement(
@@ -421,6 +544,10 @@ export function criarSelect(campo) {
     select.className =
         "form-control";
 
+
+    // ==========================================================
+    // OPÇÃO VAZIA
+    // ==========================================================
 
     const vazio =
         document.createElement(
@@ -446,6 +573,10 @@ export function criarSelect(campo) {
     );
 
 
+    // ==========================================================
+    // OPÇÕES
+    // ==========================================================
+
     const options =
         Array.isArray(
             campo.options
@@ -454,49 +585,53 @@ export function criarSelect(campo) {
             : [];
 
 
-    options.forEach(opcao => {
+    options.forEach(
+        opcao => {
 
-        const option =
-            document.createElement(
-                "option"
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            if (
+                typeof opcao === "object" &&
+                opcao !== null
+            ) {
+
+                option.value =
+                    opcao.value ?? "";
+
+
+                option.textContent =
+                    opcao.label ??
+                    opcao.value ??
+                    "";
+
+            } else {
+
+                option.value =
+                    String(opcao);
+
+
+                option.textContent =
+                    String(opcao);
+
+            }
+
+
+            // Guarda o texto visual
+
+            option.dataset.label =
+                option.textContent;
+
+
+            select.appendChild(
+                option
             );
 
-
-        if (
-            typeof opcao === "object" &&
-            opcao !== null
-        ) {
-
-            option.value =
-                opcao.value ?? "";
-
-
-            option.textContent =
-                opcao.label ??
-                opcao.value ??
-                "";
-
-        } else {
-
-            option.value =
-                String(opcao);
-
-
-            option.textContent =
-                String(opcao);
-
         }
-
-
-        option.dataset.label =
-            option.textContent;
-
-
-        select.appendChild(
-            option
-        );
-
-    });
+    );
 
 
     return select;
