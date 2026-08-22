@@ -1,308 +1,387 @@
 /**
  * ============================================================
- * FORM - VALUES
+ * VALUES
+ * ============================================================
+ *
+ * Responsável por:
+ * - Ler valores do formulário
+ * - Preencher valores
+ * - Limpar valores
+ * - Aplicar valores padrão
+ *
+ * Não conhece nenhuma entidade específica.
  * ============================================================
  */
-
-import {
-    deveExibirCampo
-} from "./visibility.js";
-
-import {
-    formatarValor
-} from "./formatters.js";
 
 
 /**
  * ============================================================
- * PREENCHER FORMULÁRIO
+ * GET FORM DATA
  * ============================================================
  */
-export async function preencherFormulario({
+export function getFormData(
     schema,
-    dados = {},
-    obterInput,
-    configurarCampoSelect,
-    setRegistroAtual
-}) {
-
-    setRegistroAtual(
-        dados || {},
-        dados && Object.keys(dados).length
-            ? "edicao"
-            : "novo"
-    );
-
-
-    // ============================================================
-    // SELECTS RELACIONAIS
-    // ============================================================
-
-    for (const campo of schema.fields) {
-
-        if (
-            !deveExibirCampo(campo)
-        ) {
-            continue;
-        }
-
-        if (
-            campo.type !== "select" ||
-            !campo.source
-        ) {
-            continue;
-        }
-
-        const input =
-            obterInput(campo.name);
-
-        if (!input) {
-            continue;
-        }
-
-        let valorAtual = "";
-
-        if (campo.idField) {
-
-            valorAtual =
-                dados[campo.idField] ?? "";
-
-        } else {
-
-            valorAtual =
-                dados[campo.name] ?? "";
-
-        }
-
-        await configurarCampoSelect(
-            campo,
-            input,
-            valorAtual
-        );
-    }
-
-
-    // ============================================================
-    // DEMAIS CAMPOS
-    // ============================================================
-
-    schema.fields.forEach(campo => {
-
-        if (
-            !deveExibirCampo(campo)
-        ) {
-            return;
-        }
-
-        if (
-            campo.type === "select" &&
-            campo.source
-        ) {
-            return;
-        }
-
-        const input =
-            obterInput(campo.name);
-
-        if (!input) {
-            return;
-        }
-
-        const valor =
-            dados[campo.name];
-
-        if (
-            valor === undefined ||
-            valor === null
-        ) {
-            return;
-        }
-
-        if (
-            input.type === "checkbox"
-        ) {
-
-            input.checked =
-                Boolean(valor);
-
-            return;
-        }
-
-        input.value =
-            formatarValor(
-                campo,
-                valor
-            );
-    });
-}
-
-
-/**
- * ============================================================
- * LER FORMULÁRIO
- * ============================================================
- */
-export function obterDadosFormulario({
-    schema,
+    container,
     obterInput
-}) {
+) {
 
     const dados = {};
 
-    schema.fields.forEach(campo => {
 
-        if (
-            !deveExibirCampo(campo)
-        ) {
-            return;
-        }
+    if (
+        !schema ||
+        !Array.isArray(schema.fields)
+    ) {
 
-        const input =
-            obterInput(campo.name);
+        return dados;
 
-        if (!input) {
-            return;
-        }
+    }
 
 
-        // ========================================================
-        // SELECT RELACIONAL
-        // ========================================================
+    schema.fields.forEach(
+        campo => {
 
-        if (
-            campo.type === "select" &&
-            campo.source &&
-            campo.idField
-        ) {
+            // ----------------------------------------------------
+            // Campo oculto/técnico
+            // ----------------------------------------------------
 
-            const option =
-                input.selectedOptions[0];
+            if (
+                campo.hidden === true ||
+                campo.visible === false ||
+                campo.name === "ID" ||
+                campo.name?.startsWith("ID ")
+            ) {
 
-            const id =
-                input.value || "";
+                return;
 
-            const label =
-                option?.dataset?.label ||
-                option?.textContent ||
-                "";
+            }
 
-            dados[campo.idField] =
-                id;
+
+            const input =
+                obterInput(campo.name);
+
+
+            if (!input) {
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // CHECKBOX
+            // ====================================================
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                dados[campo.name] =
+                    input.checked;
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // SELECT RELACIONAL
+            // ====================================================
+
+            if (
+                campo.type === "select" &&
+                campo.source &&
+                campo.idField
+            ) {
+
+                const option =
+                    input.selectedOptions?.[0];
+
+
+                const id =
+                    input.value || "";
+
+
+                const label =
+                    option?.dataset?.label ||
+                    option?.textContent ||
+                    "";
+
+
+                dados[campo.idField] =
+                    id;
+
+
+                dados[campo.name] =
+                    id
+                        ? label.trim()
+                        : "";
+
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // CAMPOS NORMAIS
+            // ====================================================
 
             dados[campo.name] =
-                id
-                    ? label.trim()
-                    : "";
+                input.value ?? "";
 
-            return;
         }
+    );
 
-
-        // ========================================================
-        // DEMAIS CAMPOS
-        // ========================================================
-
-        let valor =
-            input.value;
-
-        if (
-            input.type === "checkbox"
-        ) {
-
-            valor =
-                input.checked;
-        }
-
-        dados[campo.name] =
-            valor;
-    });
 
     return dados;
+
 }
 
 
 /**
  * ============================================================
- * LIMPAR FORMULÁRIO
+ * SET FORM DATA
  * ============================================================
  */
-export function limparFormulario({
+export function setFormData(
     schema,
+    dados = {},
     obterInput,
-    setRegistroAtual
-}) {
+    formatarValor
+) {
 
-    setRegistroAtual(
-        null,
-        "novo"
-    );
+    if (
+        !schema ||
+        !Array.isArray(schema.fields)
+    ) {
 
-    schema.fields.forEach(campo => {
+        return;
 
-        if (
-            !deveExibirCampo(campo)
-        ) {
-            return;
-        }
-
-        const input =
-            obterInput(campo.name);
-
-        if (!input) {
-            return;
-        }
-
-        if (
-            campo.type === "checkbox"
-        ) {
-
-            input.checked = false;
-
-        } else {
-
-            input.value = "";
-        }
-    });
+    }
 
 
-    // ============================================================
-    // VALORES PADRÃO
-    // ============================================================
+    schema.fields.forEach(
+        campo => {
 
-    schema.fields.forEach(campo => {
+            // ----------------------------------------------------
+            // Campo técnico
+            // ----------------------------------------------------
 
-        if (
-            !deveExibirCampo(campo)
-        ) {
-            return;
-        }
+            if (
+                campo.hidden === true ||
+                campo.visible === false ||
+                campo.name === "ID" ||
+                campo.name?.startsWith("ID ")
+            ) {
 
-        if (
-            campo.defaultValue === undefined
-        ) {
-            return;
-        }
+                return;
 
-        const input =
-            obterInput(campo.name);
+            }
 
-        if (!input) {
-            return;
-        }
 
-        if (
-            campo.type === "checkbox"
-        ) {
+            // ----------------------------------------------------
+            // Select relacional é tratado pelo select.js
+            // ----------------------------------------------------
 
-            input.checked =
-                Boolean(
-                    campo.defaultValue
-                );
+            if (
+                campo.type === "select" &&
+                campo.source
+            ) {
 
-        } else {
+                return;
+
+            }
+
+
+            const input =
+                obterInput(campo.name);
+
+
+            if (!input) {
+
+                return;
+
+            }
+
+
+            const valor =
+                dados[campo.name];
+
+
+            if (
+                valor === undefined ||
+                valor === null
+            ) {
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // CHECKBOX
+            // ====================================================
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    Boolean(valor);
+
+                return;
+
+            }
+
+
+            // ====================================================
+            // VALOR
+            // ====================================================
 
             input.value =
-                campo.defaultValue;
+                typeof formatarValor === "function"
+                    ? formatarValor(
+                        campo,
+                        valor
+                    )
+                    : String(valor);
+
         }
-    });
+    );
+
+}
+
+
+/**
+ * ============================================================
+ * RESET FORM
+ * ============================================================
+ */
+export function resetForm(
+    schema,
+    obterInput
+) {
+
+    if (
+        !schema ||
+        !Array.isArray(schema.fields)
+    ) {
+
+        return;
+
+    }
+
+
+    schema.fields.forEach(
+        campo => {
+
+            if (
+                campo.hidden === true ||
+                campo.visible === false ||
+                campo.name === "ID" ||
+                campo.name?.startsWith("ID ")
+            ) {
+
+                return;
+
+            }
+
+
+            const input =
+                obterInput(campo.name);
+
+
+            if (!input) {
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Checkbox
+            // ----------------------------------------------------
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    false;
+
+                return;
+
+            }
+
+
+            // ----------------------------------------------------
+            // Demais campos
+            // ----------------------------------------------------
+
+            input.value = "";
+
+        }
+    );
+
+
+    // ============================================================
+    // APLICA VALORES PADRÃO
+    // ============================================================
+
+    schema.fields.forEach(
+        campo => {
+
+            if (
+                campo.hidden === true ||
+                campo.visible === false ||
+                campo.name === "ID" ||
+                campo.name?.startsWith("ID ")
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+                campo.defaultValue ===
+                undefined
+            ) {
+
+                return;
+
+            }
+
+
+            const input =
+                obterInput(campo.name);
+
+
+            if (!input) {
+
+                return;
+
+            }
+
+
+            if (
+                input.type === "checkbox"
+            ) {
+
+                input.checked =
+                    Boolean(
+                        campo.defaultValue
+                    );
+
+            } else {
+
+                input.value =
+                    campo.defaultValue;
+
+            }
+
+        }
+    );
+
 }
