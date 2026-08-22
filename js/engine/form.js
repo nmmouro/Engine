@@ -45,12 +45,93 @@ import {
 } from "./form/validation.js";
 
 import {
-    formatarValor
+    formatarValor,
+    dataAtualInput,
+    horaAtualInput
 } from "./form/formatters.js";
 
 import {
     aplicarCaixaAlta
 } from "./form/uppercase.js";
+
+
+// ============================================================
+// PREENCHE DATA E HORA PARA NOVO REGISTRO
+// ============================================================
+
+function preencherDataHoraNovo() {
+
+    schema.fields.forEach(
+        campo => {
+
+            // ----------------------------------------------------
+            // Somente campos visíveis
+            // ----------------------------------------------------
+
+            if (
+                !deveExibirCampo(campo)
+            ) {
+                return;
+            }
+
+
+            const nome =
+                String(
+                    campo.name || ""
+                ).toLowerCase();
+
+
+            const input =
+                obterInput(
+                    campo.name
+                );
+
+
+            if (!input) {
+                return;
+            }
+
+
+            // ----------------------------------------------------
+            // DATA
+            // ----------------------------------------------------
+
+            if (
+                campo.type === "date" &&
+                (
+                    nome === "data" ||
+                    nome.includes("data")
+                )
+            ) {
+
+                input.value =
+                    dataAtualInput();
+
+                return;
+            }
+
+
+            // ----------------------------------------------------
+            // HORA
+            // ----------------------------------------------------
+
+            if (
+                campo.type === "time" &&
+                (
+                    nome === "hora" ||
+                    nome.includes("hora")
+                )
+            ) {
+
+                input.value =
+                    horaAtualInput();
+
+            }
+
+        }
+    );
+
+}
 
 
 /**
@@ -388,7 +469,7 @@ form.addEventListener(
     }
 
 
-   // ============================================================
+// ============================================================
 // VALIDAÇÃO
 // ============================================================
 
