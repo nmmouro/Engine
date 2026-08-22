@@ -26,134 +26,86 @@
  *
  * @returns {Boolean}
  */
-export function validar({
+/**
+ * ============================================================
+ * FORM VALIDATION
+ * ============================================================
+ */
+
+export function validarFormulario({
     schema,
     dados,
     deveExibirCampo,
     obterInput
 }) {
 
-    // ============================================================
-    // VALIDAÇÃO BÁSICA
-    // ============================================================
-
-    if (
-        !schema ||
-        !Array.isArray(schema.fields)
-    ) {
-
-        console.error(
-            "Validation: schema inválido."
-        );
-
+    if (!schema) {
         return false;
-
     }
-
-
-    // ============================================================
-    // PERCORRE CAMPOS
-    // ============================================================
 
     for (const campo of schema.fields) {
 
         // --------------------------------------------------------
-        // Campos técnicos/ocultos
+        // Ignora campos que não aparecem no formulário
         // --------------------------------------------------------
 
         if (
             typeof deveExibirCampo === "function" &&
             !deveExibirCampo(campo)
         ) {
-
             continue;
-
         }
-
 
         // --------------------------------------------------------
         // Campo não obrigatório
         // --------------------------------------------------------
 
         if (!campo.required) {
-
             continue;
-
         }
-
-
-        // ========================================================
-        // VALOR
-        // ========================================================
 
         const valor =
             dados?.[campo.name];
 
-
-        // ========================================================
-        // VERIFICA VAZIO
-        // ========================================================
-
-        const vazio =
-            valor === undefined ||
-            valor === null ||
-            String(valor).trim() === "";
-
-
-        if (!vazio) {
-
-            continue;
-
-        }
-
-
-        // ========================================================
-        // MENSAGEM
-        // ========================================================
-
-        const mensagem =
-            `O campo "${campo.label || campo.name}" é obrigatório.`;
-
-
-        mostrarErro(
-            mensagem
-        );
-
-
-        // ========================================================
-        // FOCO NO CAMPO
-        // ========================================================
+        // --------------------------------------------------------
+        // Verifica vazio
+        // --------------------------------------------------------
 
         if (
-            typeof obterInput === "function"
+            valor === undefined ||
+            valor === null ||
+            String(valor).trim() === ""
         ) {
 
-            const input =
-                obterInput(
-                    campo.name
-                );
+            const mensagem =
+                `O campo "${campo.label || campo.name}" é obrigatório.`;
 
+            console.error(
+                "Form:",
+                mensagem
+            );
 
-            if (input) {
+            alert(mensagem);
 
-                input.focus();
+            // ----------------------------------------------------
+            // Coloca foco no campo
+            // ----------------------------------------------------
 
+            if (typeof obterInput === "function") {
+
+                const input =
+                    obterInput(campo.name);
+
+                if (input) {
+                    input.focus();
+                }
             }
 
+            return false;
         }
-
-
-        return false;
-
     }
 
-
-    // ============================================================
-    // FORMULÁRIO VÁLIDO
-    // ============================================================
-
     return true;
-
 }
 
 
