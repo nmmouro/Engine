@@ -16,6 +16,7 @@
  * ============================================================
  */
 
+import { listar } from "./../services/crudService.js";
 import { createState } from "./state.js";
 import { createCrud } from "./crud.js";
 import { createForm } from "./form.js";
@@ -223,11 +224,13 @@ export function createEngine(config = {}) {
             container:
                 formContainer,
 
+            listar,
+
             onSubmit:
-                salvarFormulario,
+                salvar,
 
             onCancel:
-                cancelarFormulario
+                cancelar
 
         });
 
