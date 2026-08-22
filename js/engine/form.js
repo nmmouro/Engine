@@ -16,30 +16,34 @@
  */
 
 import {
-    listar
-} from "../../services/crudService.js";
-
-import {
     criarCampo
-} from "./field.js";
-
-import {
-    deveExibirCampo
-} from "./visibility.js";
+} from "./form/field.js";
 
 import {
     configurarCampoSelect
-} from "./select.js";
+} from "./form/select.js";
 
 import {
-    getFormData,
+    deveExibirCampo
+} from "./form/visibility.js";
+
+import {
     setFormData,
+    getFormData,
     resetFormData
-} from "./values.js";
+} from "./form/values.js";
 
 import {
-    validarFormulario
-} from "./validation.js";
+    validar
+} from "./form/validation.js";
+
+import {
+    formatarValor
+} from "./form/formatters.js";
+
+import {
+    aplicarCaixaAlta
+} from "./form/uppercase.js";
 
 
 export function createForm(config = {}) {
