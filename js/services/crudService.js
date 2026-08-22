@@ -3,41 +3,44 @@
  * CRUD SERVICE
  * ============================================================
  *
- * Serviço CRUD genérico do Engine.
+ * Serviço genérico de comunicação com a API.
  *
- * Responsabilidades:
+ * O serviço NÃO conhece:
  *
- * - Comunicação com Google Apps Script
- * - Listagem
- * - Consulta por ID
- * - Criação
- * - Atualização
- * - Exclusão
+ * - VEICULOS
+ * - EMPREGADOS
+ * - LANCAMENTOS
+ * - ou qualquer outra entidade.
  *
- * Nenhuma entidade específica deve ser tratada aqui.
+ * Ele apenas recebe o nome da aba/entidade.
  *
  * Exemplos:
  *
  * listar("VEICULOS")
- * listar("EMPREGADOS")
- * listar("LANCAMENTOS")
- *
  * salvar("VEICULOS", dados)
  * atualizar("VEICULOS", dados)
  * excluir("VEICULOS", id)
+ *
  * ============================================================
  */
 
-import {
-    CONFIG
-} from "../config/config.js";
+import { CONFIG } from "../config/config.js";
 
 
 // ============================================================
-// REQUISIÇÃO
+// REQUISIÇÃO BASE
 // ============================================================
 
 async function requisicao(params = {}) {
+
+    if (!CONFIG?.api?.url) {
+
+        throw new Error(
+            "CRUD Service: CONFIG.api.url não configurada."
+        );
+
+    }
+
 
     const url =
         new URL(CONFIG.api.url);
@@ -53,7 +56,7 @@ async function requisicao(params = {}) {
 
                 url.searchParams.set(
                     chave,
-                    valor
+                    String(valor)
                 );
 
             }
@@ -63,7 +66,10 @@ async function requisicao(params = {}) {
 
 
     const resposta =
-        await fetch(url);
+        await fetch(url.toString(), {
+            method: "GET",
+            cache: "no-store"
+        });
 
 
     if (!resposta.ok) {
@@ -75,24 +81,88 @@ async function requisicao(params = {}) {
     }
 
 
-    const json =
-        await resposta.json();
+    let json;
 
+    try {
 
-    if (
-        json.sucesso === false
-    ) {
+        json =
+            await resposta.json();
+
+    } catch (erro) {
 
         throw new Error(
-            json.erro ||
-            json.message ||
-            "Erro na API."
+            "A API retornou uma resposta que não é JSON."
         );
 
     }
 
 
+    validarResposta(json);
+
+
     return json;
+
+}
+
+
+// ============================================================
+// VALIDAR RESPOSTA
+// ============================================================
+
+function validarResposta(resposta) {
+
+    if (!resposta) {
+
+        throw new Error(
+            "A API não retornou dados."
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Erro externo
+    // --------------------------------------------------------
+
+    if (
+        resposta.sucesso === false
+    ) {
+
+        throw new Error(
+            resposta.erro ||
+            resposta.message ||
+            "Erro retornado pela API."
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Algumas versões da API retornam:
+    //
+    // {
+    //     sucesso: true,
+    //     dados: {
+    //         sucesso: false,
+    //         erro: "..."
+    //     }
+    // }
+    // --------------------------------------------------------
+
+    if (
+        resposta.dados &&
+        typeof resposta.dados === "object" &&
+        !Array.isArray(resposta.dados) &&
+        resposta.dados.sucesso === false
+    ) {
+
+        throw new Error(
+            resposta.dados.erro ||
+            resposta.dados.message ||
+            "Erro retornado pela API."
+        );
+
+    }
 
 }
 
@@ -103,40 +173,35 @@ async function requisicao(params = {}) {
 
 function extrairDados(resposta) {
 
-    /*
-     * Normaliza diferentes formatos
-     * possíveis retornados pela API.
-     *
-     * Formato 1:
-     *
-     * {
-     *   sucesso: true,
-     *   dados: [...]
-     * }
-     *
-     *
-     * Formato 2:
-     *
-     * {
-     *   sucesso: true,
-     *   dados: {
-     *      sucesso: true,
-     *      dados: [...]
-     *   }
-     * }
-     */
-
+    // --------------------------------------------------------
+    // Formato:
+    //
+    // {
+    //     sucesso: true,
+    //     dados: [...]
+    // }
+    // --------------------------------------------------------
 
     if (
-        Array.isArray(
-            resposta?.dados
-        )
+        Array.isArray(resposta?.dados)
     ) {
 
         return resposta.dados;
 
     }
 
+
+    // --------------------------------------------------------
+    // Formato:
+    //
+    // {
+    //     sucesso: true,
+    //     dados: {
+    //         sucesso: true,
+    //         dados: [...]
+    //     }
+    // }
+    // --------------------------------------------------------
 
     if (
         Array.isArray(
@@ -149,6 +214,10 @@ function extrairDados(resposta) {
     }
 
 
+    // --------------------------------------------------------
+    // Nenhum array encontrado
+    // --------------------------------------------------------
+
     return [];
 
 }
@@ -158,15 +227,9 @@ function extrairDados(resposta) {
 // LISTAR
 // ============================================================
 
-export async function listar(entity) {
+export async function listar(aba) {
 
-    if (!entity) {
-
-        throw new Error(
-            "CRUD: entidade não informada."
-        );
-
-    }
+    validarAba(aba);
 
 
     const resposta =
@@ -174,7 +237,7 @@ export async function listar(entity) {
 
             acao: "listar",
 
-            aba: entity
+            aba
 
         });
 
@@ -191,17 +254,11 @@ export async function listar(entity) {
 // ============================================================
 
 export async function obter(
-    entity,
+    aba,
     id
 ) {
 
-    if (!entity) {
-
-        throw new Error(
-            "CRUD: entidade não informada."
-        );
-
-    }
+    validarAba(aba);
 
 
     if (
@@ -211,7 +268,7 @@ export async function obter(
     ) {
 
         throw new Error(
-            "CRUD: ID não informado."
+            "CRUD Service: ID não informado."
         );
 
     }
@@ -222,20 +279,20 @@ export async function obter(
 
             acao: "obter",
 
-            aba: entity,
+            aba,
 
             id
 
         });
 
 
-    /*
-     * Normaliza:
-     *
-     * dados.dados
-     * dados
-     * resposta
-     */
+    // --------------------------------------------------------
+    // Normaliza:
+    //
+    // dados.dados
+    // dados
+    // resposta
+    // --------------------------------------------------------
 
     return (
         resposta?.dados?.dados ??
@@ -251,36 +308,20 @@ export async function obter(
 // ============================================================
 
 export async function salvar(
-    entity,
+    aba,
     dados
 ) {
 
-    if (!entity) {
+    validarAba(aba);
 
-        throw new Error(
-            "CRUD: entidade não informada."
-        );
-
-    }
-
-
-    if (
-        !dados ||
-        typeof dados !== "object"
-    ) {
-
-        throw new Error(
-            "CRUD: dados inválidos para salvar."
-        );
-
-    }
+    validarDados(dados);
 
 
     return requisicao({
 
         acao: "criar",
 
-        aba: entity,
+        aba,
 
         dados:
             JSON.stringify(dados)
@@ -293,23 +334,20 @@ export async function salvar(
 // ============================================================
 // CRIAR
 // ============================================================
-
-/*
- * Alias compatível com o nome antigo.
- *
- * Assim os dois formatos funcionam:
- *
- * criar(...)
- * salvar(...)
- */
+//
+// Alias.
+//
+// Mantemos "criar" para compatibilidade com
+// createCrud() e com partes antigas do Engine.
+// ============================================================
 
 export async function criar(
-    entity,
+    aba,
     dados
 ) {
 
     return salvar(
-        entity,
+        aba,
         dados
     );
 
@@ -321,29 +359,13 @@ export async function criar(
 // ============================================================
 
 export async function atualizar(
-    entity,
+    aba,
     dados
 ) {
 
-    if (!entity) {
+    validarAba(aba);
 
-        throw new Error(
-            "CRUD: entidade não informada."
-        );
-
-    }
-
-
-    if (
-        !dados ||
-        typeof dados !== "object"
-    ) {
-
-        throw new Error(
-            "CRUD: dados inválidos."
-        );
-
-    }
+    validarDados(dados);
 
 
     if (
@@ -351,7 +373,7 @@ export async function atualizar(
     ) {
 
         throw new Error(
-            "ID obrigatório para atualização."
+            "CRUD Service: ID obrigatório para atualização."
         );
 
     }
@@ -361,9 +383,10 @@ export async function atualizar(
 
         acao: "atualizar",
 
-        aba: entity,
+        aba,
 
-        id: dados.ID,
+        id:
+            dados.ID,
 
         dados:
             JSON.stringify(dados)
@@ -378,17 +401,11 @@ export async function atualizar(
 // ============================================================
 
 export async function excluir(
-    entity,
+    aba,
     id
 ) {
 
-    if (!entity) {
-
-        throw new Error(
-            "CRUD: entidade não informada."
-        );
-
-    }
+    validarAba(aba);
 
 
     if (
@@ -398,7 +415,7 @@ export async function excluir(
     ) {
 
         throw new Error(
-            "CRUD: ID não informado."
+            "CRUD Service: ID não informado para exclusão."
         );
 
     }
@@ -408,10 +425,47 @@ export async function excluir(
 
         acao: "excluir",
 
-        aba: entity,
+        aba,
 
         id
 
     });
+
+}
+
+
+// ============================================================
+// VALIDAÇÕES INTERNAS
+// ============================================================
+
+function validarAba(aba) {
+
+    if (
+        !aba ||
+        typeof aba !== "string"
+    ) {
+
+        throw new Error(
+            "CRUD Service: nome da entidade/aba não informado."
+        );
+
+    }
+
+}
+
+
+function validarDados(dados) {
+
+    if (
+        !dados ||
+        typeof dados !== "object" ||
+        Array.isArray(dados)
+    ) {
+
+        throw new Error(
+            "CRUD Service: dados inválidos."
+        );
+
+    }
 
 }
