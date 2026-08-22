@@ -335,115 +335,39 @@ export function createForm(config = {}) {
     // SET DATA
     // ============================================================
 
-    async function setData(dados = {}) {
+   async function setData(dados = {}) {
 
-        registroAtual =
-            dados || {};
-
-
-        modo =
-            dados &&
-            Object.keys(dados).length > 0
-                ? "edicao"
-                : "novo";
+    registroAtual =
+        dados || {};
 
 
-        if (!elemento) {
-
-            return;
-
-        }
-
-
-        // --------------------------------------------------------
-        // SELECTS RELACIONAIS
-        // --------------------------------------------------------
-
-        for (const campo of schema.fields) {
-
-            if (!deveExibirCampo(campo)) {
-
-                continue;
-
-            }
+    modo =
+        dados &&
+        Object.keys(dados).length
+            ? "edicao"
+            : "novo";
 
 
-            if (
-                campo.type !== "select" ||
-                !campo.source
-            ) {
-
-                continue;
-
-            }
-
-
-            const input =
-                obterInput(
-                    campo.name
-                );
-
-
-            if (!input) {
-
-                continue;
-
-            }
-
-
-            let valorAtual = "";
-
-
-            if (campo.idField) {
-
-                valorAtual =
-                    dados[
-                        campo.idField
-                    ] ?? "";
-
-            } else {
-
-                valorAtual =
-                    dados[
-                        campo.name
-                    ] ?? "";
-
-            }
-
-
-            await configurarCampoSelect(
-
-                campo,
-
-                input,
-
-                valorAtual
-
-            );
-
-        }
-
-
-        // --------------------------------------------------------
-        // DEMAIS VALORES
-        // --------------------------------------------------------
-
-        setFormData({
-
-            schema,
-
-            dados,
-
-            elemento,
-
-            gerarIdCampo
-
-        });
-
-
-        atualizarBotaoSalvar();
-
+    if (!elemento) {
+        return;
     }
+
+
+    await setFormData(
+        schema,
+        dados,
+        {
+            obterInput,
+            deveExibirCampo,
+            configurarCampoSelect,
+            formatarValor
+        }
+    );
+
+
+    atualizarBotaoSalvar();
+
+}
 
 
     // ============================================================
@@ -452,15 +376,13 @@ export function createForm(config = {}) {
 
     function getData() {
 
-        return getFormData({
-
-            schema,
-
-            elemento,
-
-            gerarIdCampo
-
-        });
+        return getFormData(
+    schema,
+    {
+        obterInput,
+        deveExibirCampo
+    }
+);
 
     }
 
@@ -479,15 +401,13 @@ export function createForm(config = {}) {
             "novo";
 
 
-        resetFormData({
-
-            schema,
-
-            elemento,
-
-            gerarIdCampo
-
-        });
+        resetFormData(
+    schema,
+    {
+        obterInput,
+        deveExibirCampo
+    }
+);
 
 
         atualizarBotaoSalvar();
