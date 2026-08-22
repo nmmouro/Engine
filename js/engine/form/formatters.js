@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * FORM FORMATTERS
+ * FORM / FORMATTERS
  * ============================================================
  */
 
@@ -13,7 +13,7 @@ export function formatarValor(
         campo.type === "date"
     ) {
 
-        return converterDataParaInput(
+        return converterData(
             valor
         );
 
@@ -24,18 +24,9 @@ export function formatarValor(
         campo.type === "datetime"
     ) {
 
-        return converterDataHoraParaInput(
+        return converterDataHora(
             valor
         );
-
-    }
-
-
-    if (
-        campo.type === "time"
-    ) {
-
-        return String(valor);
 
     }
 
@@ -45,13 +36,13 @@ export function formatarValor(
 }
 
 
-// ============================================================
-// DATA
-// ============================================================
+/**
+ * ============================================================
+ * DATA
+ * ============================================================
+ */
 
-export function converterDataParaInput(
-    valor
-) {
+export function converterData(valor) {
 
     if (!valor) {
 
@@ -102,11 +93,13 @@ export function converterDataParaInput(
 }
 
 
-// ============================================================
-// DATA/HORA
-// ============================================================
+/**
+ * ============================================================
+ * DATA / HORA
+ * ============================================================
+ */
 
-export function converterDataHoraParaInput(
+export function converterDataHora(
     valor
 ) {
 
@@ -132,61 +125,7 @@ export function converterDataHoraParaInput(
 
 
     return texto
-        .replace(
-            " ",
-            "T"
-        )
-        .substring(
-            0,
-            16
-        );
-
-}
-
-
-// ============================================================
-// HORA
-// ============================================================
-
-export function horaAtual() {
-
-    const agora =
-        new Date();
-
-
-    return (
-        String(
-            agora.getHours()
-        ).padStart(2, "0") +
-        ":" +
-        String(
-            agora.getMinutes()
-        ).padStart(2, "0")
-    );
-
-}
-
-
-// ============================================================
-// DATA ATUAL
-// ============================================================
-
-export function dataAtual() {
-
-    const agora =
-        new Date();
-
-
-    return (
-        agora.getFullYear() +
-        "-" +
-        String(
-            agora.getMonth() + 1
-        ).padStart(2, "0") +
-        "-" +
-        String(
-            agora.getDate()
-        ).padStart(2, "0")
-    );
+        .replace(" ", "T")
+        .substring(0, 16);
 
 }
