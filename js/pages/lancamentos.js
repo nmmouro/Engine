@@ -1,8 +1,11 @@
-import { createModule } from "../engine/module.js";
+/**
+ * ============================================================
+ * PÁGINA — LANÇAMENTOS
+ * ============================================================
+ */
 
-import {
-    SCHEMA_LANCAMENTOS
-} from "../schemas/lancamentos.js";
+import { createModule } from "../engine/module.js";
+import { SCHEMA_LANCAMENTOS } from "../schemas/lancamentos.js";
 
 
 createModule({
