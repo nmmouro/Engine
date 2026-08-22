@@ -1,46 +1,23 @@
 /**
  * ============================================================
- * FORM FIELD
- * ============================================================
- *
- * Criação dos campos do formulário.
+ * FORM / FIELD
  * ============================================================
  */
-
-import {
-    criarSelect
-} from "./select.js";
-
-import {
-    aplicarCaixaAlta
-} from "./uppercase.js";
-
 
 export async function criarCampo(config = {}) {
 
     const {
         campo,
-        schema,
         gerarIdCampo,
-        configurarCampoSelect
+        configurarCampoSelect,
+        listar,
+        aplicarCaixaAlta
     } = config;
 
 
     if (!campo) {
 
         return null;
-
-    }
-
-
-    if (
-        typeof gerarIdCampo !==
-        "function"
-    ) {
-
-        throw new Error(
-            "field.js: gerarIdCampo não foi fornecida."
-        );
 
     }
 
@@ -73,7 +50,9 @@ export async function criarCampo(config = {}) {
 
             campo,
 
-            gerarIdCampo
+            gerarIdCampo,
+
+            aplicarCaixaAlta
 
         });
 
@@ -91,15 +70,18 @@ export async function criarCampo(config = {}) {
 
     if (
         campo.type === "select" &&
-        campo.source &&
-        typeof configurarCampoSelect ===
-        "function"
+        campo.source
     ) {
 
-        await configurarCampoSelect(
-            campo,
-            input
-        );
+        await configurarCampoSelect({
+
+            field: campo,
+
+            input,
+
+            listar
+
+        });
 
     }
 
@@ -119,28 +101,19 @@ export async function criarCampo(config = {}) {
 }
 
 
-// ============================================================
-// CRIAR INPUT
-// ============================================================
+/**
+ * ============================================================
+ * CRIAR INPUT
+ * ============================================================
+ */
 
-export function criarInput(config = {}) {
+function criarInput(config = {}) {
 
     const {
         campo,
-        gerarIdCampo
+        gerarIdCampo,
+        aplicarCaixaAlta
     } = config;
-
-
-    if (
-        typeof gerarIdCampo !==
-        "function"
-    ) {
-
-        throw new Error(
-            "field.js: gerarIdCampo não foi fornecida."
-        );
-
-    }
 
 
     const id =
@@ -311,10 +284,6 @@ export function criarInput(config = {}) {
             : "form-control";
 
 
-    // ============================================================
-    // REQUIRED
-    // ============================================================
-
     if (campo.required) {
 
         input.required =
@@ -323,10 +292,6 @@ export function criarInput(config = {}) {
     }
 
 
-    // ============================================================
-    // READONLY
-    // ============================================================
-
     if (campo.readonly) {
 
         input.readOnly =
@@ -334,10 +299,6 @@ export function criarInput(config = {}) {
 
     }
 
-
-    // ============================================================
-    // PLACEHOLDER
-    // ============================================================
 
     if (campo.placeholder) {
 
@@ -348,58 +309,155 @@ export function criarInput(config = {}) {
 
 
     // ============================================================
-    // VALOR PADRÃO
+    // DEFAULT
     // ============================================================
 
     if (
-    campo.defaultValue !== undefined &&
-    campo.defaultValue !== null
-) {
-
-    let valorPadrao =
-        campo.defaultValue;
-
-
-    if (
-        typeof valorPadrao ===
-        "function"
+        campo.defaultValue !== undefined &&
+        campo.defaultValue !== null
     ) {
 
-        valorPadrao =
-            valorPadrao();
+        if (
+            campo.type === "checkbox"
+        ) {
+
+            input.checked =
+                Boolean(
+                    campo.defaultValue
+                );
+
+        } else {
+
+            input.value =
+                campo.defaultValue;
+
+        }
 
     }
-
-
-    if (
-        campo.type === "checkbox"
-    ) {
-
-        input.checked =
-            Boolean(
-                valorPadrao
-            );
-
-    } else {
-
-        input.value =
-            valorPadrao;
-
-    }
-
-}
 
 
     // ============================================================
     // CAIXA ALTA
     // ============================================================
 
-    aplicarCaixaAlta(
-        input,
-        campo
-    );
+    if (
+        typeof aplicarCaixaAlta ===
+        "function"
+    ) {
+
+        aplicarCaixaAlta(
+            input,
+            campo
+        );
+
+    }
 
 
     return input;
+
+}
+
+
+/**
+ * ============================================================
+ * SELECT
+ * ============================================================
+ */
+
+function criarSelect(campo) {
+
+    const select =
+        document.createElement(
+            "select"
+        );
+
+
+    select.className =
+        "form-control";
+
+
+    const vazio =
+        document.createElement(
+            "option"
+        );
+
+
+    vazio.value =
+        "";
+
+
+    vazio.textContent =
+        campo.placeholder ||
+        "Selecione...";
+
+
+    select.appendChild(
+        vazio
+    );
+
+
+    const options =
+        Array.isArray(
+            campo.options
+        )
+            ? campo.options
+            : [];
+
+
+    options.forEach(
+        opcao => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            if (
+                typeof opcao ===
+                    "object" &&
+                opcao !== null
+            ) {
+
+                option.value =
+                    opcao.value ?? "";
+
+
+                option.textContent =
+                    opcao.label ??
+                    opcao.value ??
+                    "";
+
+
+                option.dataset.label =
+                    opcao.label ??
+                    opcao.value ??
+                    "";
+
+            } else {
+
+                option.value =
+                    String(opcao);
+
+
+                option.textContent =
+                    String(opcao);
+
+
+                option.dataset.label =
+                    String(opcao);
+
+            }
+
+
+            select.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    return select;
 
 }
