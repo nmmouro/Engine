@@ -2,119 +2,179 @@
  * ============================================================
  * FORM VALIDATION
  * ============================================================
- *
- * Responsável por:
- * - Validar campos obrigatórios
- * - Exibir mensagens de erro
- * - Focar o campo com problema
- *
- * Não conhece nenhuma entidade específica.
- * ============================================================
  */
 
+export function validarFormulario(
+    config = {}
+) {
 
-/**
- * ============================================================
- * VALIDAR FORMULÁRIO
- * ============================================================
- *
- * @param {Object} params
- * @param {Object} params.schema
- * @param {Object} params.dados
- * @param {Function} params.deveExibirCampo
- * @param {Function} params.obterInput
- *
- * @returns {Boolean}
- */
-/**
- * ============================================================
- * FORM VALIDATION
- * ============================================================
- */
+    const {
+        schema,
+        dados,
+        obterInput
+    } = config;
 
-export function validarFormulario({
-    schema,
-    dados,
-    deveExibirCampo,
-    obterInput
-}) {
 
-    if (!schema) {
-        return false;
-    }
+    for (
+        const campo of schema.fields
+    ) {
 
-    for (const campo of schema.fields) {
-
-        // --------------------------------------------------------
-        // Ignora campos que não aparecem no formulário
-        // --------------------------------------------------------
+        // ========================================================
+        // CAMPO OCULTO
+        // ========================================================
 
         if (
-            typeof deveExibirCampo === "function" &&
-            !deveExibirCampo(campo)
+            campo.hidden === true ||
+            campo.visible === false
         ) {
+
             continue;
+
         }
 
-        // --------------------------------------------------------
-        // Campo não obrigatório
-        // --------------------------------------------------------
+
+        const nome =
+            campo.name || "";
+
+
+        if (
+            nome === "ID" ||
+            nome.startsWith("ID ")
+        ) {
+
+            continue;
+
+        }
+
+
+        // ========================================================
+        // NÃO OBRIGATÓRIO
+        // ========================================================
 
         if (!campo.required) {
+
             continue;
+
         }
 
-        const valor =
-            dados?.[campo.name];
 
-        // --------------------------------------------------------
-        // Verifica vazio
-        // --------------------------------------------------------
+        // ========================================================
+        // SELECT RELACIONAL
+        // ========================================================
 
         if (
-            valor === undefined ||
-            valor === null ||
-            String(valor).trim() === ""
+            campo.type === "select" &&
+            campo.source &&
+            campo.idField
         ) {
 
-            const mensagem =
-                `O campo "${campo.label || campo.name}" é obrigatório.`;
+            const id =
+                dados[
+                    campo.idField
+                ];
 
-            console.error(
-                "Form:",
-                mensagem
-            );
 
-            alert(mensagem);
+            if (
+                !valorValido(id)
+            ) {
 
-            // ----------------------------------------------------
-            // Coloca foco no campo
-            // ----------------------------------------------------
+                return mostrarErroCampo({
 
-            if (typeof obterInput === "function") {
+                    campo,
 
-                const input =
-                    obterInput(campo.name);
+                    obterInput
 
-                if (input) {
-                    input.focus();
-                }
+                });
+
             }
 
-            return false;
+
+            continue;
+
         }
+
+
+        // ========================================================
+        // CAMPO NORMAL
+        // ========================================================
+
+        const valor =
+            dados[
+                campo.name
+            ];
+
+
+        if (
+            !valorValido(valor)
+        ) {
+
+            return mostrarErroCampo({
+
+                campo,
+
+                obterInput
+
+            });
+
+        }
+
     }
 
+
     return true;
+
 }
 
 
-/**
- * ============================================================
- * MOSTRAR ERRO
- * ============================================================
- */
-export function mostrarErro(mensagem) {
+// ============================================================
+// VALOR VÁLIDO
+// ============================================================
+
+function valorValido(valor) {
+
+    if (
+        valor === undefined ||
+        valor === null
+    ) {
+
+        return false;
+
+    }
+
+
+    if (
+        typeof valor === "boolean"
+    ) {
+
+        return true;
+
+    }
+
+
+    return (
+        String(valor).trim() !== ""
+    );
+
+}
+
+
+// ============================================================
+// MOSTRAR ERRO
+// ============================================================
+
+function mostrarErroCampo(
+    config
+) {
+
+    const {
+        campo,
+        obterInput
+    } = config;
+
+
+    const mensagem =
+        `O campo "${campo.label || campo.name}" é obrigatório.`;
+
 
     console.error(
         "Form:",
@@ -122,8 +182,31 @@ export function mostrarErro(mensagem) {
     );
 
 
-    window.alert(
+    alert(
         mensagem
     );
+
+
+    if (
+        typeof obterInput ===
+        "function"
+    ) {
+
+        const input =
+            obterInput(
+                campo.name
+            );
+
+
+        if (input) {
+
+            input.focus();
+
+        }
+
+    }
+
+
+    return false;
 
 }
