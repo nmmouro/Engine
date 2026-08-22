@@ -94,3 +94,61 @@ export function converterDataHoraParaInput(valor) {
         .replace(" ", "T")
         .substring(0, 16);
 }
+
+/**
+ * ============================================================
+ * DATA E HORA ATUAIS
+ * ============================================================
+ */
+
+/**
+ * Retorna a data atual no formato:
+ *
+ * yyyy-mm-dd
+ *
+ * Compatível com input type="date".
+ */
+export function dataAtualInput() {
+
+    const agora = new Date();
+
+    const ano =
+        agora.getFullYear();
+
+    const mes =
+        String(
+            agora.getMonth() + 1
+        ).padStart(2, "0");
+
+    const dia =
+        String(
+            agora.getDate()
+        ).padStart(2, "0");
+
+    return `${ano}-${mes}-${dia}`;
+}
+
+
+/**
+ * Retorna a hora atual no formato:
+ *
+ * HH:mm
+ *
+ * Compatível com input type="time".
+ */
+export function horaAtualInput() {
+
+    const agora = new Date();
+
+    const hora =
+        String(
+            agora.getHours()
+        ).padStart(2, "0");
+
+    const minuto =
+        String(
+            agora.getMinutes()
+        ).padStart(2, "0");
+
+    return `${hora}:${minuto}`;
+}
