@@ -407,16 +407,19 @@ form.addEventListener(
     }
 
 
-    await setFormData(
-        schema,
-        dados,
-        {
-            obterInput,
-            deveExibirCampo,
-            configurarCampoSelect,
-            formatarValor
-        }
-    );
+    setFormData({
+
+    schema,
+
+    dados,
+
+    obterInput,
+
+    deveExibirCampo,
+
+    formatarValor
+
+});
 
 
     atualizarBotaoSalvar();
@@ -430,15 +433,17 @@ form.addEventListener(
 
     function getData() {
 
-        return getFormData(
-    schema,
-    {
-        obterInput,
-        deveExibirCampo
-    }
-);
+    return getFormData({
 
-    }
+        schema,
+
+        obterInput,
+
+        deveExibirCampo
+
+    });
+
+}
 
 
     // ============================================================
@@ -456,11 +461,13 @@ function reset() {
     // LIMPA OS CAMPOS
     // ========================================================
 
-    resetFormData({
+     resetFormData({
 
         schema,
 
-        obterInput
+        obterInput,
+
+        deveExibirCampo
 
     });
 
