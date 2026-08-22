@@ -1,26 +1,8 @@
 /**
  * ============================================================
- * FORM UPPERCASE
- * ============================================================
- *
- * Converte campos de texto para CAIXA ALTA.
+ * FORM / UPPERCASE
  * ============================================================
  */
-
-const TIPOS_TEXTO = [
-
-    "text",
-
-    "textarea",
-
-    "email"
-
-];
-
-
-// ============================================================
-// APLICAR CAIXA ALTA
-// ============================================================
 
 export function aplicarCaixaAlta(
     input,
@@ -37,8 +19,15 @@ export function aplicarCaixaAlta(
     }
 
 
+    const tiposTexto = [
+        "text",
+        "textarea",
+        "email"
+    ];
+
+
     if (
-        !TIPOS_TEXTO.includes(
+        !tiposTexto.includes(
             campo.type
         )
     ) {
@@ -73,41 +62,13 @@ export function aplicarCaixaAlta(
                     fim
                 );
 
-            } catch {
+            } catch (erro) {
 
-                // Alguns elementos não
-                // suportam seleção.
+                // Elemento não suporta seleção.
 
             }
 
         }
-    );
-
-}
-
-
-// ============================================================
-// CONVERTER VALOR
-// ============================================================
-
-export function converterParaCaixaAlta(
-    valor
-) {
-
-    if (
-        valor === null ||
-        valor === undefined
-    ) {
-
-        return valor;
-
-    }
-
-
-    return String(
-        valor
-    ).toLocaleUpperCase(
-        "pt-BR"
     );
 
 }
