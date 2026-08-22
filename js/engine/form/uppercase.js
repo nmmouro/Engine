@@ -1,51 +1,49 @@
-export function aplicarCaixaAlta(
-    input,
-    campo
-) {
+/**
+ * ============================================================
+ * FORM - UPPERCASE
+ * ============================================================
+ */
+
+export function aplicarCaixaAlta(input, campo) {
 
     if (!input || !campo) {
         return;
     }
 
-    const tipos =
-        [
-            "text",
-            "textarea",
-            "email"
-        ];
+    const tiposTexto = [
+        "text",
+        "textarea",
+        "email"
+    ];
 
-    if (!tipos.includes(campo.type)) {
+    if (!tiposTexto.includes(campo.type)) {
         return;
     }
 
-    input.addEventListener(
-        "input",
-        () => {
+    input.addEventListener("input", () => {
 
-            const inicio =
-                input.selectionStart;
+        const inicio =
+            input.selectionStart;
 
-            const fim =
-                input.selectionEnd;
+        const fim =
+            input.selectionEnd;
 
-            input.value =
-                input.value.toLocaleUpperCase(
-                    "pt-BR"
-                );
+        input.value =
+            input.value.toLocaleUpperCase("pt-BR");
 
-            try {
+        try {
 
-                input.setSelectionRange(
-                    inicio,
-                    fim
-                );
+            input.setSelectionRange(
+                inicio,
+                fim
+            );
 
-            } catch (erro) {
+        } catch (erro) {
 
-                // Alguns elementos
-                // não suportam seleção.
+            // Alguns elementos não suportam
+            // controle de seleção.
 
-            }
         }
-    );
+
+    });
 }
