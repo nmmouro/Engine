@@ -352,29 +352,42 @@ export function criarInput(config = {}) {
     // ============================================================
 
     if (
-        campo.defaultValue !==
-        undefined &&
-        campo.defaultValue !==
-        null
+    campo.defaultValue !== undefined &&
+    campo.defaultValue !== null
+) {
+
+    let valorPadrao =
+        campo.defaultValue;
+
+
+    if (
+        typeof valorPadrao ===
+        "function"
     ) {
 
-        if (
-            campo.type === "checkbox"
-        ) {
-
-            input.checked =
-                Boolean(
-                    campo.defaultValue
-                );
-
-        } else {
-
-            input.value =
-                campo.defaultValue;
-
-        }
+        valorPadrao =
+            valorPadrao();
 
     }
+
+
+    if (
+        campo.type === "checkbox"
+    ) {
+
+        input.checked =
+            Boolean(
+                valorPadrao
+            );
+
+    } else {
+
+        input.value =
+            valorPadrao;
+
+    }
+
+}
 
 
     // ============================================================
