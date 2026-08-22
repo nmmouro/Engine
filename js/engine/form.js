@@ -41,7 +41,7 @@ import {
 } from "./form/values.js";
 
 import {
-    validar as validarDados
+    validarFormulario
 } from "./form/validation.js";
 
 import {
@@ -242,37 +242,12 @@ form.addEventListener(
 
         evento.preventDefault();
 
-
-        // --------------------------------------------------------
-        // Lê os dados do formulário
-        // --------------------------------------------------------
-
         const dados =
-            getFormData(
-                schema,
-                {
-                    obterInput,
-                    deveExibirCampo
-                }
-            );
+            getData();
 
-
-        // --------------------------------------------------------
-        // Validação
-        // --------------------------------------------------------
-
-        if (
-            !validar(dados)
-        ) {
-
+        if (!validar(dados)) {
             return;
-
         }
-
-
-        // --------------------------------------------------------
-        // Envia para o Engine
-        // --------------------------------------------------------
 
         if (
             typeof onSubmit ===
@@ -283,12 +258,10 @@ form.addEventListener(
                 dados,
                 registroAtual
             );
-
         }
 
     }
 );
-
 
         // ========================================================
         // CANCELAR
@@ -415,25 +388,25 @@ form.addEventListener(
     }
 
 
-    // ============================================================
-    // VALIDAÇÃO
-    // ============================================================
+   // ============================================================
+// VALIDAÇÃO
+// ============================================================
 
-    function validar(dados) {
+function validar(dados) {
 
-        return validarDados(
+    return validarFormulario({
 
-            schema,
+        schema,
 
-            dados,
+        dados,
 
-            elemento,
+        deveExibirCampo,
 
-            gerarIdCampo
+        obterInput
 
-        });
+    });
 
-    }
+}
 
 
     // ============================================================
