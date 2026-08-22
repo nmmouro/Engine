@@ -1,20 +1,16 @@
 /**
  * ============================================================
- * FORM - FIELD
+ * FORM FIELD
+ * ============================================================
+ *
+ * Responsável por:
+ * - Criar campos
+ * - Criar inputs
+ * - Criar selects
+ *
+ * Não conhece nenhuma entidade específica.
  * ============================================================
  */
-
-import {
-    configurarCampoSelect
-} from "./select.js";
-
-import {
-    aplicarCaixaAlta
-} from "./uppercase.js";
-
-import {
-    deveExibirCampo
-} from "./visibility.js";
 
 
 /**
@@ -22,17 +18,32 @@ import {
  * CRIAR CAMPO
  * ============================================================
  */
-export async function criarCampo(
+export async function criarCampo({
     campo,
-    gerarIdCampo
-) {
+    gerarIdCampo,
+    configurarCampoSelect,
+    aplicarCaixaAlta
+}) {
 
-    if (
-        !deveExibirCampo(campo)
-    ) {
+    if (!campo) {
         return null;
     }
 
+
+    if (
+        typeof gerarIdCampo !== "function"
+    ) {
+
+        throw new Error(
+            "field.js: gerarIdCampo não foi fornecida."
+        );
+
+    }
+
+
+    // ============================================================
+    // CONTAINER DO CAMPO
+    // ============================================================
 
     const grupo =
         document.createElement("div");
@@ -41,24 +52,36 @@ export async function criarCampo(
         "form-group";
 
 
+    // ============================================================
+    // LABEL
+    // ============================================================
+
     const label =
         document.createElement("label");
+
 
     label.htmlFor =
         gerarIdCampo(
             campo.name
         );
 
+
     label.textContent =
         campo.label ||
         campo.name;
 
 
+    // ============================================================
+    // INPUT
+    // ============================================================
+
     const input =
-        criarInput(
+        criarInput({
             campo,
-            gerarIdCampo
-        );
+            gerarIdCampo,
+            aplicarCaixaAlta
+        });
+
 
     if (!input) {
         return null;
@@ -74,16 +97,29 @@ export async function criarCampo(
         campo.source
     ) {
 
-        await configurarCampoSelect(
-            campo,
-            input
-        );
+        if (
+            typeof configurarCampoSelect ===
+            "function"
+        ) {
+
+            await configurarCampoSelect(
+                campo,
+                input
+            );
+
+        }
+
     }
 
+
+    // ============================================================
+    // MONTAGEM
+    // ============================================================
 
     grupo.appendChild(
         label
     );
+
 
     grupo.appendChild(
         input
@@ -91,6 +127,7 @@ export async function criarCampo(
 
 
     return grupo;
+
 }
 
 
@@ -99,18 +136,29 @@ export async function criarCampo(
  * CRIAR INPUT
  * ============================================================
  */
-export function criarInput(
+export function criarInput({
     campo,
-    gerarIdCampo
-) {
+    gerarIdCampo,
+    aplicarCaixaAlta
+}) {
+
+    if (!campo) {
+        return null;
+    }
+
 
     const id =
         gerarIdCampo(
             campo.name
         );
 
+
     let input;
 
+
+    // ============================================================
+    // TIPO DO CAMPO
+    // ============================================================
 
     switch (campo.type) {
 
@@ -205,7 +253,9 @@ export function criarInput(
         case "select":
 
             input =
-                criarSelect(campo);
+                criarSelect(
+                    campo
+                );
 
             break;
 
@@ -245,11 +295,19 @@ export function criarInput(
 
             input.type =
                 "text";
+
+            break;
+
     }
 
 
+    // ============================================================
+    // ATRIBUTOS
+    // ============================================================
+
     input.id =
         id;
+
 
     input.name =
         campo.name;
@@ -262,20 +320,38 @@ export function criarInput(
 
 
     // ============================================================
-    // PROPRIEDADES
+    // REQUIRED
     // ============================================================
 
     if (campo.required) {
-        input.required = true;
+
+        input.required =
+            true;
+
     }
+
+
+    // ============================================================
+    // READONLY
+    // ============================================================
 
     if (campo.readonly) {
-        input.readOnly = true;
+
+        input.readOnly =
+            true;
+
     }
 
+
+    // ============================================================
+    // PLACEHOLDER
+    // ============================================================
+
     if (campo.placeholder) {
+
         input.placeholder =
             campo.placeholder;
+
     }
 
 
@@ -301,7 +377,9 @@ export function criarInput(
 
             input.value =
                 campo.defaultValue;
+
         }
+
     }
 
 
@@ -309,27 +387,36 @@ export function criarInput(
     // CAIXA ALTA
     // ============================================================
 
-    aplicarCaixaAlta(
-        input,
-        campo
-    );
+    if (
+        typeof aplicarCaixaAlta ===
+        "function"
+    ) {
+
+        aplicarCaixaAlta(
+            input,
+            campo
+        );
+
+    }
 
 
     return input;
+
 }
 
 
 /**
  * ============================================================
- * SELECT
+ * CRIAR SELECT
  * ============================================================
  */
-function criarSelect(campo) {
+export function criarSelect(campo) {
 
     const select =
         document.createElement(
             "select"
         );
+
 
     select.className =
         "form-control";
@@ -340,15 +427,19 @@ function criarSelect(campo) {
             "option"
         );
 
+
     vazio.value =
         "";
+
 
     vazio.textContent =
         campo.placeholder ||
         "Selecione...";
 
+
     vazio.selected =
         true;
+
 
     select.appendChild(
         vazio
@@ -356,7 +447,9 @@ function criarSelect(campo) {
 
 
     const options =
-        Array.isArray(campo.options)
+        Array.isArray(
+            campo.options
+        )
             ? campo.options
             : [];
 
@@ -377,6 +470,7 @@ function criarSelect(campo) {
             option.value =
                 opcao.value ?? "";
 
+
             option.textContent =
                 opcao.label ??
                 opcao.value ??
@@ -387,8 +481,10 @@ function criarSelect(campo) {
             option.value =
                 String(opcao);
 
+
             option.textContent =
                 String(opcao);
+
         }
 
 
@@ -399,8 +495,10 @@ function criarSelect(campo) {
         select.appendChild(
             option
         );
+
     });
 
 
     return select;
+
 }
