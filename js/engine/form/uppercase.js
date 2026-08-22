@@ -1,49 +1,113 @@
 /**
  * ============================================================
- * FORM - UPPERCASE
+ * FORM UPPERCASE
+ * ============================================================
+ *
+ * Converte campos de texto para CAIXA ALTA.
  * ============================================================
  */
 
-export function aplicarCaixaAlta(input, campo) {
+const TIPOS_TEXTO = [
 
-    if (!input || !campo) {
+    "text",
+
+    "textarea",
+
+    "email"
+
+];
+
+
+// ============================================================
+// APLICAR CAIXA ALTA
+// ============================================================
+
+export function aplicarCaixaAlta(
+    input,
+    campo
+) {
+
+    if (
+        !input ||
+        !campo
+    ) {
+
         return;
+
     }
 
-    const tiposTexto = [
-        "text",
-        "textarea",
-        "email"
-    ];
 
-    if (!tiposTexto.includes(campo.type)) {
+    if (
+        !TIPOS_TEXTO.includes(
+            campo.type
+        )
+    ) {
+
         return;
+
     }
 
-    input.addEventListener("input", () => {
 
-        const inicio =
-            input.selectionStart;
+    input.addEventListener(
+        "input",
+        () => {
 
-        const fim =
-            input.selectionEnd;
+            const inicio =
+                input.selectionStart;
 
-        input.value =
-            input.value.toLocaleUpperCase("pt-BR");
 
-        try {
+            const fim =
+                input.selectionEnd;
 
-            input.setSelectionRange(
-                inicio,
-                fim
-            );
 
-        } catch (erro) {
+            input.value =
+                input.value.toLocaleUpperCase(
+                    "pt-BR"
+                );
 
-            // Alguns elementos não suportam
-            // controle de seleção.
+
+            try {
+
+                input.setSelectionRange(
+                    inicio,
+                    fim
+                );
+
+            } catch {
+
+                // Alguns elementos não
+                // suportam seleção.
+
+            }
 
         }
+    );
 
-    });
+}
+
+
+// ============================================================
+// CONVERTER VALOR
+// ============================================================
+
+export function converterParaCaixaAlta(
+    valor
+) {
+
+    if (
+        valor === null ||
+        valor === undefined
+    ) {
+
+        return valor;
+
+    }
+
+
+    return String(
+        valor
+    ).toLocaleUpperCase(
+        "pt-BR"
+    );
+
 }
