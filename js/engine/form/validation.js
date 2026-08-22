@@ -1,51 +1,26 @@
 /**
  * ============================================================
- * FORM — VALIDATION
- * ============================================================
- *
- * Responsável pelas validações dos campos do formulário.
+ * FORM / VALIDATION
  * ============================================================
  */
 
+export function validar(config = {}) {
 
-/**
- * ============================================================
- * VALIDAR FORMULÁRIO
- * ============================================================
- */
-
-export function validar({
-    schema,
-    dados,
-    obterInput,
-    deveExibirCampo,
-    mostrarErro
-}) {
-
-    if (!schema) {
-
-        throw new Error(
-            "validation.js: schema não informado."
-        );
-
-    }
-
-
-    if (!dados) {
-
-        return false;
-
-    }
+    const {
+        schema,
+        dados,
+        obterInput,
+        deveExibirCampo
+    } = config;
 
 
     for (const campo of schema.fields) {
 
-        // --------------------------------------------------------
-        // Campo não visível
-        // --------------------------------------------------------
+        // ========================================================
+        // CAMPO OCULTO
+        // ========================================================
 
         if (
-            typeof deveExibirCampo === "function" &&
             !deveExibirCampo(campo)
         ) {
 
@@ -54,9 +29,9 @@ export function validar({
         }
 
 
-        // --------------------------------------------------------
-        // Campo não obrigatório
-        // --------------------------------------------------------
+        // ========================================================
+        // NÃO OBRIGATÓRIO
+        // ========================================================
 
         if (!campo.required) {
 
@@ -65,9 +40,9 @@ export function validar({
         }
 
 
-        // --------------------------------------------------------
-        // Select relacional
-        // --------------------------------------------------------
+        // ========================================================
+        // SELECT RELACIONAL
+        // ========================================================
 
         if (
             campo.type === "select" &&
@@ -75,32 +50,26 @@ export function validar({
             campo.idField
         ) {
 
-            const valor =
+            const id =
                 dados[campo.idField];
 
 
             if (
-                valor === undefined ||
-                valor === null ||
-                String(valor).trim() === ""
+                id === undefined ||
+                id === null ||
+                String(id).trim() === ""
             ) {
 
-                const mensagem =
-                    `O campo "${campo.label || campo.name}" é obrigatório.`;
-
-                if (
-                    typeof mostrarErro === "function"
-                ) {
-
-                    mostrarErro(mensagem);
-
-                }
+                mostrarErro(
+                    campo
+                );
 
 
                 focarCampo(
-                    campo.name,
+                    campo,
                     obterInput
                 );
+
 
                 return false;
 
@@ -112,9 +81,9 @@ export function validar({
         }
 
 
-        // --------------------------------------------------------
-        // Campo normal
-        // --------------------------------------------------------
+        // ========================================================
+        // CAMPO NORMAL
+        // ========================================================
 
         const valor =
             dados[campo.name];
@@ -126,22 +95,16 @@ export function validar({
             String(valor).trim() === ""
         ) {
 
-            const mensagem =
-                `O campo "${campo.label || campo.name}" é obrigatório.`;
-
-            if (
-                typeof mostrarErro === "function"
-            ) {
-
-                mostrarErro(mensagem);
-
-            }
+            mostrarErro(
+                campo
+            );
 
 
             focarCampo(
-                campo.name,
+                campo,
                 obterInput
             );
+
 
             return false;
 
@@ -157,26 +120,44 @@ export function validar({
 
 /**
  * ============================================================
+ * MOSTRAR ERRO
+ * ============================================================
+ */
+
+function mostrarErro(campo) {
+
+    const mensagem =
+        `O campo "${campo.label || campo.name}" é obrigatório.`;
+
+
+    console.error(
+        "Form:",
+        mensagem
+    );
+
+
+    alert(
+        mensagem
+    );
+
+}
+
+
+/**
+ * ============================================================
  * FOCAR CAMPO
  * ============================================================
  */
 
 function focarCampo(
-    nome,
+    campo,
     obterInput
 ) {
 
-    if (
-        typeof obterInput !== "function"
-    ) {
-
-        return;
-
-    }
-
-
     const input =
-        obterInput(nome);
+        obterInput(
+            campo.name
+        );
 
 
     if (input) {
