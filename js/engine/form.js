@@ -37,7 +37,7 @@ import {
 import {
     getFormData,
     setFormData,
-    resetForm
+    resetFormData
 } from "./form/values.js";
 
 import {
