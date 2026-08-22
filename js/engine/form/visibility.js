@@ -1,12 +1,10 @@
 /**
  * ============================================================
- * FORM VISIBILITY
+ * FORM / VISIBILITY
  * ============================================================
  */
 
-export function deveExibirCampo(
-    campo
-) {
+export function deveExibirCampo(campo) {
 
     if (!campo) {
 
