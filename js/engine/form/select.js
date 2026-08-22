@@ -1,76 +1,76 @@
+/**
+ * ============================================================
+ * FORM - SELECT
+ * ============================================================
+ */
+
 import {
     listar
 } from "../../services/crudService.js";
 
-export async function configurarSelect(
-    campo,
-    select,
-    valorAtual = ""
-) {
 
-    if (!campo.source) {
+/**
+ * ============================================================
+ * CARREGAR OPÇÕES RELACIONADAS
+ * ============================================================
+ */
+export async function carregarOpcoesRelacionadas(field) {
 
-        preencherSelect(
-            select,
-            campo.options || [],
-            valorAtual
-        );
-
-        return;
+    if (!field.source) {
+        return [];
     }
 
-    select.disabled = true;
-
-    try {
-
-        const registros =
-            await listar(
-                campo.source
-            );
-
-        const opcoes =
-            registros.map(
-                registro => {
-
-                    const value =
-                        registro[
-                            campo.valueField ||
-                            "ID"
-                        ] ?? "";
-
-                    const label =
-                        (
-                            campo.labelFields ||
-                            [campo.valueField || "ID"]
-                        )
-                            .map(
-                                nome =>
-                                    registro[nome] ?? ""
-                            )
-                            .join(
-                                campo.separator ||
-                                " / "
-                            );
-
-                    return {
-                        value,
-                        label
-                    };
-                }
-            );
-
-        preencherSelect(
-            select,
-            opcoes,
-            valorAtual
+    const registros =
+        await listar(
+            field.source
         );
 
-    } finally {
+    if (!Array.isArray(registros)) {
 
-        select.disabled = false;
+        console.warn(
+            `Nenhum registro encontrado para ${field.source}`
+        );
+
+        return [];
     }
+
+    const valueField =
+        field.valueField || "ID";
+
+    const labelFields =
+        field.labelFields || [
+            valueField
+        ];
+
+    const separator =
+        field.separator ?? " / ";
+
+
+    return registros.map(registro => {
+
+        const value =
+            registro[valueField] ?? "";
+
+        const label =
+            labelFields
+                .map(nome =>
+                    registro[nome] ?? ""
+                )
+                .join(separator);
+
+        return {
+            value,
+            label
+        };
+    });
 }
 
+
+/**
+ * ============================================================
+ * PREENCHER SELECT
+ * ============================================================
+ */
 export function preencherSelect(
     select,
     opcoes,
@@ -79,14 +79,19 @@ export function preencherSelect(
 
     select.innerHTML = "";
 
-    const inicial =
+    const opcaoInicial =
         document.createElement("option");
 
-    inicial.value = "";
-    inicial.textContent =
+    opcaoInicial.value =
+        "";
+
+    opcaoInicial.textContent =
         "Selecione...";
 
-    select.appendChild(inicial);
+    select.appendChild(
+        opcaoInicial
+    );
+
 
     opcoes.forEach(opcao => {
 
@@ -94,55 +99,150 @@ export function preencherSelect(
             document.createElement("option");
 
         option.value =
-            typeof opcao === "object"
-                ? opcao.value
-                : opcao;
+            opcao.value ?? "";
 
         option.textContent =
-            typeof opcao === "object"
-                ? opcao.label
-                : opcao;
+            opcao.label ?? "";
 
         option.dataset.label =
-            option.textContent;
+            opcao.label ?? "";
+
 
         if (
-            String(option.value) ===
+            String(opcao.value) ===
             String(valorAtual)
         ) {
-            option.selected = true;
+
+            option.selected =
+                true;
         }
 
-        select.appendChild(option);
+        select.appendChild(
+            option
+        );
     });
 }
 
-export function criarSelect(
-    campo
+
+/**
+ * ============================================================
+ * CONFIGURAR SELECT
+ * ============================================================
+ */
+export async function configurarCampoSelect(
+    field,
+    input,
+    valorAtual = ""
 ) {
 
-    const select =
-        document.createElement(
-            "select"
-        );
+    // ============================================================
+    // SELECT NORMAL
+    // ============================================================
 
-    select.className =
-        "form-control";
+    if (!field.source) {
 
-    if (campo.source) {
+        const opcoes =
+            (field.options || [])
+                .map(valor => {
 
-        configurarSelect(
-            campo,
-            select
-        );
+                    if (
+                        typeof valor === "object" &&
+                        valor !== null
+                    ) {
 
-    } else {
+                        return {
+                            value:
+                                valor.value ?? "",
+
+                            label:
+                                valor.label ??
+                                valor.value ??
+                                ""
+                        };
+                    }
+
+                    return {
+                        value:
+                            String(valor),
+
+                        label:
+                            String(valor)
+                    };
+                });
 
         preencherSelect(
-            select,
-            campo.options || []
+            input,
+            opcoes,
+            valorAtual
         );
+
+        return;
     }
 
-    return select;
+
+    // ============================================================
+    // SELECT RELACIONAL
+    // ============================================================
+
+    input.disabled =
+        true;
+
+    input.innerHTML =
+        "";
+
+    const carregando =
+        document.createElement("option");
+
+    carregando.value =
+        "";
+
+    carregando.textContent =
+        "Carregando...";
+
+    input.appendChild(
+        carregando
+    );
+
+
+    try {
+
+        const opcoes =
+            await carregarOpcoesRelacionadas(
+                field
+            );
+
+        preencherSelect(
+            input,
+            opcoes,
+            valorAtual
+        );
+
+    } catch (erro) {
+
+        console.error(
+            `Erro ao carregar ${field.source}:`,
+            erro
+        );
+
+        input.innerHTML =
+            "";
+
+        const erroOption =
+            document.createElement("option");
+
+        erroOption.value =
+            "";
+
+        erroOption.textContent =
+            "Erro ao carregar opções";
+
+        input.appendChild(
+            erroOption
+        );
+
+    } finally {
+
+        input.disabled =
+            false;
+    }
 }
