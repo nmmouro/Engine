@@ -41,7 +41,7 @@ import {
 } from "./form/values.js";
 
 import {
-    validar
+    validar as validarDados
 } from "./form/validation.js";
 
 import {
