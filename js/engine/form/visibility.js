@@ -1,13 +1,24 @@
+/**
+ * ============================================================
+ * FORM - VISIBILITY
+ * ============================================================
+ *
+ * Controla a visibilidade dos campos do formulário.
+ * ============================================================
+ */
+
 export function deveExibirCampo(campo) {
 
     if (!campo) {
         return false;
     }
 
-    const nome =
-        String(campo.name || "");
+    const nome = campo.name || "";
 
-    // Campos técnicos
+    // ============================================================
+    // CAMPOS TÉCNICOS
+    // ============================================================
+
     if (
         nome === "ID" ||
         nome.startsWith("ID ")
@@ -15,7 +26,10 @@ export function deveExibirCampo(campo) {
         return false;
     }
 
-    // Campos explicitamente ocultos
+    // ============================================================
+    // CAMPOS OCULTOS
+    // ============================================================
+
     if (
         campo.hidden === true ||
         campo.visible === false
