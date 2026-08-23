@@ -82,7 +82,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         );
 
         }
-    }
+    },
 
 
         // ========================================================
