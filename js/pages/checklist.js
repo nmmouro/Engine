@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * PÁGINA — CHECKLIST
@@ -149,4 +148,4 @@ if (checklist?.state) {
 
 window.contextoChecklist =
     contextoChecklist;
-```
+
