@@ -295,9 +295,10 @@ export function createEngine(config = {}) {
 
 
 
-                                (
-                                                        options.actions || {}
-                                )
+                                                            abrirChecklist:
+                options.actions?.abrirChecklist
+                    ? options.actions.abrirChecklist
+                    : null
 
                 
 
