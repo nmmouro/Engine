@@ -1,34 +1,55 @@
 /**
-
-* ============================================================
-* PÁGINA — CHECKLIST
-* ============================================================
-  */
+ * ============================================================
+ * PÁGINA — CHECKLIST
+ * ============================================================
+ *
+ * Fluxo:
+ *
+ * Lançamento
+ *     ↓
+ * Checklist
+ *     ↓
+ * CHECKLIST_ITENS
+ *
+ * Esta página recebe pela URL:
+ *
+ * ?lancamento=ID
+ * &veiculo=ID
+ * &empregado=ID
+ *
+ * ============================================================
+ */
 
 import { createModule } from "../engine/module.js";
-import { SCHEMA_CHECKLIST_ITENS } from "../schemas/checklist.js";
+
+import {
+    SCHEMA_CHECKLIST_ITENS
+} from "../schemas/checklist_itens.js";
+
 
 // ============================================================
 // PARÂMETROS DA URL
 // ============================================================
 
 const params =
-new URLSearchParams(
-window.location.search
-);
+    new URLSearchParams(
+        window.location.search
+    );
+
 
 // ============================================================
 // CONTEXTO DO LANÇAMENTO
 // ============================================================
 
 const idLancamento =
-params.get("lancamento") || "";
+    params.get("lancamento") || "";
 
 const idVeiculo =
-params.get("veiculo") || "";
+    params.get("veiculo") || "";
 
 const idEmpregado =
-params.get("empregado") || "";
+    params.get("empregado") || "";
+
 
 // ============================================================
 // VALIDAR CONTEXTO
@@ -36,16 +57,15 @@ params.get("empregado") || "";
 
 if (!idLancamento) {
 
+    window.alert(
+        "Lançamento não informado."
+    );
 
-window.alert(
-    "Lançamento não informado."
-);
-
-window.location.href =
-    "lancamentos.html";
-
+    window.location.href =
+        "lancamentos.html";
 
 }
+
 
 // ============================================================
 // CONTEXTO GLOBAL DO CHECKLIST
@@ -53,56 +73,130 @@ window.location.href =
 
 const contextoChecklist = {
 
+    "ID Lançamento":
+        idLancamento,
 
-"ID Lançamento":
-    idLancamento,
+    "ID Veículo":
+        idVeiculo,
 
-"ID Veículo":
-    idVeiculo,
-
-"ID Empregado":
-    idEmpregado
-
+    "ID Empregado":
+        idEmpregado
 
 };
 
+
 // ============================================================
-// CRIAR MÓDULO
+// FUNÇÃO PARA APLICAR O CONTEXTO
+// ============================================================
+//
+// Essa função será usada posteriormente pelo formulário
+// para garantir que cada item salvo pertença ao lançamento
+// correto.
 // ============================================================
 
-createModule({
+function aplicarContextoChecklist(dados = {}) {
 
-  
-entity:
-    "CHECKLIST_ITENS",
+    return {
 
-schema:
-    SCHEMA_CHECKLIST_ITENS,
+        ...dados,
 
-container:
-    "#app",
+        "ID Lançamento":
+            contextoChecklist["ID Lançamento"],
 
-stateName:
-    "checklistItens",
+        "ID Veículo":
+            contextoChecklist["ID Veículo"],
 
-options: {
+        "ID Empregado":
+            contextoChecklist["ID Empregado"]
 
-    titulo:
-        "Itens do Checklist",
-
-    tabela:
-        "Itens do Checklist",
-
-    permitirNovo:
-        true,
-
-    permitirEditar:
-        true,
-
-    permitirExcluir:
-        true
+    };
 
 }
 
 
-});
+// ============================================================
+// CRIAR MÓDULO ENGINE
+// ============================================================
+
+const checklist =
+
+    createModule({
+
+        entity:
+            "CHECKLIST_ITENS",
+
+        schema:
+            SCHEMA_CHECKLIST_ITENS,
+
+        container:
+            "#app",
+
+        stateName:
+            "checklistItens",
+
+        options: {
+
+            titulo:
+                "Checklist do Veículo",
+
+            tabela:
+                "Itens do Checklist",
+
+            permitirNovo:
+                true,
+
+            permitirEditar:
+                true,
+
+            permitirExcluir:
+                true
+
+        }
+
+    });
+
+
+// ============================================================
+// APLICAR CONTEXTO AO ESTADO
+// ============================================================
+//
+// Mantemos o contexto disponível no módulo Engine.
+// ============================================================
+
+if (checklist?.state) {
+
+    checklist.state.contexto =
+        contextoChecklist;
+
+}
+
+
+// ============================================================
+// EXPOR CONTEXTO
+// ============================================================
+//
+// Útil para outras funções da página,
+// sem colocar os IDs na URL novamente.
+// ============================================================
+
+window.contextoChecklist =
+    contextoChecklist;
+
+
+// ============================================================
+// API DA PÁGINA
+// ============================================================
+
+window.checklist =
+    {
+
+        modulo:
+            checklist,
+
+        contexto:
+            contextoChecklist,
+
+        aplicarContexto:
+            aplicarContextoChecklist
+
+    };
