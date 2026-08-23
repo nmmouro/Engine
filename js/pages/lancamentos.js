@@ -14,20 +14,42 @@ import { SCHEMA_LANCAMENTOS } from "../schemas/lancamentos.js";
  * ============================================================
  */
 
-function abrirChecklist(dados = {}, registro = null) {
+// ============================================================
+// ABRIR CHECKLIST
+// ============================================================
 
-const lancamento =
-    registro || dados || {};
+function abrirChecklist(registro) {
+    
+    console.log(
+        
+        "Abrindo checklist:",
+        registro );
+    
+// --------------------------------------------------------
+// ID DO LANÇAMENTO
+// --------------------------------------------------------
+    
+    const idLancamento =
+        registro?.ID || "";
+    
+// --------------------------------------------------------
+// ID DO VEÍCULO
+// --------------------------------------------------------
+    
+    const idVeiculo =
+        registro?.["ID Veículo"] || "";
+    
+// --------------------------------------------------------
+// ID DO EMPREGADO
+// --------------------------------------------------------
+    
+    const idEmpregado =
+        registro?.["ID Empregado"] || "";
 
-const idLancamento =
-    lancamento.ID || "";
-
-const idVeiculo =
-    lancamento["ID Veículo"] || "";
-
-const idEmpregado =
-    lancamento["ID Empregado"] || "";
-
+    // --------------------------------------------------------
+    // VALIDAÇÃO
+    // --------------------------------------------------------
+    
     if (!idLancamento) {
         
         window.alert(
@@ -36,32 +58,53 @@ const idEmpregado =
         return;
     }
 
-    const params =
-        new URLSearchParams();
+    if (!idVeiculo) {
+        
+        window.alert(
+            "Não foi possível identificar o veículo do lançamento." );
+        
+        return;
+    }
     
-    params.set(
+// --------------------------------------------------------
+// MONTA URL
+// --------------------------------------------------------
+    
+    const url =
+        new URL(
+            "checklist.html",
+            window.location.href
+        );
+    
+    url.searchParams.set(
         "lancamento",
-        String(idLancamento)
+        idLancamento
     );
     
-    params.set(
+    url.searchParams.set(
         "veiculo",
-        String(idVeiculo)
+        idVeiculo
     );
     
-    params.set(
-        "empregado",
-        String(idEmpregado)
+    if (idEmpregado) {
+        
+        url.searchParams.set(
+            "empregado",
+            idEmpregado
+        );
+    }
+    
+// --------------------------------------------------------
+// ABRE CHECKLIST 
+// --------------------------------------------------------
+    
+    console.log(
+        "Redirecionando para:",
+        url.href
     );
-
-// --------------------------------------------------------
-// Navegação
-// --------------------------------------------------------
-
+    
     window.location.href =
-        "checklist.html?" +
-        params.toString();
-
+        url.href;
 }
 
     
@@ -89,7 +132,8 @@ createModule({
 
         actions: {
 
-            abrirChecklist
+            abrirChecklist:
+                abrirChecklist
 
     }
     }
