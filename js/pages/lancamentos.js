@@ -19,94 +19,62 @@ import { SCHEMA_LANCAMENTOS } from "../schemas/lancamentos.js";
 // ============================================================
 
 function abrirChecklist(registro) {
-    
-    console.log(
-        
-        "Abrindo checklist:",
-        registro );
-    
-// --------------------------------------------------------
-// ID DO LANÇAMENTO
-// --------------------------------------------------------
-    
-    const idLancamento =
-        registro?.ID || "";
-    
-// --------------------------------------------------------
-// ID DO VEÍCULO
-// --------------------------------------------------------
-    
-    const idVeiculo =
-        registro?.["ID Veículo"] || "";
-    
-// --------------------------------------------------------
-// ID DO EMPREGADO
-// --------------------------------------------------------
-    
-    const idEmpregado =
-        registro?.["ID Empregado"] || "";
 
-    // --------------------------------------------------------
-    // VALIDAÇÃO
-    // --------------------------------------------------------
-    
-    if (!idLancamento) {
-        
-        window.alert(
-            "Salve o lançamento antes de realizar o checklist." );
-        
-        return;
-    }
+    if (!registro) {
 
-    if (!idVeiculo) {
-        
         window.alert(
-            "Não foi possível identificar o veículo do lançamento." );
-        
-        return;
-    }
-    
-// --------------------------------------------------------
-// MONTA URL
-// --------------------------------------------------------
-    
-    const url =
-        new URL(
-            "checklist.html",
-            window.location.href
+            "Lançamento não informado."
         );
-    
-    url.searchParams.set(
-        "lancamento",
-        idLancamento
-    );
-    
-    url.searchParams.set(
-        "veiculo",
-        idVeiculo
-    );
-    
-    if (idEmpregado) {
-        
-        url.searchParams.set(
-            "empregado",
+
+        return;
+    }
+
+
+    const idLancamento =
+        registro.ID || "";
+
+
+    const idVeiculo =
+        registro["ID Veículo"] || "";
+
+
+    const idEmpregado =
+        registro["ID Empregado"] || "";
+
+
+    if (!idLancamento) {
+
+        window.alert(
+            "O lançamento não possui ID."
+        );
+
+        return;
+    }
+
+
+    const url =
+        "checklist.html" +
+        "?lancamento=" +
+        encodeURIComponent(
+            idLancamento
+        ) +
+        "&veiculo=" +
+        encodeURIComponent(
+            idVeiculo
+        ) +
+        "&empregado=" +
+        encodeURIComponent(
             idEmpregado
         );
-    }
-    
-// --------------------------------------------------------
-// ABRE CHECKLIST 
-// --------------------------------------------------------
-    
-    console.log(
-        "Redirecionando para:",
-        url.href
-    );
-    
-    window.location.href =
-        url.href;
+
+
+    window.location.href = url;
+
 }
 
+// ============================================================
+// CRIAR MÓDULO
+// ============================================================
     
 createModule({
 
