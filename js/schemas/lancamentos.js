@@ -174,7 +174,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             type: "action",
             text: "Realizar Checklist",
             action: "abrirChecklist"
-        }
+        },
 
 
         // ========================================================
