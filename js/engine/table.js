@@ -610,7 +610,44 @@ export function createTable(config = {}) {
 
         }
 
-        // ======================================================== // REALIZAR CHECKLIST // ======================================================== if ( typeof actions.abrirChecklist === "function" ) { const botaoChecklist = criarBotao( "Realizar Checklist", "btn btn-sm btn-checklist" ); botaoChecklist.addEventListener( "click", evento => { evento.preventDefault(); actions.abrirChecklist( registro, indice ); } ); td.appendChild( botaoChecklist ); }
+        // ========================================================
+        // REALIZAR CHECKLIST
+                                                                                        // ========================================================
+        
+        if ( typeof actions.abrirChecklist === "function"
+           ) {
+            
+           const botaoChecklist =
+        document.createElement("button");
+
+    botaoChecklist.type =
+        "button";
+
+    botaoChecklist.className =
+        "btn btn-secondary";
+
+    botaoChecklist.textContent =
+        "Realizar Checklist";
+
+
+    botaoChecklist.addEventListener(
+        "click",
+        () => {
+
+            actions.abrirChecklist(
+                registro,
+                indice
+            );
+
+        }
+    );
+
+
+    containerAcoes.appendChild(
+        botaoChecklist
+    );
+
+}
 
 
         // --------------------------------------------------------
