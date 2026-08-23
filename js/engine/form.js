@@ -705,7 +705,7 @@ export function createForm(config = {}) {
 
     }
 
-    // ============================================================
+// ============================================================
 // RESOLVER VALOR PADRÃO
 // ============================================================
 
@@ -1013,6 +1013,58 @@ function criarInput(campo) {
             break;
 
     }
+
+
+
+/**
+ * ============================================================
+ * CHECKLIST
+ * ============================================================
+ */
+
+function abrirChecklist(
+    dados,
+    registro
+) {
+
+    const lancamento =
+        registro || dados;
+
+    const idLancamento =
+        lancamento?.ID;
+
+    const idVeiculo =
+        lancamento?.["ID Veículo"];
+
+    const idEmpregado =
+        lancamento?.["ID Empregado"];
+
+    if (!idLancamento) {
+
+        alert(
+            "Salve o lançamento antes de realizar o checklist."
+        );
+
+        return;
+
+    }
+
+    const url =
+        `checklist.html` +
+        `?lancamento=${encodeURIComponent(idLancamento)}` +
+        `&veiculo=${encodeURIComponent(idVeiculo || "")}` +
+        `&empregado=${encodeURIComponent(idEmpregado || "")}`;
+
+    window.location.href =
+        url;
+
+}
+
+
+
+
+
+    
 
 
     // ========================================================
