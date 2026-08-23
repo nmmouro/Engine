@@ -291,7 +291,15 @@ export function createEngine(config = {}) {
                 excluir:
                     options.permitirExcluir !== false
                         ? excluirRegistro
-                        : null
+                        : null,
+
+
+
+                                (
+                                                        options.actions || {}
+                                )
+
+                
 
             }
 
