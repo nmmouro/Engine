@@ -6,7 +6,7 @@
   */
 
 import { createModule } from "../engine/module.js";
-import { SCHEMA_CHECKLIST } from "../schemas/checklist.js";
+import { SCHEMA_CHECKLIST } from "../schemas/checklist_itens.js";
 
 // ============================================================
 // PARÂMETROS DA URL
@@ -74,24 +74,24 @@ createModule({
 
   
 entity:
-    "CHECKLIST",
+    "CHECKLIST_ITENS",
 
 schema:
-    SCHEMA_CHECKLIST,
+    SCHEMA_CHECKLIST_ITENS,
 
 container:
     "#app",
 
 stateName:
-    "checklist",
+    "checklistItens",
 
 options: {
 
     titulo:
-        "Checklist do Veículo",
+        "Itens do Checklist",
 
     tabela:
-        "Checklists",
+        "Itens do Checklist",
 
     permitirNovo:
         true,
