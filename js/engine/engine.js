@@ -293,15 +293,6 @@ export function createEngine(config = {}) {
                         ? excluirRegistro
                         : null,
 
-
-
-                                                            abrirChecklist:
-                options.actions?.abrirChecklist
-                    ? options.actions.abrirChecklist
-                    : null
-
-                
-
             }
 
         });
