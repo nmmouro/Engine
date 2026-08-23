@@ -6,7 +6,7 @@
   */
 
 import { createModule } from "../engine/module.js";
-import { SCHEMA_CHECKLIST } from "../schemas/checklist_itens.js";
+import { SCHEMA_CHECKLIST_ITENS } from "../schemas/checklist.js";
 
 // ============================================================
 // PARÂMETROS DA URL
