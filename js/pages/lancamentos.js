@@ -20,15 +20,20 @@ createModule({
 
     options: {
 
-        titulo: "Lançamentos",
+        titulo: "Diário de Bordo",
 
-        tabela: "Lançamentos Cadastrados",
+        tabela: "Lançamentos",
 
         permitirNovo: true,
 
         permitirEditar: true,
 
-        permitirExcluir: true
+        permitirExcluir: true,
+
+        actions: {
+
+            abrirChecklist:
+                abrirChecklist
 
     }
 
