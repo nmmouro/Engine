@@ -971,6 +971,30 @@ function criarInput(campo) {
 
             break;
 
+        // ----------------------------------------------------
+        // AÇÃO
+        // ----------------------------------------------------
+
+        case "action":
+
+            input =
+                document.createElement(
+                    "button"
+                );
+
+            input.type =
+                    "button";
+
+            input.textContent =
+                    campo.text ||
+                    campo.label ||
+                    "Abrir";
+
+            input.className =
+                    "btn btn-secondary";
+
+            break;
+
 
         // ----------------------------------------------------
         // PADRÃO
