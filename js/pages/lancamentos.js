@@ -89,8 +89,7 @@ createModule({
 
         actions: {
 
-            abrirChecklist:
-                abrirChecklist
+            abrirChecklist
 
     }
     }
