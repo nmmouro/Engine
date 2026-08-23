@@ -242,21 +242,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             label: "Horário Final",
             type: "time",
             required: true,
-            defaultValue: () => {
-
-                const agora = new Date();
-
-                return (
-                String(
-                agora.getHours()
-                ).padStart(2, "0") +
-                ":" +
-                String(
-                agora.getMinutes()
-                ).padStart(2, "0")
-        );
-
-        }
+            
     },
 
         // ========================================================
