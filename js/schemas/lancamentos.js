@@ -164,6 +164,18 @@ export const SCHEMA_LANCAMENTOS = createSchema({
 
         },
 
+         // ========================================================
+        // ITINERÁRIO
+        // ========================================================
+        
+        {
+            name: "Checklist",
+            label: "Checklist",
+            type: "action",
+            text: "Realizar Checklist",
+            action: "abrirChecklist"
+        }
+
 
         // ========================================================
         // QUILOMETRAGEM
