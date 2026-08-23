@@ -705,6 +705,43 @@ export function createForm(config = {}) {
 
     }
 
+    // ============================================================
+    // RESOLVE VALOR PADRÃO
+    // ============================================================
+
+    function resolverValorPadrao(campo) {
+
+        if (
+            campo.defaultValue === undefined ||
+            campo.defaultValue === null
+    ) {
+
+        return "";
+
+    }
+
+
+    // --------------------------------------------------------
+    // DefaultValue como função
+    // --------------------------------------------------------
+
+        if (
+            typeof campo.defaultValue === "function"
+    ) {
+
+            return campo.defaultValue();
+
+    }
+
+
+    // --------------------------------------------------------
+    // DefaultValue como valor fixo
+    // --------------------------------------------------------
+
+        return campo.defaultValue;
+
+}
+
 
     // ============================================================
     // CRIA INPUT
@@ -712,299 +749,251 @@ export function createForm(config = {}) {
 
     function criarInput(campo) {
 
-        const id =
-            gerarIdCampo(
-                campo.name
-            );
+    const id =
+        gerarIdCampo(
+            campo.name
+        );
 
+    let input;
 
-        let input;
+    // ========================================================
+    // TIPO DO INPUT
+    // ========================================================
 
+    switch (campo.type) {
 
-        // ========================================================
-        // TIPO DO INPUT
-        // ========================================================
+        case "text":
 
-        switch (campo.type) {
+            input =
+                document.createElement(
+                    "input"
+                );
 
-            // ----------------------------------------------------
-            // TEXT
-            // ----------------------------------------------------
+            input.type =
+                "text";
 
-            case "text":
+            break;
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
 
-                input.type =
-                    "text";
+        case "date":
 
-                break;
+            input =
+                document.createElement(
+                    "input"
+                );
 
+            input.type =
+                "date";
 
-            // ----------------------------------------------------
-            // DATE
-            // ----------------------------------------------------
+            break;
 
-            case "date":
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+        case "datetime":
 
-                input.type =
-                    "date";
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                break;
+            input.type =
+                "datetime-local";
 
+            break;
 
-            // ----------------------------------------------------
-            // DATETIME
-            // ----------------------------------------------------
 
-            case "datetime":
+        case "time":
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                input.type =
-                    "datetime-local";
+            input.type =
+                "time";
 
-                break;
+            break;
 
 
-            // ----------------------------------------------------
-            // TIME
-            // ----------------------------------------------------
+        case "number":
 
-            case "time":
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+            input.type =
+                "number";
 
-                input.type =
-                    "time";
+            break;
 
-                break;
 
+        case "email":
 
-            // ----------------------------------------------------
-            // NUMBER
-            // ----------------------------------------------------
+            input =
+                document.createElement(
+                    "input"
+                );
 
-            case "number":
+            input.type =
+                "email";
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+            break;
 
-                input.type =
-                    "number";
 
-                break;
+        case "textarea":
 
+            input =
+                document.createElement(
+                    "textarea"
+                );
 
-            // ----------------------------------------------------
-            // EMAIL
-            // ----------------------------------------------------
+            break;
 
-            case "email":
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+        case "select":
 
-                input.type =
-                    "email";
+            input =
+                criarSelect(
+                    campo
+                );
 
-                break;
+            break;
 
 
-            // ----------------------------------------------------
-            // TEXTAREA
-            // ----------------------------------------------------
+        case "checkbox":
 
-            case "textarea":
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                input =
-                    document.createElement(
-                        "textarea"
-                    );
+            input.type =
+                "checkbox";
 
-                break;
+            break;
 
 
-            // ----------------------------------------------------
-            // SELECT
-            // ----------------------------------------------------
+        case "file":
 
-            case "select":
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                input =
-                    criarSelect(
-                        campo
-                    );
+            input.type =
+                "file";
 
-                break;
+            break;
 
 
-            // ----------------------------------------------------
-            // CHECKBOX
-            // ----------------------------------------------------
+        default:
 
-            case "checkbox":
+            input =
+                document.createElement(
+                    "input"
+                );
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+            input.type =
+                "text";
 
-                input.type =
-                    "checkbox";
+            break;
 
-                break;
+    }
 
 
-            // ----------------------------------------------------
-            // FILE
-            // ----------------------------------------------------
+    // ========================================================
+    // ATRIBUTOS
+    // ========================================================
 
-            case "file":
+    input.id =
+        id;
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+    input.name =
+        campo.name;
 
-                input.type =
-                    "file";
+    input.className =
+        campo.type === "checkbox"
+            ? "form-checkbox"
+            : "form-control";
 
-                break;
 
+    // ========================================================
+    // REQUIRED
+    // ========================================================
 
-            // ----------------------------------------------------
-            // PADRÃO
-            // ----------------------------------------------------
+    if (campo.required) {
 
-            default:
+        input.required =
+            true;
 
-                input =
-                    document.createElement(
-                        "input"
-                    );
+    }
 
-                input.type =
-                    "text";
 
-                break;
+    // ========================================================
+    // READONLY
+    // ========================================================
 
-        }
+    if (campo.readonly) {
 
+        input.readOnly =
+            true;
 
-        // ========================================================
-        // ATRIBUTOS
-        // ========================================================
+    }
 
-        input.id =
-            id;
 
+    // ========================================================
+    // PLACEHOLDER
+    // ========================================================
 
-        input.name =
-            campo.name;
+    if (campo.placeholder) {
 
+        input.placeholder =
+            campo.placeholder;
 
-        input.className =
-            campo.type === "checkbox"
-                ? "form-checkbox"
-                : "form-control";
+    }
 
 
-        // ========================================================
-        // REQUIRED
-        // ========================================================
+    // ========================================================
+    // VALOR PADRÃO
+    // ========================================================
 
-        if (campo.required) {
-
-            input.required =
-                true;
-
-        }
-
-
-        // ========================================================
-        // READONLY
-        // ========================================================
-
-        if (campo.readonly) {
-
-            input.readOnly =
-                true;
-
-        }
-
-
-        // ========================================================
-        // PLACEHOLDER
-        // ========================================================
-
-        if (campo.placeholder) {
-
-            input.placeholder =
-                campo.placeholder;
-
-        }
-
-
-        // ========================================================
-        // VALOR PADRÃO
-        // ========================================================
-
-        if (
-            campo.defaultValue !== undefined &&
-            campo.defaultValue !== null
-        ) {
-
-            if (
-                campo.type === "checkbox"
-            ) {
-
-                input.checked =
-                    Boolean(
-                        campo.defaultValue
-                    );
-
-            } else {
-
-                input.value =
-                    campo.defaultValue;
-
-            }
-
-        }
-
-
-        // ========================================================
-        // CAIXA ALTA
-        // ========================================================
-
-        aplicarCaixaAlta(
-            input,
+    const valorPadrao =
+        resolverValorPadrao(
             campo
         );
 
 
-        return input;
+    if (
+        campo.type === "checkbox"
+    ) {
+
+        input.checked =
+            valorPadrao === true ||
+            valorPadrao === "true" ||
+            valorPadrao === 1 ||
+            valorPadrao === "1";
+
+    } else {
+
+        input.value =
+            valorPadrao;
 
     }
+
+
+    // ========================================================
+    // CAIXA ALTA
+    // ========================================================
+
+    aplicarCaixaAlta(
+        input,
+        campo
+    );
+
+
+    return input;
+
+}
 
 
     // ============================================================
@@ -1550,72 +1539,69 @@ export function createForm(config = {}) {
         );
 
 
-        // ========================================================
-        // VALORES PADRÃO
-        // ========================================================
+// ========================================================
+// VALORES PADRÃO
+// ========================================================
 
-        schema.fields.forEach(
-            campo => {
+schema.fields.forEach(
+    campo => {
 
-                if (
-                    !deveExibirCampo(campo)
-                ) {
+        if (
+            !deveExibirCampo(campo)
+        ) {
 
-                    return;
+            return;
 
-                }
+        }
 
+        const input =
+            obterInput(
+                campo.name
+            );
 
-                if (
-                    campo.defaultValue ===
-                    undefined
-                ) {
+        if (!input) {
 
-                    return;
+            return;
 
-                }
+        }
 
+        const valorPadrao =
+            resolverValorPadrao(campo);
 
-                const input =
-                    obterInput(
-                        campo.name
-                    );
+        // --------------------------------------------------
+        // CHECKBOX
+        // --------------------------------------------------
 
+        if (
+            campo.type === "checkbox"
+        ) {
 
-                if (!input) {
+            input.checked =
+                valorPadrao === true ||
+                valorPadrao === "true" ||
+                valorPadrao === 1 ||
+                valorPadrao === "1";
 
-                    return;
+            return;
 
-                }
+        }
 
+        // --------------------------------------------------
+        // DEMAIS CAMPOS
+        // --------------------------------------------------
 
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
+        input.value =
+            valorPadrao;
 
-                    input.checked =
-                        Boolean(
-                            campo.defaultValue
-                        );
-
-                } else {
-
-                    input.value =
-                        campo.defaultValue;
-
-                }
-
-            }
-        );
-
+    }
+);
 
         atualizarBotaoSalvar();
 
     }
 
 
-   // ============================================================
+// ============================================================
 // VALIDAÇÃO
 // ============================================================
 
