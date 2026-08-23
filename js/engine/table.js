@@ -610,6 +610,8 @@ export function createTable(config = {}) {
 
         }
 
+        // ======================================================== // REALIZAR CHECKLIST // ======================================================== if ( typeof actions.abrirChecklist === "function" ) { const botaoChecklist = criarBotao( "Realizar Checklist", "btn btn-sm btn-checklist" ); botaoChecklist.addEventListener( "click", evento => { evento.preventDefault(); actions.abrirChecklist( registro, indice ); } ); td.appendChild( botaoChecklist ); }
+
 
         // --------------------------------------------------------
         // Excluir
