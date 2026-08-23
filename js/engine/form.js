@@ -706,14 +706,29 @@ export function createForm(config = {}) {
     }
 
     // ============================================================
-    // RESOLVE VALOR PADRÃO
-    // ============================================================
+// RESOLVER VALOR PADRÃO
+// ============================================================
 
-    function resolverValorPadrao(campo) {
+function resolverValorPadrao(campo) {
 
-        if (
-            campo.defaultValue === undefined ||
-            campo.defaultValue === null
+    if (!campo) {
+
+        return "";
+
+    }
+
+
+    const valorPadrao =
+        campo.defaultValue;
+
+
+    // ========================================================
+    // SEM VALOR PADRÃO
+    // ========================================================
+
+    if (
+        valorPadrao === undefined ||
+        valorPadrao === null
     ) {
 
         return "";
@@ -721,42 +736,59 @@ export function createForm(config = {}) {
     }
 
 
-    // --------------------------------------------------------
-    // DefaultValue como função
-    // --------------------------------------------------------
+    // ========================================================
+    // DEFAULT VALUE COMO FUNÇÃO
+    // ========================================================
 
-        if (
-            typeof campo.defaultValue === "function"
+    if (
+        typeof valorPadrao === "function"
     ) {
 
-            return campo.defaultValue();
+        try {
+
+            const valor =
+                valorPadrao();
+
+            if (
+                valor === undefined ||
+                valor === null
+            ) {
+
+                return "";
+
+            }
+
+            return String(
+                valor
+            );
+
+        } catch (erro) {
+
+            console.error(
+                `Erro ao resolver defaultValue do campo "${campo.name}":`,
+                erro
+            );
+
+            return "";
+
+        }
 
     }
 
 
-    // --------------------------------------------------------
-    // DefaultValue como valor fixo
-    // --------------------------------------------------------
+    // ========================================================
+    // DEFAULT VALUE NORMAL
+    // ========================================================
 
-        return campo.defaultValue;
+    return String(
+        valorPadrao
+    );
 
 }
 
+    
 
-    // ============================================================
-    // CRIA INPUT
-    // ============================================================
-
-    function criarInput(campo) {
-
-    const id =
-        gerarIdCampo(
-            campo.name
-        );
-
-    let input;
-
-    // ============================================================
+// ============================================================
 // CRIAR INPUT
 // ============================================================
 
