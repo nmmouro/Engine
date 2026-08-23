@@ -561,8 +561,7 @@ export function createTable(config = {}) {
 
     function criarAcoes(
         registro,
-        indice,
-        actions = {}
+        indice        
     ) {
 
         const td =
