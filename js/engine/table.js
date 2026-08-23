@@ -610,47 +610,7 @@ export function createTable(config = {}) {
 
         }
 
-        // ========================================================
-        // REALIZAR CHECKLIST
-                                                                                        // ========================================================
-        
-        if ( typeof actions.abrirChecklist === "function"
-           ) {
-            
-           const botaoChecklist =
-        document.createElement("button");
-
-    botaoChecklist.type =
-        "button";
-
-    botaoChecklist.className =
-        "btn btn-secondary";
-
-    botaoChecklist.textContent =
-        "Realizar Checklist";
-
-
-    botaoChecklist.addEventListener(
-        "click",
-        () => {
-
-            actions.abrirChecklist(
-                registro,
-                indice
-            );
-
-        }
-    );
-
-
-    containerAcoes.appendChild(
-        botaoChecklist
-    );
-
-}
-
-
-        // --------------------------------------------------------
+         // --------------------------------------------------------
         // Excluir
         // --------------------------------------------------------
 
