@@ -14,44 +14,51 @@ import { SCHEMA_LANCAMENTOS } from "../schemas/lancamentos.js";
  * ============================================================
  */
 
-function abrirChecklist(
-    dados,
-    registro
-) {
+function abrirChecklist(dados = {}, registro = null) {
 
-    const lancamento =
-        registro || dados;
+const lancamento =
+    registro || dados || {};
 
-    const idLancamento =
-        lancamento?.ID;
+const idLancamento =
+    lancamento.ID || "";
 
-    const idVeiculo =
-        lancamento?.["ID Veículo"];
+const idVeiculo =
+    lancamento["ID Veículo"] || "";
 
-    const idEmpregado =
-        lancamento?.["ID Empregado"];
+const idEmpregado =
+    lancamento["ID Empregado"] || "";
 
-    if (!idLancamento) {
+    if (!idLancamento) { window.alert( "Salve o lançamento antes de realizar o checklist." ); return; }
 
-        alert(
-            "Salve o lançamento antes de realizar o checklist."
-        );
+    const params =
+        new URLSearchParams();
+    
+    params.set(
+        "lancamento",
+        String(idLancamento)
+    );
+    
+    params.set(
+        "veiculo",
+        String(idVeiculo)
+    );
+    
+    params.set(
+        "empregado",
+        String(idEmpregado)
+    );
 
-        return;
-
-    }
-
-    const url =
-        `checklist.html` +
-        `?lancamento=${encodeURIComponent(idLancamento)}` +
-        `&veiculo=${encodeURIComponent(idVeiculo || "")}` +
-        `&empregado=${encodeURIComponent(idEmpregado || "")}`;
+// --------------------------------------------------------
+// Navegação
+// --------------------------------------------------------
 
     window.location.href =
-        url;
+        "checklist.html?" +
+        params.toString();
 
 }
 
+    
 createModule({
 
     entity: "LANCAMENTOS",
