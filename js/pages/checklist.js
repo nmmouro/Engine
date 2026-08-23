@@ -1,3 +1,4 @@
+```javascript
 /**
  * ============================================================
  * PÁGINA — CHECKLIST
@@ -6,21 +7,17 @@
  * Fluxo:
  *
  * Lançamento
- *     ↓
+ *      ↓
  * Checklist
- *     ↓
- * CHECKLIST_ITENS
+ *      ↓
+ * Checklist Itens
  *
- * Esta página recebe pela URL:
- *
- * ?lancamento=ID
- * &veiculo=ID
- * &empregado=ID
- *
+ * O checklist sempre pertence a um lançamento.
  * ============================================================
  */
 
-import { createModule } from "../engine/module.js";
+import { createModule }
+    from "../engine/module.js";
 
 import {
     SCHEMA_CHECKLIST_ITENS
@@ -38,7 +35,7 @@ const params =
 
 
 // ============================================================
-// CONTEXTO DO LANÇAMENTO
+// CONTEXTO
 // ============================================================
 
 const idLancamento =
@@ -52,7 +49,7 @@ const idEmpregado =
 
 
 // ============================================================
-// VALIDAR CONTEXTO
+// VALIDAÇÃO
 // ============================================================
 
 if (!idLancamento) {
@@ -68,8 +65,12 @@ if (!idLancamento) {
 
 
 // ============================================================
-// CONTEXTO GLOBAL DO CHECKLIST
+// CONTEXTO DO CHECKLIST
 // ============================================================
+//
+// Esses dados serão utilizados para que cada item
+// fique associado ao lançamento e ao veículo.
+//
 
 const contextoChecklist = {
 
@@ -86,40 +87,10 @@ const contextoChecklist = {
 
 
 // ============================================================
-// FUNÇÃO PARA APLICAR O CONTEXTO
-// ============================================================
-//
-// Essa função será usada posteriormente pelo formulário
-// para garantir que cada item salvo pertença ao lançamento
-// correto.
-// ============================================================
-
-function aplicarContextoChecklist(dados = {}) {
-
-    return {
-
-        ...dados,
-
-        "ID Lançamento":
-            contextoChecklist["ID Lançamento"],
-
-        "ID Veículo":
-            contextoChecklist["ID Veículo"],
-
-        "ID Empregado":
-            contextoChecklist["ID Empregado"]
-
-    };
-
-}
-
-
-// ============================================================
-// CRIAR MÓDULO ENGINE
+// CRIAR MÓDULO
 // ============================================================
 
 const checklist =
-
     createModule({
 
         entity:
@@ -157,11 +128,12 @@ const checklist =
 
 
 // ============================================================
-// APLICAR CONTEXTO AO ESTADO
+// DISPONIBILIZAR CONTEXTO
 // ============================================================
 //
-// Mantemos o contexto disponível no módulo Engine.
-// ============================================================
+// O contexto fica disponível para que o formulário possa
+// utilizar os IDs recebidos pela URL.
+//
 
 if (checklist?.state) {
 
@@ -172,31 +144,9 @@ if (checklist?.state) {
 
 
 // ============================================================
-// EXPOR CONTEXTO
-// ============================================================
-//
-// Útil para outras funções da página,
-// sem colocar os IDs na URL novamente.
+// EXPOR CONTEXTO PARA OUTROS MÓDULOS
 // ============================================================
 
 window.contextoChecklist =
     contextoChecklist;
-
-
-// ============================================================
-// API DA PÁGINA
-// ============================================================
-
-window.checklist =
-    {
-
-        modulo:
-            checklist,
-
-        contexto:
-            contextoChecklist,
-
-        aplicarContexto:
-            aplicarContextoChecklist
-
-    };
+```
