@@ -28,7 +28,13 @@ const idVeiculo =
 const idEmpregado =
     lancamento["ID Empregado"] || "";
 
-    if (!idLancamento) { window.alert( "Salve o lançamento antes de realizar o checklist." ); return; }
+    if (!idLancamento) {
+        
+        window.alert(
+            "Salve o lançamento antes de realizar o checklist." );
+        
+        return;
+    }
 
     const params =
         new URLSearchParams();
@@ -86,6 +92,7 @@ createModule({
             abrirChecklist:
                 abrirChecklist
 
+    }
     }
 
 });
