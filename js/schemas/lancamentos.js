@@ -164,6 +164,32 @@ export const SCHEMA_LANCAMENTOS = createSchema({
 
         },
 
+        // ========================================================
+        // Horário Inicial
+        // ========================================================
+
+        {
+            name: "Hora",
+            label: "Horário Inicial",
+            type: "time",
+            required: true,
+            defaultValue: () => {
+
+                const agora = new Date();
+
+                return (
+                String(
+                agora.getHours()
+                ).padStart(2, "0") +
+                ":" +
+                String(
+                agora.getMinutes()
+                ).padStart(2, "0")
+        );
+
+        }
+    },
+
          // ========================================================
         // CHECKLIST
         // ========================================================
@@ -182,7 +208,93 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
+            name: "Km Inicinal",
+
+            type: "number"
+
+        },
+        
+        
+        {
             name: "Km Final",
+
+            type: "number"
+
+        },
+
+        // ========================================================
+        // Distância Percorrida
+        // ========================================================
+
+        {
+            name: "Distância Percorrida",
+
+            type: "number"
+
+        },
+
+         // ========================================================
+        // Horário Final
+        // ========================================================
+
+        {
+            name: "Hora",
+            label: "Horário Final",
+            type: "time",
+            required: true,
+            defaultValue: () => {
+
+                const agora = new Date();
+
+                return (
+                String(
+                agora.getHours()
+                ).padStart(2, "0") +
+                ":" +
+                String(
+                agora.getMinutes()
+                ).padStart(2, "0")
+        );
+
+        }
+    },
+
+        // ========================================================
+        // COMBUSTÍVEL
+        // ========================================================
+
+        {
+            name: "Combustível",
+
+            type: "select",
+
+            options: [
+                "RESERVA",
+                "1/4",
+                "1/2",
+                "3/4",
+                "CHEIO"
+            ]
+
+        },
+
+        // ========================================================
+        // MÉDIA DE CONSUMO
+        // ========================================================
+
+        {
+            name: "Média de consumo de combustível",
+
+            type: "number"
+
+        },
+
+        // ========================================================
+        // Duração Atendimento
+        // ========================================================
+
+        {
+            name: "Duração Atendimento / HH:MM",
 
             type: "number"
 
