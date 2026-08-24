@@ -39,7 +39,9 @@ import {
 // BUSCAR MAIOR KM FINAL DO VEÍCULO
 // ============================================================
 
-async function obterKmInicialPorVeiculo(idVeiculo) {
+async function obterKmInicialPorVeiculo(
+    idVeiculo
+) {
 
     if (
         idVeiculo === undefined ||
@@ -55,7 +57,9 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
     try {
 
         const registros =
-            await listar("LANCAMENTOS");
+            await listar(
+                "LANCAMENTOS"
+            );
 
 
         if (
@@ -68,7 +72,7 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
 
 
         // ====================================================
-        // FILTRA OS LANÇAMENTOS DO VEÍCULO
+        // FILTRAR PELO VEÍCULO
         // ====================================================
 
         const registrosVeiculo =
@@ -76,7 +80,9 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
                 registro => {
 
                     return String(
-                        registro?.["ID Veículo"] ?? ""
+                        registro?.[
+                            "ID Veículo"
+                        ] ?? ""
                     ) === String(
                         idVeiculo
                     );
@@ -95,7 +101,7 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
 
 
         // ====================================================
-        // OBTÉM OS KM FINAIS VÁLIDOS
+        // OBTER KM FINAL
         // ====================================================
 
         const quilometragens =
@@ -104,7 +110,10 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
                     registro => {
 
                         const valor =
-                            registro?.["Km Final"];
+                            registro?.[
+                                "Km Final"
+                            ];
+
 
                         if (
                             valor === undefined ||
@@ -116,13 +125,21 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
 
                         }
 
+
                         const numero =
                             Number(
-                                String(valor)
-                                    .replace(",", ".")
+                                String(
+                                    valor
+                                ).replace(
+                                    ",",
+                                    "."
+                                )
                             );
 
-                        return Number.isFinite(numero)
+
+                        return Number.isFinite(
+                            numero
+                        )
                             ? numero
                             : null;
 
@@ -147,18 +164,14 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
         // MAIOR KM FINAL
         // ====================================================
 
-        const maiorKm =
-            Math.max(
-                ...quilometragens
-            );
-
-
-        return maiorKm;
+        return Math.max(
+            ...quilometragens
+        );
 
     } catch (erro) {
 
         console.error(
-            "Lançamentos: erro ao obter Km Inicial.",
+            "Erro ao obter Km Inicial:",
             erro
         );
 
@@ -168,19 +181,24 @@ async function obterKmInicialPorVeiculo(idVeiculo) {
 
 }
 
-
 // ============================================================
 // LOCALIZAR CAMPO
 // ============================================================
 
 function obterCampo(nome) {
 
+    if (!nome) {
+
+        return null;
+
+    }
+
+
     return document.querySelector(
-        `[name="${nome}"]`
+        `[name="${CSS.escape(nome)}"]`
     );
 
 }
-
 
 // ============================================================
 // ATUALIZAR KM INICIAL
@@ -281,6 +299,79 @@ async function atualizarKmInicial(
             true;
 
     }
+
+}
+
+// ============================================================
+// EVENTO DO CAMPO VEÍCULO
+// ============================================================
+
+function configurarEventoVeiculo() {
+
+    const app =
+        document.querySelector(
+            "#app"
+        );
+
+
+    if (!app) {
+
+        console.error(
+            "Container #app não encontrado."
+        );
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // DELEGAÇÃO DE EVENTO
+    // ========================================================
+
+    app.addEventListener(
+        "change",
+        async evento => {
+
+            const campo =
+                evento.target;
+
+
+            if (
+                !campo
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+                campo.name !==
+                "Veículo"
+            ) {
+
+                return;
+
+            }
+
+
+            const idVeiculo =
+                campo.value;
+
+
+            console.log(
+                "Veículo selecionado:",
+                idVeiculo
+            );
+
+
+            await atualizarKmInicial(
+                idVeiculo
+            );
+
+        }
+    );
 
 }
 
@@ -472,6 +563,105 @@ function abrirChecklist(registro) {
 }
 
 // ============================================================
+// PREENCHER KM INICIAL
+// ============================================================
+
+async function atualizarKmInicial(
+    idVeiculo
+) {
+
+    const campoKmInicial =
+        obterCampo(
+            "Km Inicial"
+        );
+
+
+    if (!campoKmInicial) {
+
+        console.warn(
+            "Campo 'Km Inicial' ainda não existe."
+        );
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // NENHUM VEÍCULO
+    // ========================================================
+
+    if (
+        !idVeiculo
+    ) {
+
+        campoKmInicial.value =
+            "";
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // CARREGANDO
+    // ========================================================
+
+    campoKmInicial.value =
+        "";
+
+
+    campoKmInicial.placeholder =
+        "Consultando quilometragem...";
+
+
+    try {
+
+        const kmInicial =
+            await obterKmInicialPorVeiculo(
+                idVeiculo
+            );
+
+
+        if (
+            kmInicial === "" ||
+            kmInicial === null ||
+            kmInicial === undefined
+        ) {
+
+            campoKmInicial.value =
+                "";
+
+        } else {
+
+            campoKmInicial.value =
+                kmInicial;
+
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao atualizar Km Inicial:",
+            erro
+        );
+
+        campoKmInicial.value =
+            "";
+
+    } finally {
+
+        campoKmInicial.placeholder =
+            "";
+
+        campoKmInicial.readOnly =
+            true;
+
+    }
+
+}
+
+// ============================================================
 // CRIAR MÓDULO
 // ============================================================
 
@@ -520,7 +710,6 @@ function inicializar() {
 
 }
 
-
 if (
     document.readyState ===
     "loading"
@@ -528,7 +717,7 @@ if (
 
     document.addEventListener(
         "DOMContentLoaded",
-        inicializar,
+        configurarEventoVeiculo,
         {
             once: true
         }
@@ -536,7 +725,7 @@ if (
 
 } else {
 
-    inicializar();
+    configurarEventoVeiculo();
 
 }
 
