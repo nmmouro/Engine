@@ -1,3 +1,4 @@
+```javascript
 /**
  * ============================================================
  * CRUD SERVICE
@@ -5,18 +6,22 @@
  *
  * Serviço genérico de comunicação com a API.
  *
- * O serviço NÃO conhece:
+ * Responsável por:
  *
- * - VEICULOS
- * - EMPREGADOS
- * - LANCAMENTOS
- * - ou qualquer outra entidade.
+ * - LISTAR
+ * - OBTER
+ * - CRIAR
+ * - ATUALIZAR
+ * - EXCLUIR
  *
- * Ele apenas recebe o nome da aba/entidade.
+ * O serviço não conhece entidades específicas.
  *
  * Exemplos:
  *
  * listar("VEICULOS")
+ * listar("EMPREGADOS")
+ * listar("LANCAMENTOS")
+ *
  * salvar("VEICULOS", dados)
  * atualizar("VEICULOS", dados)
  * excluir("VEICULOS", id)
@@ -24,16 +29,26 @@
  * ============================================================
  */
 
-import { CONFIG } from "../config/config.js";
+import {
+    CONFIG
+} from "../config/config.js";
 
 
 // ============================================================
 // REQUISIÇÃO BASE
 // ============================================================
 
-async function requisicao(params = {}) {
+async function requisicao(
+    params = {}
+) {
 
-    if (!CONFIG?.api?.url) {
+    // --------------------------------------------------------
+    // CONFIGURAÇÃO
+    // --------------------------------------------------------
+
+    if (
+        !CONFIG?.api?.url
+    ) {
 
         throw new Error(
             "CRUD Service: CONFIG.api.url não configurada."
@@ -42,11 +57,23 @@ async function requisicao(params = {}) {
     }
 
 
+    // --------------------------------------------------------
+    // URL
+    // --------------------------------------------------------
+
     const url =
-        new URL(CONFIG.api.url);
+        new URL(
+            CONFIG.api.url
+        );
 
 
-    Object.entries(params).forEach(
+    // --------------------------------------------------------
+    // PARÂMETROS
+    // --------------------------------------------------------
+
+    Object.entries(
+        params
+    ).forEach(
         ([chave, valor]) => {
 
             if (
@@ -65,14 +92,49 @@ async function requisicao(params = {}) {
     );
 
 
+    // --------------------------------------------------------
+    // DEBUG
+    // --------------------------------------------------------
+
+    console.log(
+        "CRUD SERVICE → REQUISIÇÃO",
+        {
+            acao:
+                params.acao,
+
+            aba:
+                params.aba,
+
+            id:
+                params.id,
+
+            dados:
+                params.dados
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // FETCH
+    // --------------------------------------------------------
+
     const resposta =
-        await fetch(url.toString(), {
-            method: "GET",
-            cache: "no-store"
-        });
+        await fetch(
+            url.toString(),
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
 
 
-    if (!resposta.ok) {
+    // --------------------------------------------------------
+    // ERRO HTTP
+    // --------------------------------------------------------
+
+    if (
+        !resposta.ok
+    ) {
 
         throw new Error(
             `Erro HTTP ${resposta.status}`
@@ -81,23 +143,75 @@ async function requisicao(params = {}) {
     }
 
 
-    let json;
+    // --------------------------------------------------------
+    // RESPOSTA
+    // --------------------------------------------------------
 
-    try {
+    const texto =
+        await resposta.text();
 
-        json =
-            await resposta.json();
 
-    } catch (erro) {
+    console.log(
+        "CRUD SERVICE → RESPOSTA BRUTA:",
+        texto
+    );
+
+
+    if (
+        !texto
+    ) {
 
         throw new Error(
-            "A API retornou uma resposta que não é JSON."
+            "A API retornou uma resposta vazia."
         );
 
     }
 
 
-    validarResposta(json);
+    // --------------------------------------------------------
+    // JSON
+    // --------------------------------------------------------
+
+    let json;
+
+    try {
+
+        json =
+            JSON.parse(
+                texto
+            );
+
+    } catch (erro) {
+
+        console.error(
+            "CRUD SERVICE → JSON INVÁLIDO:",
+            texto
+        );
+
+        throw new Error(
+            "A API não retornou JSON válido."
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // DEBUG
+    // --------------------------------------------------------
+
+    console.log(
+        "CRUD SERVICE → JSON:",
+        json
+    );
+
+
+    // --------------------------------------------------------
+    // VALIDAÇÃO
+    // --------------------------------------------------------
+
+    validarResposta(
+        json
+    );
 
 
     return json;
@@ -109,9 +223,13 @@ async function requisicao(params = {}) {
 // VALIDAR RESPOSTA
 // ============================================================
 
-function validarResposta(resposta) {
+function validarResposta(
+    resposta
+) {
 
-    if (!resposta) {
+    if (
+        !resposta
+    ) {
 
         throw new Error(
             "A API não retornou dados."
@@ -121,7 +239,7 @@ function validarResposta(resposta) {
 
 
     // --------------------------------------------------------
-    // Erro externo
+    // ERRO EXTERNO
     // --------------------------------------------------------
 
     if (
@@ -138,7 +256,10 @@ function validarResposta(resposta) {
 
 
     // --------------------------------------------------------
-    // Algumas versões da API retornam:
+    // ERRO INTERNO
+    // --------------------------------------------------------
+    //
+    // Formato possível:
     //
     // {
     //     sucesso: true,
@@ -147,12 +268,15 @@ function validarResposta(resposta) {
     //         erro: "..."
     //     }
     // }
+    //
     // --------------------------------------------------------
 
     if (
         resposta.dados &&
         typeof resposta.dados === "object" &&
-        !Array.isArray(resposta.dados) &&
+        !Array.isArray(
+            resposta.dados
+        ) &&
         resposta.dados.sucesso === false
     ) {
 
@@ -171,10 +295,12 @@ function validarResposta(resposta) {
 // EXTRAIR DADOS
 // ============================================================
 
-function extrairDados(resposta) {
+function extrairDados(
+    resposta
+) {
 
     // --------------------------------------------------------
-    // Formato:
+    // FORMATO 1
     //
     // {
     //     sucesso: true,
@@ -183,7 +309,9 @@ function extrairDados(resposta) {
     // --------------------------------------------------------
 
     if (
-        Array.isArray(resposta?.dados)
+        Array.isArray(
+            resposta?.dados
+        )
     ) {
 
         return resposta.dados;
@@ -192,7 +320,7 @@ function extrairDados(resposta) {
 
 
     // --------------------------------------------------------
-    // Formato:
+    // FORMATO 2
     //
     // {
     //     sucesso: true,
@@ -215,7 +343,7 @@ function extrairDados(resposta) {
 
 
     // --------------------------------------------------------
-    // Nenhum array encontrado
+    // NENHUM DADO
     // --------------------------------------------------------
 
     return [];
@@ -227,17 +355,23 @@ function extrairDados(resposta) {
 // LISTAR
 // ============================================================
 
-export async function listar(aba) {
+export async function listar(
+    aba
+) {
 
-    validarAba(aba);
+    validarAba(
+        aba
+    );
 
 
     const resposta =
         await requisicao({
 
-            acao: "listar",
+            acao:
+                "listar",
 
-            aba
+            aba:
+                aba
 
         });
 
@@ -258,7 +392,9 @@ export async function obter(
     id
 ) {
 
-    validarAba(aba);
+    validarAba(
+        aba
+    );
 
 
     if (
@@ -277,22 +413,17 @@ export async function obter(
     const resposta =
         await requisicao({
 
-            acao: "obter",
+            acao:
+                "obter",
 
-            aba,
+            aba:
+                aba,
 
-            id
+            id:
+                id
 
         });
 
-
-    // --------------------------------------------------------
-    // Normaliza:
-    //
-    // dados.dados
-    // dados
-    // resposta
-    // --------------------------------------------------------
 
     return (
         resposta?.dados?.dados ??
@@ -312,21 +443,49 @@ export async function salvar(
     dados
 ) {
 
-    validarAba(aba);
+    validarAba(
+        aba
+    );
 
-    validarDados(dados);
+
+    validarDados(
+        dados
+    );
 
 
-    return requisicao({
+    console.log(
+        "CRUD SERVICE → SALVAR",
+        {
+            aba,
+            dados
+        }
+    );
 
-        acao: "criar",
 
-        aba,
+    const resposta =
+        await requisicao({
 
-        dados:
-            JSON.stringify(dados)
+            acao:
+                "criar",
 
-    });
+            aba:
+                aba,
+
+            dados:
+                JSON.stringify(
+                    dados
+                )
+
+        });
+
+
+    console.log(
+        "CRUD SERVICE → SALVAR OK",
+        resposta
+    );
+
+
+    return resposta;
 
 }
 
@@ -335,10 +494,12 @@ export async function salvar(
 // CRIAR
 // ============================================================
 //
-// Alias.
+// Alias utilizado pelo Engine.
 //
-// Mantemos "criar" para compatibilidade com
-// createCrud() e com partes antigas do Engine.
+// crud.criar(dados)
+//     ↓
+// salvar(entity, dados)
+//
 // ============================================================
 
 export async function criar(
@@ -363,9 +524,14 @@ export async function atualizar(
     dados
 ) {
 
-    validarAba(aba);
+    validarAba(
+        aba
+    );
 
-    validarDados(dados);
+
+    validarDados(
+        dados
+    );
 
 
     if (
@@ -379,17 +545,32 @@ export async function atualizar(
     }
 
 
+    console.log(
+        "CRUD SERVICE → ATUALIZAR",
+        {
+            aba,
+            id:
+                dados.ID,
+            dados
+        }
+    );
+
+
     return requisicao({
 
-        acao: "atualizar",
+        acao:
+            "atualizar",
 
-        aba,
+        aba:
+            aba,
 
         id:
             dados.ID,
 
         dados:
-            JSON.stringify(dados)
+            JSON.stringify(
+                dados
+            )
 
     });
 
@@ -405,7 +586,9 @@ export async function excluir(
     id
 ) {
 
-    validarAba(aba);
+    validarAba(
+        aba
+    );
 
 
     if (
@@ -421,13 +604,25 @@ export async function excluir(
     }
 
 
+    console.log(
+        "CRUD SERVICE → EXCLUIR",
+        {
+            aba,
+            id
+        }
+    );
+
+
     return requisicao({
 
-        acao: "excluir",
+        acao:
+            "excluir",
 
-        aba,
+        aba:
+            aba,
 
-        id
+        id:
+            id
 
     });
 
@@ -435,10 +630,12 @@ export async function excluir(
 
 
 // ============================================================
-// VALIDAÇÕES INTERNAS
+// VALIDAR ABA
 // ============================================================
 
-function validarAba(aba) {
+function validarAba(
+    aba
+) {
 
     if (
         !aba ||
@@ -454,12 +651,20 @@ function validarAba(aba) {
 }
 
 
-function validarDados(dados) {
+// ============================================================
+// VALIDAR DADOS
+// ============================================================
+
+function validarDados(
+    dados
+) {
 
     if (
         !dados ||
         typeof dados !== "object" ||
-        Array.isArray(dados)
+        Array.isArray(
+            dados
+        )
     ) {
 
         throw new Error(
@@ -469,3 +674,4 @@ function validarDados(dados) {
     }
 
 }
+```
