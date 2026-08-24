@@ -309,7 +309,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         {
             name: "Média de consumo de combustível",
              label:
-                    "Combustível",
+                    "Média de consumo de combustível",
 
             type: "number"
 
