@@ -171,7 +171,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         {
             name: "Hora",
             label: "Horário Inicial",
-            type: "time",
+            type: "hora",
             required: true,
             defaultValue: () => {
 
