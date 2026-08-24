@@ -75,7 +75,8 @@ function abrirChecklist(registro) {
 // ============================================================
 // CRIAR MÓDULO
 // ============================================================
-    
+
+const engine =
 createModule({
 
     entity: "LANCAMENTOS",
