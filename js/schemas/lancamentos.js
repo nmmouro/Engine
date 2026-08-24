@@ -242,7 +242,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
                     "number",
 
                 required:
-                   true
+                   false
 
             },
 
