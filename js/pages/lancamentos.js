@@ -3,23 +3,24 @@
  * PÁGINA — LANÇAMENTOS / DIÁRIO DE BORDO
  * ============================================================
  *
- * Responsável por:
+ * Responsabilidades:
  *
  * - Criar o módulo LANCAMENTOS
  * - Controlar o preenchimento automático do Km Inicial
- * - Usar o maior Km Final já registrado para o veículo
+ * - Buscar o maior Km Final já registrado para o veículo
+ * - Abrir o checklist associado ao lançamento
  *
- * Regra:
+ * Regra do Km Inicial:
  *
  * Ao selecionar um veículo:
  *
- *     LANCAMENTOS
- *          ↓
- *     filtra pelo veículo
- *          ↓
- *     encontra maior "Km Final"
- *          ↓
- *     preenche "Km Inicial"
+ *      LANCAMENTOS
+ *           ↓
+ *      filtra pelo veículo
+ *           ↓
+ *      encontra maior "Km Final"
+ *           ↓
+ *      preenche "Km Inicial"
  *
  * ============================================================
  */
@@ -36,35 +37,36 @@ import {
 
 
 // ============================================================
-// BUSCAR MAIOR KM FINAL DO VEÍCULO
+// ESTADO
 // ============================================================
 
-async function obterKmInicialPorVeiculo(
-    idVeiculo
-) {
+let observerFormulario = null;
+let eventoDelegadoConfigurado = false;
+
+
+// ============================================================
+// OBTER MAIOR KM FINAL DO VEÍCULO
+// ============================================================
+
+async function obterKmInicialPorVeiculo(idVeiculo) {
 
     if (
         idVeiculo === undefined ||
         idVeiculo === null ||
         idVeiculo === ""
     ) {
-
         return "";
-
     }
 
 
     try {
 
-        const registros =
-            await listar(
-                "LANCAMENTOS"
-            );
+        const registros = await listar(
+            "LANCAMENTOS"
+        );
 
 
-        if (
-            !Array.isArray(registros)
-        ) {
+        if (!Array.isArray(registros)) {
 
             return "";
 
@@ -72,17 +74,20 @@ async function obterKmInicialPorVeiculo(
 
 
         // ====================================================
-        // FILTRAR PELO VEÍCULO
+        // FILTRAR LANÇAMENTOS DO VEÍCULO
         // ====================================================
 
         const registrosVeiculo =
             registros.filter(
                 registro => {
 
-                    return String(
+                    const idRegistro =
                         registro?.[
                             "ID Veículo"
-                        ] ?? ""
+                        ];
+
+                    return String(
+                        idRegistro ?? ""
                     ) === String(
                         idVeiculo
                     );
@@ -106,6 +111,7 @@ async function obterKmInicialPorVeiculo(
 
         const quilometragens =
             registrosVeiculo
+
                 .map(
                     registro => {
 
@@ -130,10 +136,11 @@ async function obterKmInicialPorVeiculo(
                             Number(
                                 String(
                                     valor
-                                ).replace(
-                                    ",",
-                                    "."
                                 )
+                                    .replace(
+                                        ",",
+                                        "."
+                                    )
                             );
 
 
@@ -145,6 +152,7 @@ async function obterKmInicialPorVeiculo(
 
                     }
                 )
+
                 .filter(
                     valor =>
                         valor !== null
@@ -168,6 +176,7 @@ async function obterKmInicialPorVeiculo(
             ...quilometragens
         );
 
+
     } catch (erro) {
 
         console.error(
@@ -181,8 +190,9 @@ async function obterKmInicialPorVeiculo(
 
 }
 
+
 // ============================================================
-// LOCALIZAR CAMPO
+// LOCALIZAR CAMPO DO FORMULÁRIO
 // ============================================================
 
 function obterCampo(nome) {
@@ -194,11 +204,31 @@ function obterCampo(nome) {
     }
 
 
-    return document.querySelector(
-        `[name="${CSS.escape(nome)}"]`
-    );
+    const campos =
+        document.querySelectorAll(
+            "#app input, #app select, #app textarea"
+        );
+
+
+    for (
+        const campo of campos
+    ) {
+
+        if (
+            campo.name === nome
+        ) {
+
+            return campo;
+
+        }
+
+    }
+
+
+    return null;
 
 }
+
 
 // ============================================================
 // ATUALIZAR KM INICIAL
@@ -216,9 +246,11 @@ async function atualizarKmInicial(
 
     if (!campoKmInicial) {
 
-        console.warn(
-            "Campo 'Km Inicial' não encontrado."
-        );
+        /*
+         * O formulário é criado dinamicamente
+         * pelo Engine. Portanto, não é erro
+         * se o campo ainda não existir.
+         */
 
         return;
 
@@ -237,6 +269,8 @@ async function atualizarKmInicial(
 
         campoKmInicial.value = "";
 
+        campoKmInicial.placeholder = "";
+
         return;
 
     }
@@ -246,12 +280,12 @@ async function atualizarKmInicial(
     // INDICA PROCESSAMENTO
     // ========================================================
 
-    campoKmInicial.value =
-        "Carregando...";
+    campoKmInicial.value = "";
 
+    campoKmInicial.placeholder =
+        "Consultando quilometragem...";
 
-    campoKmInicial.disabled =
-        true;
+    campoKmInicial.readOnly = true;
 
 
     try {
@@ -281,32 +315,50 @@ async function atualizarKmInicial(
 
         }
 
+
     } catch (erro) {
 
         console.error(
-            "Erro ao preencher Km Inicial:",
+            "Erro ao atualizar Km Inicial:",
             erro
         );
 
         campoKmInicial.value = "";
 
+
     } finally {
 
-        campoKmInicial.disabled =
-            false;
+        campoKmInicial.placeholder = "";
 
-        campoKmInicial.readOnly =
-            true;
+        campoKmInicial.readOnly = true;
 
     }
 
 }
 
+
 // ============================================================
 // EVENTO DO CAMPO VEÍCULO
 // ============================================================
+//
+// O formulário é criado dinamicamente pelo Engine.
+//
+// Por isso NÃO procuramos o campo "Veículo" uma única vez.
+//
+// Utilizamos delegação de evento no #app.
+//
+// ============================================================
 
 function configurarEventoVeiculo() {
+
+    if (
+        eventoDelegadoConfigurado
+    ) {
+
+        return;
+
+    }
+
 
     const app =
         document.querySelector(
@@ -316,18 +368,14 @@ function configurarEventoVeiculo() {
 
     if (!app) {
 
-        console.error(
-            "Container #app não encontrado."
+        console.warn(
+            "Container #app ainda não existe."
         );
 
         return;
 
     }
 
-
-    // ========================================================
-    // DELEGAÇÃO DE EVENTO
-    // ========================================================
 
     app.addEventListener(
         "change",
@@ -337,18 +385,22 @@ function configurarEventoVeiculo() {
                 evento.target;
 
 
-            if (
-                !campo
-            ) {
+            if (!campo) {
 
                 return;
 
             }
 
 
+            /*
+             * Verifica pelo atributo name.
+             *
+             * Isso evita depender do ID gerado
+             * pelo form.js.
+             */
+
             if (
-                campo.name !==
-                "Veículo"
+                campo.name !== "Veículo"
             ) {
 
                 return;
@@ -373,115 +425,14 @@ function configurarEventoVeiculo() {
         }
     );
 
-}
 
-
-// ============================================================
-// CONFIGURAR EVENTO DO VEÍCULO
-// ============================================================
-
-function configurarKmInicial() {
-
-    const campoVeiculo =
-        obterCampo(
-            "Veículo"
-        );
-
-
-    if (!campoVeiculo) {
-
-        console.warn(
-            "Campo 'Veículo' não encontrado."
-        );
-
-        return;
-
-    }
-
-
-    // Evita registrar o evento mais de uma vez
-
-    if (
-        campoVeiculo.dataset.kmInicialConfigurado ===
-        "true"
-    ) {
-
-        return;
-
-    }
-
-
-    campoVeiculo.dataset.kmInicialConfigurado =
-        "true";
-
-
-    campoVeiculo.addEventListener(
-        "change",
-        async evento => {
-
-            const idVeiculo =
-                evento.target.value;
-
-
-            await atualizarKmInicial(
-                idVeiculo
-            );
-
-        }
-    );
+    eventoDelegadoConfigurado = true;
 
 }
 
 
 // ============================================================
-// OBSERVAR CRIAÇÃO DO FORMULÁRIO
-// ============================================================
-//
-// O Engine cria o formulário dinamicamente.
-// Por isso verificamos quando o campo Veículo aparecer.
-//
-
-function observarFormulario() {
-
-    configurarKmInicial();
-
-
-    const observer =
-        new MutationObserver(
-            () => {
-
-                configurarKmInicial();
-
-            }
-        );
-
-
-    const app =
-        document.querySelector(
-            "#app"
-        );
-
-
-    if (!app) {
-
-        return;
-
-    }
-
-
-    observer.observe(
-        app,
-        {
-            childList: true,
-            subtree: true
-        }
-    );
-
-}
-
-
-// ============================================================
-// GARANTIR QUE KM INICIAL SEJA SOMENTE LEITURA
+// PROTEGER KM INICIAL
 // ============================================================
 
 function protegerKmInicial() {
@@ -499,16 +450,103 @@ function protegerKmInicial() {
     }
 
 
-    campo.readOnly =
-        true;
+    campo.readOnly = true;
 
 }
+
+
+// ============================================================
+// OBSERVAR CRIAÇÃO DO FORMULÁRIO
+// ============================================================
+//
+// O Engine cria o formulário dinamicamente.
+//
+// O MutationObserver aguarda o campo aparecer.
+//
+// ============================================================
+
+function observarFormulario() {
+
+    const app =
+        document.querySelector(
+            "#app"
+        );
+
+
+    if (!app) {
+
+        console.warn(
+            "Container #app não encontrado."
+        );
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // CONFIGURA EVENTO DELEGADO
+    // ========================================================
+
+    configurarEventoVeiculo();
+
+
+    // ========================================================
+    // TENTA PROTEGER O CAMPO EXISTENTE
+    // ========================================================
+
+    protegerKmInicial();
+
+
+    // ========================================================
+    // EVITA DUPLICAR OBSERVER
+    // ========================================================
+
+    if (
+        observerFormulario
+    ) {
+
+        observerFormulario.disconnect();
+
+    }
+
+
+    observerFormulario =
+        new MutationObserver(
+            () => {
+
+                protegerKmInicial();
+
+            }
+        );
+
+
+    observerFormulario.observe(
+        app,
+        {
+            childList: true,
+            subtree: true
+        }
+    );
+
+}
+
 
 // ============================================================
 // ABRIR CHECKLIST
 // ============================================================
+//
+// Recebe o registro inteiro da tabela.
+//
+// O botão da tabela deve chamar:
+//
+//     abrirChecklist(registro)
+//
+// ============================================================
 
-function abrirChecklist(registro) {
+function abrirChecklist(
+    registro
+) {
 
     if (!registro) {
 
@@ -517,6 +555,7 @@ function abrirChecklist(registro) {
         );
 
         return;
+
     }
 
 
@@ -525,11 +564,15 @@ function abrirChecklist(registro) {
 
 
     const idVeiculo =
-        registro["ID Veículo"] || "";
+        registro[
+            "ID Veículo"
+        ] || "";
 
 
     const idEmpregado =
-        registro["ID Empregado"] || "";
+        registro[
+            "ID Empregado"
+        ] || "";
 
 
     if (!idLancamento) {
@@ -539,6 +582,7 @@ function abrirChecklist(registro) {
         );
 
         return;
+
     }
 
 
@@ -558,145 +602,59 @@ function abrirChecklist(registro) {
         );
 
 
-    window.location.href = url;
+    window.location.href =
+        url;
 
 }
 
-// ============================================================
-// PREENCHER KM INICIAL
-// ============================================================
-
-async function atualizarKmInicial(
-    idVeiculo
-) {
-
-    const campoKmInicial =
-        obterCampo(
-            "Km Inicial"
-        );
-
-
-    if (!campoKmInicial) {
-
-        console.warn(
-            "Campo 'Km Inicial' ainda não existe."
-        );
-
-        return;
-
-    }
-
-
-    // ========================================================
-    // NENHUM VEÍCULO
-    // ========================================================
-
-    if (
-        !idVeiculo
-    ) {
-
-        campoKmInicial.value =
-            "";
-
-        return;
-
-    }
-
-
-    // ========================================================
-    // CARREGANDO
-    // ========================================================
-
-    campoKmInicial.value =
-        "";
-
-
-    campoKmInicial.placeholder =
-        "Consultando quilometragem...";
-
-
-    try {
-
-        const kmInicial =
-            await obterKmInicialPorVeiculo(
-                idVeiculo
-            );
-
-
-        if (
-            kmInicial === "" ||
-            kmInicial === null ||
-            kmInicial === undefined
-        ) {
-
-            campoKmInicial.value =
-                "";
-
-        } else {
-
-            campoKmInicial.value =
-                kmInicial;
-
-        }
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao atualizar Km Inicial:",
-            erro
-        );
-
-        campoKmInicial.value =
-            "";
-
-    } finally {
-
-        campoKmInicial.placeholder =
-            "";
-
-        campoKmInicial.readOnly =
-            true;
-
-    }
-
-}
 
 // ============================================================
-// CRIAR MÓDULO
+// CRIAR MÓDULO ENGINE
 // ============================================================
 
 const engine =
-createModule({
+    createModule({
 
-    entity: "LANCAMENTOS",
+        entity:
+            "LANCAMENTOS",
 
-    schema: SCHEMA_LANCAMENTOS,
+        schema:
+            SCHEMA_LANCAMENTOS,
 
-    container: "#app",
+        container:
+            "#app",
 
-    stateName: "lancamentos",
+        stateName:
+            "lancamentos",
 
-    options: {
+        options: {
 
-        titulo: "Diário de Bordo",
+            titulo:
+                "Diário de Bordo",
 
-        tabela: "Lançamentos",
+            tabela:
+                "Lançamentos",
 
-        permitirNovo: true,
+            permitirNovo:
+                true,
 
-        permitirEditar: true,
+            permitirEditar:
+                true,
 
-        permitirExcluir: true,
+            permitirExcluir:
+                true,
 
-        actions: {
+            actions: {
 
-            abrirChecklist:
-                abrirChecklist
+                abrirChecklist:
+                    abrirChecklist
 
-    }
-    }
+            }
 
-});
+        }
+
+    });
+
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -704,11 +662,18 @@ createModule({
 
 function inicializar() {
 
+    configurarEventoVeiculo();
+
     observarFormulario();
 
     protegerKmInicial();
 
 }
+
+
+// ============================================================
+// DOM READY
+// ============================================================
 
 if (
     document.readyState ===
@@ -717,7 +682,7 @@ if (
 
     document.addEventListener(
         "DOMContentLoaded",
-        configurarEventoVeiculo,
+        inicializar,
         {
             once: true
         }
@@ -725,7 +690,7 @@ if (
 
 } else {
 
-    configurarEventoVeiculo();
+    inicializar();
 
 }
 
@@ -740,6 +705,8 @@ export {
 
     obterKmInicialPorVeiculo,
 
-    atualizarKmInicial
+    atualizarKmInicial,
+
+    abrirChecklist
 
 };
