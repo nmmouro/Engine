@@ -238,7 +238,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Hora",
+            name: "Horário Final",
             label: "Horário Final",
             type: "time",
             required: true,
