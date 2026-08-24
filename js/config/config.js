@@ -1,7 +1,7 @@
 export const CONFIG = {
 
     api: {
-        url: "https://script.google.com/macros/s/AKfycbxNveEGb1bd95a6WR2aboz3ZyXa9qzp7tHNmcdTedglUhPI3VuWoSr1XQKKZztmzI1BwA/exec"
+        url: "https://script.google.com/macros/s/AKfycbxn-wbUsmOnIDNXujtlIxYiljvAjEOFBcdXu6ydfi-k_lVG-qQpqwN6dAeaTgagADk/exec"
     },
 
     ui: {
