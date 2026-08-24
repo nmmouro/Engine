@@ -741,31 +741,26 @@ function resolverValorPadrao(campo) {
     // ========================================================
 
     if (
-        typeof valorPadrao === "function"
+        typeof valor ===
+        "function"
     ) {
 
         try {
 
-            const valor =
-                valorPadrao();
+            const resultado =
+                valor();
 
-            if (
-                valor === undefined ||
-                valor === null
-            ) {
-
-                return "";
-
-            }
-
-            return String(
-                valor
-            );
+            return (
+                resultado === undefined ||
+                resultado === null
+            )
+                ? ""
+                : resultado;
 
         } catch (erro) {
 
             console.error(
-                `Erro ao resolver defaultValue do campo "${campo.name}":`,
+                "Erro ao resolver valor padrão:",
                 erro
             );
 
@@ -780,9 +775,7 @@ function resolverValorPadrao(campo) {
     // DEFAULT VALUE NORMAL
     // ========================================================
 
-    return String(
-        valorPadrao
-    );
+    return valor;
 
 }
 
@@ -1049,13 +1042,13 @@ function criarInput(campo) {
     // ========================================================
 
     if (
-        campo.readonly === true
-    ) {
+    campo.readonly
+) {
 
-        input.readOnly =
-            true;
+    input.readOnly =
+        true;
 
-    }
+}
 
 
     // ========================================================
@@ -1136,10 +1129,28 @@ function criarInput(campo) {
     // ========================================================
 
     const valorPadrao =
-        resolverValorPadrao(
-            campo
-        );
+    resolverValorPadrao(
+        campo
+    );
 
+
+if (
+    campo.type ===
+    "checkbox"
+) {
+
+    input.checked =
+        valorPadrao === true ||
+        valorPadrao === "true" ||
+        valorPadrao === 1 ||
+        valorPadrao === "1";
+
+} else {
+
+    input.value =
+        valorPadrao ?? "";
+
+}
 
     // --------------------------------------------------------
     // CHECKBOX
