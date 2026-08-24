@@ -43,6 +43,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             label: "Data",
             type: "date",
             required: true,
+                                                                    readonly: true,
             defaultValue: () => {
 
                 const agora = new Date();
@@ -67,6 +68,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
             label: "Hora",
             type: "time",
             required: true,
+                                                            readonly: true,
             defaultValue: () => {
 
                 const agora = new Date();
@@ -160,7 +162,10 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         {
             name: "Itinerário",
 
-            type: "text"
+            type: "text",
+
+            required:
+                    true
 
         },
 
@@ -208,19 +213,38 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Km Inicinal",
+                name:
+                    "Km Inicial",
 
-            type: "number"
+                label:
+                    "Km Inicial",
 
-        },
+                type:
+                    "number",
+
+                readonly:
+                    true,
+
+                required:
+                    false
+
+            },
         
         
         {
-            name: "Km Final",
+                name:
+                    "Km Final",
 
-            type: "number"
+                label:
+                    "Km Final",
 
-        },
+                type:
+                    "number",
+
+                required:
+                   true
+
+            },
 
         // ========================================================
         // Distância Percorrida
@@ -250,19 +274,33 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Combustível",
+                name:
+                    "Combustível",
 
-            type: "select",
+                label:
+                    "Combustível",
 
-            options: [
-                "RESERVA",
-                "1/4",
-                "1/2",
-                "3/4",
-                "CHEIO"
-            ]
+                type:
+                    "select",
 
-        },
+                options: [
+
+                    "VAZIO",
+
+                    "1/4",
+
+                    "1/2",
+
+                    "3/4",
+
+                    "CHEIO"
+
+                ],
+
+                required:
+                    false
+
+            },
 
         // ========================================================
         // MÉDIA DE CONSUMO
@@ -270,6 +308,8 @@ export const SCHEMA_LANCAMENTOS = createSchema({
 
         {
             name: "Média de consumo de combustível",
+             label:
+                    "Combustível",
 
             type: "number"
 
@@ -292,18 +332,33 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Status",
+                name:
+                    "Status",
 
-            type: "select",
+                label:
+                    "Status",
 
-            options: [
-                "EM ANDAMENTO",
-                "CONCLUÍDO",
-                "CANCELADO"
-            ]
+                type:
+                    "select",
 
-        }
+                required:
+                    true,
 
-    ]
+                options: [
 
-});
+                    "EM ANDAMENTO",
+
+                    "CONCLUÍDO",
+
+                    "CANCELADO"
+
+                ],
+
+                defaultValue:
+                    "EM ANDAMENTO"
+
+            }
+
+        ]
+
+    });
