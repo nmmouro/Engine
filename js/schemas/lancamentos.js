@@ -169,9 +169,9 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // ========================================================
 
         {
-            name: "Hora",
+            name: "Horário Inicial",
             label: "Horário Inicial",
-            type: "hora",
+            type: "time",
             required: true,
             defaultValue: () => {
 
