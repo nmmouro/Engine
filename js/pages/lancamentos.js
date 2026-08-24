@@ -607,6 +607,11 @@ function abrirChecklist(
 
 }
 
+                                                                                                        console.log(
+    "DADOS DO LANÇAMENTO ANTES DE SALVAR:",
+    dados
+);
+
 
 // ============================================================
 // CRIAR MÓDULO ENGINE
