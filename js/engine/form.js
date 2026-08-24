@@ -706,7 +706,7 @@ export function createForm(config = {}) {
     }
 
 // ============================================================
-// RESOLVER VALOR PADRÃO
+// RESOLVE VALOR PADRÃO
 // ============================================================
 
 function resolverValorPadrao(campo) {
@@ -718,7 +718,11 @@ function resolverValorPadrao(campo) {
     }
 
 
-    const valorPadrao =
+    // ========================================================
+    // OBTÉM O VALOR CONFIGURADO
+    // ========================================================
+
+    const valor =
         campo.defaultValue;
 
 
@@ -727,8 +731,8 @@ function resolverValorPadrao(campo) {
     // ========================================================
 
     if (
-        valorPadrao === undefined ||
-        valorPadrao === null
+        valor === undefined ||
+        valor === null
     ) {
 
         return "";
@@ -737,12 +741,11 @@ function resolverValorPadrao(campo) {
 
 
     // ========================================================
-    // DEFAULT VALUE COMO FUNÇÃO
+    // DEFAULTVALUE COMO FUNÇÃO
     // ========================================================
 
     if (
-        typeof valor ===
-        "function"
+        typeof valor === "function"
     ) {
 
         try {
@@ -760,7 +763,7 @@ function resolverValorPadrao(campo) {
         } catch (erro) {
 
             console.error(
-                "Erro ao resolver valor padrão:",
+                "Erro ao executar defaultValue:",
                 erro
             );
 
@@ -772,7 +775,7 @@ function resolverValorPadrao(campo) {
 
 
     // ========================================================
-    // DEFAULT VALUE NORMAL
+    // DEFAULTVALUE COMO VALOR FIXO
     // ========================================================
 
     return valor;
