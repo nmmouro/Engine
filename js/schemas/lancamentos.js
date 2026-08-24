@@ -286,7 +286,7 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         "3/4",
         "CHEIO"
     ]
-}
+},
 
         // ========================================================
         // MÉDIA DE CONSUMO
