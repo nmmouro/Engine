@@ -14,41 +14,25 @@
  * - ATUALIZAR
  * - EXCLUIR
  *
- * O serviço não conhece entidades específicas.
- *
- * Exemplos:
- *
- * listar("VEICULOS")
- * listar("EMPREGADOS")
- * listar("LANCAMENTOS")
- *
- * salvar("VEICULOS", dados)
- * atualizar("VEICULOS", dados)
- * excluir("VEICULOS", id)
+ * Não conhece entidades específicas.
  *
  * ============================================================
  */
 
-import {
-    CONFIG
-} from "../config/config.js";
+import { CONFIG } from "../config/config.js";
 
 
 // ============================================================
 // REQUISIÇÃO BASE
 // ============================================================
 
-async function requisicao(
-    params = {}
-) {
+async function requisicao(params = {}) {
 
     // --------------------------------------------------------
-    // CONFIGURAÇÃO
+    // VALIDAR CONFIGURAÇÃO
     // --------------------------------------------------------
 
-    if (
-        !CONFIG?.api?.url
-    ) {
+    if (!CONFIG?.api?.url) {
 
         throw new Error(
             "CRUD Service: CONFIG.api.url não configurada."
@@ -58,22 +42,19 @@ async function requisicao(
 
 
     // --------------------------------------------------------
-    // URL
+    // CRIAR URL
     // --------------------------------------------------------
 
-    const url =
-        new URL(
-            CONFIG.api.url
-        );
+    const url = new URL(
+        CONFIG.api.url
+    );
 
 
     // --------------------------------------------------------
-    // PARÂMETROS
+    // ADICIONAR PARÂMETROS
     // --------------------------------------------------------
 
-    Object.entries(
-        params
-    ).forEach(
+    Object.entries(params).forEach(
         ([chave, valor]) => {
 
             if (
@@ -97,19 +78,11 @@ async function requisicao(
     // --------------------------------------------------------
 
     console.log(
-        "CRUD SERVICE → REQUISIÇÃO",
+        "CRUD SERVICE → REQUISIÇÃO:",
         {
-            acao:
-                params.acao,
-
-            aba:
-                params.aba,
-
-            id:
-                params.id,
-
-            dados:
-                params.dados
+            acao: params.acao,
+            aba: params.aba,
+            id: params.id
         }
     );
 
@@ -118,23 +91,20 @@ async function requisicao(
     // FETCH
     // --------------------------------------------------------
 
-    const resposta =
-        await fetch(
-            url.toString(),
-            {
-                method: "GET",
-                cache: "no-store"
-            }
-        );
+    const resposta = await fetch(
+        url.toString(),
+        {
+            method: "GET",
+            cache: "no-store"
+        }
+    );
 
 
     // --------------------------------------------------------
-    // ERRO HTTP
+    // VALIDAR HTTP
     // --------------------------------------------------------
 
-    if (
-        !resposta.ok
-    ) {
+    if (!resposta.ok) {
 
         throw new Error(
             `Erro HTTP ${resposta.status}`
@@ -144,22 +114,19 @@ async function requisicao(
 
 
     // --------------------------------------------------------
-    // RESPOSTA
+    // LER RESPOSTA COMO TEXTO
     // --------------------------------------------------------
 
-    const texto =
-        await resposta.text();
+    const texto = await resposta.text();
 
 
     console.log(
-        "CRUD SERVICE → RESPOSTA BRUTA:",
+        "CRUD SERVICE → RESPOSTA:",
         texto
     );
 
 
-    if (
-        !texto
-    ) {
+    if (!texto) {
 
         throw new Error(
             "A API retornou uma resposta vazia."
@@ -169,44 +136,33 @@ async function requisicao(
 
 
     // --------------------------------------------------------
-    // JSON
+    // CONVERTER JSON
     // --------------------------------------------------------
 
     let json;
 
     try {
 
-        json =
-            JSON.parse(
-                texto
-            );
+        json = JSON.parse(
+            texto
+        );
 
     } catch (erro) {
 
         console.error(
-            "CRUD SERVICE → JSON INVÁLIDO:",
+            "Resposta recebida da API:",
             texto
         );
 
         throw new Error(
-            "A API não retornou JSON válido."
+            "A API não retornou um JSON válido."
         );
 
     }
 
 
     // --------------------------------------------------------
-    // DEBUG
-    // --------------------------------------------------------
-
-    console.log(
-        "CRUD SERVICE → JSON:",
-        json
-    );
-
-
-    // --------------------------------------------------------
-    // VALIDAÇÃO
+    // VALIDAR RESPOSTA
     // --------------------------------------------------------
 
     validarResposta(
@@ -227,9 +183,7 @@ function validarResposta(
     resposta
 ) {
 
-    if (
-        !resposta
-    ) {
+    if (!resposta) {
 
         throw new Error(
             "A API não retornou dados."
@@ -239,7 +193,7 @@ function validarResposta(
 
 
     // --------------------------------------------------------
-    // ERRO EXTERNO
+    // ERRO PRINCIPAL
     // --------------------------------------------------------
 
     if (
@@ -257,18 +211,6 @@ function validarResposta(
 
     // --------------------------------------------------------
     // ERRO INTERNO
-    // --------------------------------------------------------
-    //
-    // Formato possível:
-    //
-    // {
-    //     sucesso: true,
-    //     dados: {
-    //         sucesso: false,
-    //         erro: "..."
-    //     }
-    // }
-    //
     // --------------------------------------------------------
 
     if (
@@ -300,7 +242,7 @@ function extrairDados(
 ) {
 
     // --------------------------------------------------------
-    // FORMATO 1
+    // FORMATO:
     //
     // {
     //     sucesso: true,
@@ -320,7 +262,7 @@ function extrairDados(
 
 
     // --------------------------------------------------------
-    // FORMATO 2
+    // FORMATO:
     //
     // {
     //     sucesso: true,
@@ -341,10 +283,6 @@ function extrairDados(
 
     }
 
-
-    // --------------------------------------------------------
-    // NENHUM DADO
-    // --------------------------------------------------------
 
     return [];
 
@@ -367,11 +305,9 @@ export async function listar(
     const resposta =
         await requisicao({
 
-            acao:
-                "listar",
+            acao: "listar",
 
-            aba:
-                aba
+            aba: aba
 
         });
 
@@ -413,14 +349,11 @@ export async function obter(
     const resposta =
         await requisicao({
 
-            acao:
-                "obter",
+            acao: "obter",
 
-            aba:
-                aba,
+            aba: aba,
 
-            id:
-                id
+            id: id
 
         });
 
@@ -454,10 +387,10 @@ export async function salvar(
 
 
     console.log(
-        "CRUD SERVICE → SALVAR",
+        "CRUD SERVICE → SALVAR:",
         {
-            aba,
-            dados
+            aba: aba,
+            dados: dados
         }
     );
 
@@ -465,11 +398,9 @@ export async function salvar(
     const resposta =
         await requisicao({
 
-            acao:
-                "criar",
+            acao: "criar",
 
-            aba:
-                aba,
+            aba: aba,
 
             dados:
                 JSON.stringify(
@@ -480,7 +411,7 @@ export async function salvar(
 
 
     console.log(
-        "CRUD SERVICE → SALVAR OK",
+        "CRUD SERVICE → SALVAR OK:",
         resposta
     );
 
@@ -497,6 +428,8 @@ export async function salvar(
 // Alias utilizado pelo Engine.
 //
 // crud.criar(dados)
+//     ↓
+// criar(entity, dados)
 //     ↓
 // salvar(entity, dados)
 //
@@ -546,26 +479,22 @@ export async function atualizar(
 
 
     console.log(
-        "CRUD SERVICE → ATUALIZAR",
+        "CRUD SERVICE → ATUALIZAR:",
         {
-            aba,
-            id:
-                dados.ID,
-            dados
+            aba: aba,
+            id: dados.ID,
+            dados: dados
         }
     );
 
 
     return requisicao({
 
-        acao:
-            "atualizar",
+        acao: "atualizar",
 
-        aba:
-            aba,
+        aba: aba,
 
-        id:
-            dados.ID,
+        id: dados.ID,
 
         dados:
             JSON.stringify(
@@ -605,24 +534,21 @@ export async function excluir(
 
 
     console.log(
-        "CRUD SERVICE → EXCLUIR",
+        "CRUD SERVICE → EXCLUIR:",
         {
-            aba,
-            id
+            aba: aba,
+            id: id
         }
     );
 
 
     return requisicao({
 
-        acao:
-            "excluir",
+        acao: "excluir",
 
-        aba:
-            aba,
+        aba: aba,
 
-        id:
-            id
+        id: id
 
     });
 
