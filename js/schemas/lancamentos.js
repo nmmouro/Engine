@@ -273,34 +273,20 @@ export const SCHEMA_LANCAMENTOS = createSchema({
         // COMBUSTÍVEL
         // ========================================================
 
-        {
-                name:
-                    "Combustível",
+       {
+    name: "Combustível",
+    label: "Combustível",
+    type: "select",
+    required: false,
 
-                label:
-                    "Combustível",
-
-                type:
-                    "select",
-
-                options: [
-
-                    "VAZIO",
-
-                    "1/4",
-
-                    "1/2",
-
-                    "3/4",
-
-                    "CHEIO"
-
-                ],
-
-                required:
-                    false
-
-            },
+    options: [
+        "RESERVA",
+        "1/4",
+        "1/2",
+        "3/4",
+        "CHEIO"
+    ]
+}
 
         // ========================================================
         // MÉDIA DE CONSUMO
