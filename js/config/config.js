@@ -8,4 +8,16 @@ export const CONFIG = {
         locale: "pt-BR"
     }
 
+    engine: {
+
+    autoRefresh: false,
+
+    pageSize: 20,
+
+    cache: true,
+
+    cacheTTL: 60000
+
+}
+
 };
