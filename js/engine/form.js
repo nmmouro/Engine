@@ -22,6 +22,103 @@ import {
     listar
 } from "../services/crudService.js";
 
+import {
+    listar
+} from "../services/crudService.js";
+
+
+// ============================================================
+// CACHE DE CAMPOS RELACIONAIS
+// ============================================================
+
+const cacheRelacionamentos = new Map();
+
+
+// ============================================================
+// CONFIGURAÇÃO DO CACHE
+// ============================================================
+
+const CACHE_RELACIONAL_TTL = 60000;
+
+
+// ============================================================
+// CARREGAR DADOS RELACIONAIS
+// ============================================================
+
+async function carregarDadosRelacionados(
+    source,
+    forcar = false
+) {
+
+    if (!source) {
+
+        return [];
+
+    }
+
+
+    const agora =
+        Date.now();
+
+
+    const item =
+        cacheRelacionamentos.get(
+            source
+        );
+
+
+    // --------------------------------------------------------
+    // CACHE VÁLIDO
+    // --------------------------------------------------------
+
+    if (
+        !forcar &&
+        item &&
+        agora - item.timestamp <
+            CACHE_RELACIONAL_TTL
+    ) {
+
+        console.log(
+            `FORM → CACHE HIT: ${source}`
+        );
+
+        return item.dados;
+
+    }
+
+
+    // --------------------------------------------------------
+    // CACHE MISS
+    // --------------------------------------------------------
+
+    console.log(
+        `FORM → CACHE MISS: ${source}`
+    );
+
+
+    const dados =
+        await listar(source);
+
+
+    const lista =
+        Array.isArray(dados)
+            ? dados
+            : [];
+
+
+    cacheRelacionamentos.set(
+        source,
+        {
+            dados: lista,
+            timestamp: agora
+        }
+    );
+
+
+    return lista;
+
+}
+
 
 export function createForm(config = {}) {
 
@@ -311,76 +408,168 @@ export function createForm(config = {}) {
     // SELECT RELACIONAL
     // ============================================================
 
-    async function carregarOpcoesRelacionadas(field) {
+    async function carregarOpcoesRelacionadas(
+    campo,
+    select
+) {
 
-        if (!field.source) {
+    if (
+        !campo ||
+        !campo.source ||
+        !select
+    ) {
 
-            return [];
+        return;
 
-        }
+    }
 
+
+    try {
 
         const registros =
-            await listar(
-                field.source
+            await carregarDadosRelacionados(
+                campo.source
             );
 
 
-        if (!Array.isArray(registros)) {
+        select.innerHTML = "";
 
-            console.warn(
-                `Nenhum registro encontrado para ${field.source}`
+
+        // ----------------------------------------------------
+        // OPÇÃO VAZIA
+        // ----------------------------------------------------
+
+        const opcaoVazia =
+            document.createElement(
+                "option"
             );
 
-            return [];
 
-        }
-
-
-        const valueField =
-            field.valueField || "ID";
+        opcaoVazia.value =
+            "";
 
 
-        const labelFields =
-            field.labelFields ||
-            [valueField];
+        opcaoVazia.textContent =
+            "Selecione...";
 
 
-        const separator =
-            field.separator ?? " / ";
+        select.appendChild(
+            opcaoVazia
+        );
 
 
-        return registros.map(
+        // ----------------------------------------------------
+        // REGISTROS
+        // ----------------------------------------------------
+
+        registros.forEach(
             registro => {
 
-                const value =
-                    registro[valueField] ?? "";
+                const opcao =
+                    document.createElement(
+                        "option"
+                    );
 
 
-                const label =
-                    labelFields
-                        .map(nome =>
-                            registro[nome] ?? ""
-                        )
-                        .filter(
-                            valor =>
-                                valor !== ""
-                        )
-                        .join(separator);
+                // ------------------------------------------------
+                // VALOR
+                // ------------------------------------------------
+
+                const valueField =
+                    campo.valueField ||
+                    "ID";
 
 
-                return {
+                opcao.value =
+                    registro[valueField] ??
+                    "";
 
-                    value,
 
-                    label
+                // ------------------------------------------------
+                // TEXTO
+                // ------------------------------------------------
 
-                };
+                if (
+                    Array.isArray(
+                        campo.labelFields
+                    )
+                ) {
+
+                    const textos =
+                        campo.labelFields
+                            .map(
+                                campoLabel =>
+                                    registro[
+                                        campoLabel
+                                    ] ?? ""
+                            )
+                            .filter(
+                                valor =>
+                                    valor !== ""
+                            );
+
+
+                    opcao.textContent =
+                        textos.join(
+                            campo.separator ||
+                            " / "
+                        );
+
+                } else {
+
+                    opcao.textContent =
+                        registro[
+                            campo.labelField ||
+                            valueField
+                        ] ?? "";
+
+                }
+
+
+                select.appendChild(
+                    opcao
+                );
 
             }
         );
 
+
+        console.log(
+            `FORM → ${campo.source}: ${registros.length} opções carregadas`
+        );
+
+    } catch (erro) {
+
+        console.error(
+            `FORM → Erro ao carregar ${campo.source}:`,
+            erro
+        );
+
+
+        select.innerHTML = "";
+
+
+        const opcao =
+            document.createElement(
+                "option"
+            );
+
+
+        opcao.value =
+            "";
+
+
+        opcao.textContent =
+            "Erro ao carregar opções";
+
+
+        select.appendChild(
+            opcao
+        );
+
     }
+
+}
 
 
     // ============================================================
@@ -625,85 +814,73 @@ export function createForm(config = {}) {
     // CRIA CAMPO
     // ============================================================
 
-    async function criarCampo(campo) {
+   async function criarCampo(
+    campo
+) {
 
-        if (
-            !deveExibirCampo(campo)
-        ) {
-
-            return null;
-
-        }
-
-
-        const grupo =
-            document.createElement(
-                "div"
-            );
-
-
-        grupo.className =
-            "form-group";
-
-
-        const label =
-            document.createElement(
-                "label"
-            );
-
-
-        label.htmlFor =
-            gerarIdCampo(
-                campo.name
-            );
-
-
-        label.textContent =
-            campo.label ||
-            campo.name;
-
-
-        const input =
-            criarInput(campo);
-
-
-        if (!input) {
-
-            return null;
-
-        }
-
-
-        // ========================================================
-        // SELECT RELACIONAL
-        // ========================================================
-
-        if (
-            campo.type === "select" &&
-            campo.source
-        ) {
-
-            await configurarCampoSelect(
-                campo,
-                input
-            );
-
-        }
-
-
-        grupo.appendChild(
-            label
+    const wrapper =
+        document.createElement(
+            "div"
         );
 
 
-        grupo.appendChild(
+    wrapper.className =
+        "form-group";
+
+
+    const label =
+        document.createElement(
+            "label"
+        );
+
+
+    label.textContent =
+        campo.label ||
+        campo.name;
+
+
+    label.htmlFor =
+        gerarIdCampo(
+            campo.name
+        );
+
+
+    wrapper.appendChild(
+        label
+    );
+
+
+    const input =
+        criarInput(
+            campo
+        );
+
+
+    wrapper.appendChild(
+        input
+    );
+
+
+    // ========================================================
+    // SELECT RELACIONAL
+    // ========================================================
+
+    if (
+        campo.type === "select" &&
+        campo.source
+    ) {
+
+        await carregarOpcoesRelacionadas(
+            campo,
             input
         );
 
-
-        return grupo;
-
     }
+
+
+    return wrapper;
+
+}
 
 // ============================================================
 // RESOLVE VALOR PADRÃO
@@ -926,12 +1103,12 @@ function criarInput(campo) {
 
         case "select":
 
-            input =
-                criarSelect(
-                    campo
-                );
+    input =
+        criarSelect(
+            campo
+        );
 
-            break;
+    break;
 
 
         // ----------------------------------------------------
