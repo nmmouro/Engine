@@ -287,18 +287,9 @@ export function createEngine(config = {}) {
         // RECARREGAR
         // ====================================================
 
-        async recarregar() {
-
-            /*
-             * CORREÇÃO:
-             *
-             * carregar() não é função local.
-             * É método do objeto engine.
-             */
-
-            return engine.carregar();
-
-        },
+       async recarregar() {
+    return engine.carregar();
+}
 
 
         // ====================================================
