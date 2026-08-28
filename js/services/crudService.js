@@ -1,216 +1,240 @@
- /**
-  * ============================================================
-  * CRUD SERVICE
-  * Painel Frota
-  *
-  * Comunicação com a API + CACHE DE LEITURA
-  * ============================================================
-  *
-  * RESPONSABILIDADES
-  *
-  * - listar
-  * - obter
-  * - criar
-  * - salvar
-  * - atualizar
-  * - excluir
-  *
-  * CACHE
-  *
-  * - listar() utiliza cache
-  * - obter() utiliza cache
-  * - criar() invalida cache
-  * - atualizar() invalida cache
-  * - excluir() invalida cache
-  *
-  * As operações de escrita NÃO são armazenadas em cache.
-  * ============================================================
-  */
+```javascript
+/**
+ * ============================================================
+ * CRUD SERVICE
+ * Painel Frota
+ *
+ * Comunicação entre o Engine e a API Node.js.
+ *
+ * Não possui conhecimento específico de:
+ * - VEICULOS
+ * - EMPREGADOS
+ * - LANCAMENTOS
+ *
+ * O nome da entidade/rota é recebido dinamicamente.
+ *
+ * Exemplos:
+ *
+ * listar("VEICULOS")
+ * obter("VEICULOS", "VEI000001")
+ * criar("VEICULOS", dados)
+ * atualizar("VEICULOS", dados)
+ * excluir("VEICULOS", "VEI000001")
+ * ============================================================
+ */
 
 import { CONFIG } from "../config/config.js";
 
 
-/* ============================================================
-   CONFIGURAÇÃO DO CACHE
-============================================================ */
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
 
-const CACHE_TTL =
-    CONFIG?.engine?.cacheTTL ??
-    60000;
-
-
-/*
- * Estrutura:
- *
- * cache.set("VEICULOS", {
- *     dados: [...],
- *     timestamp: 123456789
- * });
- */
-
-const cache =
-    new Map();
+const API_URL =
+    CONFIG?.api?.url || "http://localhost:3000/api";
 
 
-/* ============================================================
-   REQUISIÇÃO BASE
-============================================================ */
+// ============================================================
+// REQUISIÇÃO BASE
+// ============================================================
 
-async function requisicao(params = {}) {
-
-    if (!CONFIG?.api?.url) {
-
-        throw new Error(
-            "CRUD Service: CONFIG.api.url não configurada."
-        );
-
-    }
-
+async function requisicao(
+    endpoint,
+    opcoes = {}
+) {
 
     const url =
-        new URL(CONFIG.api.url);
+        `${API_URL}${endpoint}`;
 
 
-    Object.entries(params).forEach(
-        ([chave, valor]) => {
+    const configuracao = {
 
-            if (
-                valor !== undefined &&
-                valor !== null
-            ) {
+        method:
+            opcoes.method || "GET",
 
-                url.searchParams.set(
-                    chave,
-                    String(valor)
-                );
+        headers: {
 
-            }
+            "Content-Type":
+                "application/json",
+
+            ...(opcoes.headers || {})
 
         }
-    );
+
+    };
 
 
-    console.log(
-        "CRUD SERVICE → REQUISIÇÃO:",
-        params
-    );
+    if (
+        opcoes.body !== undefined
+    ) {
 
-
-    const resposta =
-        await fetch(
-            url.toString(),
-            {
-                method: "GET",
-                cache: "no-store"
-            }
-        );
-
-
-    if (!resposta.ok) {
-
-        throw new Error(
-            `Erro HTTP ${resposta.status}`
-        );
+        configuracao.body =
+            JSON.stringify(
+                opcoes.body
+            );
 
     }
 
 
-    let json;
+    let resposta;
 
 
     try {
 
-        json =
+        resposta =
+            await fetch(
+                url,
+                configuracao
+            );
+
+    } catch (erro) {
+
+        console.error(
+            "CRUD SERVICE → erro de conexão:",
+            erro
+        );
+
+        throw new Error(
+            "Não foi possível conectar ao servidor."
+        );
+
+    }
+
+
+    // ========================================================
+    // TENTAR LER JSON
+    // ========================================================
+
+    let dadosResposta = null;
+
+
+    try {
+
+        dadosResposta =
             await resposta.json();
 
     } catch (erro) {
 
         throw new Error(
-            "A API retornou uma resposta que não é JSON."
+            `Servidor retornou uma resposta inválida. HTTP ${resposta.status}.`
         );
 
     }
 
 
-    console.log(
-        "CRUD SERVICE → RESPOSTA:",
-        json
-    );
+    // ========================================================
+    // ERRO HTTP
+    // ========================================================
+
+    if (
+        !resposta.ok
+    ) {
+
+        const mensagem =
+
+            dadosResposta?.erro ||
+
+            dadosResposta?.message ||
+
+            dadosResposta?.mensagem ||
+
+            `Erro HTTP ${resposta.status}.`;
 
 
-    validarResposta(json);
+        throw new Error(
+            mensagem
+        );
+
+    }
 
 
-    return json;
+    // ========================================================
+    // ERRO DA API
+    // ========================================================
+
+    if (
+        dadosResposta &&
+        dadosResposta.sucesso === false
+    ) {
+
+        throw new Error(
+
+            dadosResposta.erro ||
+
+            dadosResposta.message ||
+
+            dadosResposta.mensagem ||
+
+            "Erro retornado pela API."
+
+        );
+
+    }
+
+
+    return dadosResposta;
 
 }
 
 
-/* ============================================================
-   VALIDAR RESPOSTA
-============================================================ */
+// ============================================================
+// NORMALIZAR ENTIDADE
+// ============================================================
 
-function validarResposta(resposta) {
-
-    if (!resposta) {
-
-        throw new Error(
-            "A API não retornou dados."
-        );
-
-    }
-
+function normalizarEntidade(
+    entidade
+) {
 
     if (
-        resposta.sucesso === false
+        !entidade ||
+        typeof entidade !== "string"
     ) {
 
         throw new Error(
-            resposta.erro ||
-            resposta.message ||
-            "Erro retornado pela API."
+            "CRUD Service: entidade não informada."
         );
 
     }
 
 
-    if (
-        resposta.dados &&
-        typeof resposta.dados === "object" &&
-        !Array.isArray(resposta.dados) &&
-        resposta.dados.sucesso === false
-    ) {
+    return entidade
 
-        throw new Error(
-            resposta.dados.erro ||
-            resposta.dados.message ||
-            "Erro retornado pela API."
-        );
+        .trim()
 
-    }
+        .toLowerCase();
 
 }
 
 
-/* ============================================================
-   EXTRAIR DADOS
-============================================================ */
+// ============================================================
+// EXTRAIR DADOS
+// ============================================================
 
-function extrairDados(resposta) {
-
-    /*
-     * Formato:
-     *
-     * {
-     *     sucesso: true,
-     *     dados: [...]
-     * }
-     */
+function extrairDados(
+    resposta
+) {
 
     if (
-        Array.isArray(
-            resposta?.dados
-        )
+        resposta === null ||
+        resposta === undefined
+    ) {
+
+        return null;
+
+    }
+
+
+    // --------------------------------------------------------
+    // API:
+    //
+    // {
+    //   sucesso: true,
+    //   dados: [...]
+    // }
+    // --------------------------------------------------------
+
+    if (
+        resposta.dados !== undefined
     ) {
 
         return resposta.dados;
@@ -218,272 +242,82 @@ function extrairDados(resposta) {
     }
 
 
-    /*
-     * Formato:
-     *
-     * {
-     *     sucesso: true,
-     *     dados: {
-     *         sucesso: true,
-     *         dados: [...]
-     *     }
-     * }
-     */
+    // --------------------------------------------------------
+    // API:
+    //
+    // {
+    //   data: [...]
+    // }
+    // --------------------------------------------------------
 
     if (
-        Array.isArray(
-            resposta?.dados?.dados
-        )
+        resposta.data !== undefined
     ) {
 
-        return resposta.dados.dados;
+        return resposta.data;
 
     }
 
 
-    return [];
+    // --------------------------------------------------------
+    // API retorna diretamente o objeto/array
+    // --------------------------------------------------------
+
+    return resposta;
 
 }
 
 
-/* ============================================================
-   CACHE — GERAR CHAVE
-============================================================ */
-
-function chaveCacheListar(aba) {
-
-    return `listar:${aba}`;
-
-}
-
-
-function chaveCacheObter(
-    aba,
-    id
-) {
-
-    return `obter:${aba}:${id}`;
-
-}
-
-
-/* ============================================================
-   CACHE — VERIFICAR VALIDADE
-============================================================ */
-
-function cacheValido(item) {
-
-    if (!item) {
-
-        return false;
-
-    }
-
-
-    return (
-        Date.now() - item.timestamp <
-        CACHE_TTL
-    );
-
-}
-
-
-/* ============================================================
-   CACHE — OBTER
-============================================================ */
-
-function obterDoCache(chave) {
-
-    const item =
-        cache.get(chave);
-
-
-    if (
-        !cacheValido(item)
-    ) {
-
-        cache.delete(chave);
-
-        return null;
-
-    }
-
-
-    return item.dados;
-
-}
-
-
-/* ============================================================
-   CACHE — SALVAR
-============================================================ */
-
-function salvarNoCache(
-    chave,
-    dados
-) {
-
-    cache.set(
-        chave,
-        {
-            dados,
-            timestamp: Date.now()
-        }
-    );
-
-}
-
-
-/* ============================================================
-   CACHE — INVALIDAR ABA
-============================================================ */
-
-function invalidarCache(aba) {
-
-    /*
-     * Remove:
-     *
-     * listar:VEICULOS
-     * obter:VEICULOS:VEI000001
-     * obter:VEICULOS:VEI000002
-     * etc.
-     */
-
-    for (
-        const chave of cache.keys()
-    ) {
-
-        if (
-            chave.startsWith(
-                `listar:${aba}`
-            ) ||
-            chave.startsWith(
-                `obter:${aba}:`
-            )
-        ) {
-
-            cache.delete(chave);
-
-        }
-
-    }
-
-
-    console.log(
-        `CRUD SERVICE → CACHE INVALIDADO: ${aba}`
-    );
-
-}
-
-
-/* ============================================================
-   LIMPAR TODO O CACHE
-============================================================ */
-
-export function limparCache() {
-
-    cache.clear();
-
-
-    console.log(
-        "CRUD SERVICE → CACHE COMPLETAMENTE LIMPO."
-    );
-
-}
-
-
-/* ============================================================
-   LISTAR
-============================================================ */
+// ============================================================
+// LISTAR
+// ============================================================
 
 export async function listar(
-    aba,
-    opcoes = {}
+    entidade
 ) {
 
-    validarAba(aba);
+    const nome =
+        normalizarEntidade(
+            entidade
+        );
 
-
-    const forcar =
-        opcoes?.forcar === true;
-
-
-    const chave =
-        chaveCacheListar(aba);
-
-
-    /*
-     * Se não forçar atualização,
-     * tenta utilizar o cache.
-     */
-
-    if (!forcar) {
-
-        const dadosCache =
-            obterDoCache(chave);
-
-
-        if (
-            dadosCache !== null
-        ) {
-
-            console.log(
-                `CRUD SERVICE → CACHE HIT: ${aba}`
-            );
-
-
-            return dadosCache;
-
-        }
-
-    }
-
-
-    /*
-     * Cache MISS.
-     */
 
     console.log(
-        `CRUD SERVICE → CACHE MISS: ${aba}`
+        `CRUD SERVICE → LISTAR ${entidade}`
     );
 
 
     const resposta =
-        await requisicao({
-
-            acao: "listar",
-
-            aba
-
-        });
-
-
-    const dados =
-        extrairDados(resposta);
+        await requisicao(
+            `/${nome}`,
+            {
+                method: "GET"
+            }
+        );
 
 
-    salvarNoCache(
-        chave,
-        dados
+    return (
+        extrairDados(
+            resposta
+        ) || []
     );
-
-
-    return dados;
 
 }
 
 
-/* ============================================================
-   OBTER
-============================================================ */
+// ============================================================
+// OBTER
+// ============================================================
 
 export async function obter(
-    aba,
-    id,
-    opcoes = {}
+    entidade,
+    id
 ) {
 
-    validarAba(aba);
+    const nome =
+        normalizarEntidade(
+            entidade
+        );
 
 
     if (
@@ -499,147 +333,115 @@ export async function obter(
     }
 
 
-    const forcar =
-        opcoes?.forcar === true;
+    const resposta =
+        await requisicao(
 
+            `/${nome}/${encodeURIComponent(id)}`,
 
-    const chave =
-        chaveCacheObter(
-            aba,
-            id
+            {
+                method: "GET"
+            }
+
         );
 
 
-    /*
-     * Tentar cache.
-     */
+    return extrairDados(
+        resposta
+    );
 
-    if (!forcar) {
-
-        const dadosCache =
-            obterDoCache(chave);
+}
 
 
-        if (
-            dadosCache !== null
-        ) {
+// ============================================================
+// CRIAR
+// ============================================================
 
-            console.log(
-                `CRUD SERVICE → CACHE HIT: ${aba}/${id}`
-            );
+export async function criar(
+    entidade,
+    dados
+) {
+
+    const nome =
+        normalizarEntidade(
+            entidade
+        );
 
 
-            return dadosCache;
-
-        }
-
-    }
+    validarDados(
+        dados
+    );
 
 
     console.log(
-        `CRUD SERVICE → CACHE MISS: ${aba}/${id}`
-    );
-
-
-    const resposta =
-        await requisicao({
-
-            acao: "obter",
-
-            aba,
-
-            id
-
-        });
-
-
-    const dados =
-        resposta?.dados?.dados ??
-        resposta?.dados ??
-        resposta;
-
-
-    salvarNoCache(
-        chave,
+        `CRUD SERVICE → CRIAR ${entidade}`,
         dados
     );
 
 
-    return dados;
+    const resposta =
+        await requisicao(
+
+            `/${nome}`,
+
+            {
+
+                method: "POST",
+
+                body: dados
+
+            }
+
+        );
+
+
+    return extrairDados(
+        resposta
+    );
 
 }
 
 
-/* ============================================================
-   SALVAR
-============================================================ */
+// ============================================================
+// SALVAR
+// ============================================================
+//
+// Alias de criar().
+//
+// Mantido para compatibilidade
+// com partes existentes do Engine.
+//
 
 export async function salvar(
-    aba,
+    entidade,
     dados
 ) {
 
-    validarAba(aba);
-
-    validarDados(dados);
-
-
-    const resposta =
-        await requisicao({
-
-            acao: "criar",
-
-            aba,
-
-            dados:
-                JSON.stringify(dados)
-
-        });
-
-
-    /*
-     * Como a planilha mudou,
-     * o cache daquela aba deixa
-     * de ser confiável.
-     */
-
-    invalidarCache(aba);
-
-
-    return resposta;
-
-}
-
-
-/* ============================================================
-   CRIAR
-============================================================ */
-
-export async function criar(
-    aba,
-    dados
-) {
-
-    return salvar(
-        aba,
+    return criar(
+        entidade,
         dados
     );
 
 }
 
 
-/* ============================================================
-   ATUALIZAR
-============================================================ */
+// ============================================================
+// ATUALIZAR
+// ============================================================
 
 export async function atualizar(
-    aba,
+    entidade,
     dados
 ) {
 
-    validarAba(aba);
+    const nome =
+        normalizarEntidade(
+            entidade
+        );
 
-    validarDados(dados);
+
+    validarDados(
+        dados
+    );
 
 
     if (
@@ -653,44 +455,48 @@ export async function atualizar(
     }
 
 
+    console.log(
+        `CRUD SERVICE → ATUALIZAR ${entidade}`,
+        dados
+    );
+
+
     const resposta =
-        await requisicao({
+        await requisicao(
 
-            acao: "atualizar",
+            `/${nome}/${encodeURIComponent(dados.ID)}`,
 
-            aba,
+            {
 
-            id:
-                dados.ID,
+                method: "PUT",
 
-            dados:
-                JSON.stringify(dados)
+                body: dados
 
-        });
+            }
 
-
-    /*
-     * Remove dados antigos.
-     */
-
-    invalidarCache(aba);
+        );
 
 
-    return resposta;
+    return extrairDados(
+        resposta
+    );
 
 }
 
 
-/* ============================================================
-   EXCLUIR
-============================================================ */
+// ============================================================
+// EXCLUIR
+// ============================================================
 
 export async function excluir(
-    aba,
+    entidade,
     id
 ) {
 
-    validarAba(aba);
+    const nome =
+        normalizarEntidade(
+            entidade
+        );
 
 
     if (
@@ -706,55 +512,40 @@ export async function excluir(
     }
 
 
+    console.log(
+        `CRUD SERVICE → EXCLUIR ${entidade}:`,
+        id
+    );
+
+
     const resposta =
-        await requisicao({
+        await requisicao(
 
-            acao: "excluir",
+            `/${nome}/${encodeURIComponent(id)}`,
 
-            aba,
+            {
 
-            id
+                method: "DELETE"
 
-        });
+            }
 
-
-    /*
-     * Remove dados antigos.
-     */
-
-    invalidarCache(aba);
-
-
-    return resposta;
-
-}
-
-
-/* ============================================================
-   VALIDAÇÃO — ABA
-============================================================ */
-
-function validarAba(aba) {
-
-    if (
-        !aba ||
-        typeof aba !== "string"
-    ) {
-
-        throw new Error(
-            "CRUD Service: nome da entidade/aba não informado."
         );
 
-    }
+
+    return extrairDados(
+        resposta
+    );
 
 }
 
 
-/* ============================================================
-   VALIDAÇÃO — DADOS
-============================================================ */
+// ============================================================
+// VALIDAR DADOS
+// ============================================================
 
-function validarDados(dados) {
+function validarDados(
+    dados
+) {
 
     if (
         !dados ||
@@ -769,3 +560,25 @@ function validarDados(dados) {
     }
 
 }
+
+
+// ============================================================
+// EXPORTAÇÃO
+// ============================================================
+
+export default {
+
+    listar,
+
+    obter,
+
+    criar,
+
+    salvar,
+
+    atualizar,
+
+    excluir
+
+};
+```
