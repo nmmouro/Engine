@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================================
  * FORM ENGINE
@@ -1633,5 +1632,3 @@ export function getRegistroAtual() {
     return registroAtual;
 
 }
-```
-
