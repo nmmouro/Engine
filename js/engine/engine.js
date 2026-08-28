@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * ENGINE
@@ -1915,5 +1914,3 @@ export function createEngine(config = {}) {
     return engine;
 
 }
-```
-
