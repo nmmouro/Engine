@@ -1,8 +1,12 @@
+```html
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
+
+    <!-- ============================================================
+         CONFIGURAÇÕES
+    ============================================================ -->
 
     <meta charset="UTF-8">
 
@@ -11,16 +15,28 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Painel Frota</title>
+    <meta
+        name="description"
+        content="Painel Frota - Sistema de gerenciamento de frota"
+    >
+
+    <title>
+        Painel Frota
+    </title>
+
+
+    <!-- ============================================================
+         CSS
+    ============================================================ -->
 
     <link
         rel="stylesheet"
-        href="css/style.css"
+        href="./css/style.css"
     >
 
     <link
         rel="stylesheet"
-        href="css/components.css"
+        href="./css/components.css"
     >
 
 </head>
@@ -28,95 +44,182 @@
 
 <body>
 
-    <main class="page-container">
 
-        <!-- HEADER -->
-        <div id="header"></div>
+    <!-- ============================================================
+         PÁGINA INICIAL
+    ============================================================ -->
 
+    <main
+        id="app"
+        class="app-container"
+    >
 
-        <!-- MENU -->
-        <section class="card">
+        <!-- ========================================================
+             CABEÇALHO
+        ======================================================== -->
 
-            <div class="card-header">
+        <header class="page-header">
 
-                <h2>
-                    Painel Frota
-                </h2>
+            <div class="page-header-content">
 
-            </div>
+                <div>
 
+                    <h1>
+                        Painel Frota
+                    </h1>
 
-            <div class="card-body">
-
-                <div class="menu-grid">
-
-
-                    <a
-                        href="veiculos.html"
-                        class="menu-card"
-                    >
-
-                        <span class="menu-card-title">
-                            Veículos
-                        </span>
-
-                        <span class="menu-card-description">
-                            Cadastro e gerenciamento de veículos
-                        </span>
-
-                    </a>
-
-
-                    <a
-                        href="empregados.html"
-                        class="menu-card"
-                    >
-
-                        <span class="menu-card-title">
-                            Empregados
-                        </span>
-
-                        <span class="menu-card-description">
-                            Cadastro e gerenciamento de empregados
-                        </span>
-
-                    </a>
-
-
-                    <a
-                        href="lancamentos.html"
-                        class="menu-card"
-                    >
-
-                        <span class="menu-card-title">
-                            Lançamentos
-                        </span>
-
-                        <span class="menu-card-description">
-                            Registro e gerenciamento de lançamentos
-                        </span>
-
-                    </a>
-
+                    <p>
+                        Sistema de gerenciamento de frota
+                    </p>
 
                 </div>
 
             </div>
 
+        </header>
+
+
+        <!-- ========================================================
+             MENU PRINCIPAL
+        ======================================================== -->
+
+        <section
+            class="menu-home"
+            aria-label="Menu principal"
+        >
+
+
+            <!-- ====================================================
+                 VEÍCULOS
+            ==================================================== -->
+
+            <a
+                href="./veiculo.html"
+                class="menu-card"
+            >
+
+                <span
+                    class="menu-card-icon"
+                    aria-hidden="true"
+                >
+                    🚗
+                </span>
+
+                <span
+                    class="menu-card-title"
+                >
+                    Veículos
+                </span>
+
+                <span
+                    class="menu-card-description"
+                >
+                    Cadastro e gerenciamento dos veículos
+                </span>
+
+            </a>
+
+
+            <!-- ====================================================
+                 EMPREGADOS
+            ==================================================== -->
+
+            <a
+                href="./empregados.html"
+                class="menu-card"
+            >
+
+                <span
+                    class="menu-card-icon"
+                    aria-hidden="true"
+                >
+                    👤
+                </span>
+
+                <span
+                    class="menu-card-title"
+                >
+                    Empregados
+                </span>
+
+                <span
+                    class="menu-card-description"
+                >
+                    Cadastro e gerenciamento dos empregados
+                </span>
+
+            </a>
+
+
+            <!-- ====================================================
+                 LANÇAMENTOS
+            ==================================================== -->
+
+            <a
+                href="./lancamentos.html"
+                class="menu-card"
+            >
+
+                <span
+                    class="menu-card-icon"
+                    aria-hidden="true"
+                >
+                    📋
+                </span>
+
+                <span
+                    class="menu-card-title"
+                >
+                    Lançamentos
+                </span>
+
+                <span
+                    class="menu-card-description"
+                >
+                    Controle das ocorrências e utilização dos veículos
+                </span>
+
+            </a>
+
+
+            <!-- ====================================================
+                 DASHBOARD
+            ==================================================== -->
+
+            <a
+                href="./dashboard.html"
+                class="menu-card"
+            >
+
+                <span
+                    class="menu-card-icon"
+                    aria-hidden="true"
+                >
+                    📊
+                </span>
+
+                <span
+                    class="menu-card-title"
+                >
+                    Dashboard
+                </span>
+
+                <span
+                    class="menu-card-description"
+                >
+                    Visão geral da frota
+                </span>
+
+            </a>
+
+
         </section>
+
 
     </main>
 
 
-    <!-- ========================================================
-         PÁGINA
-    ========================================================= -->
-
-    <script
-        type="module"
-        src="js/pages/index.js"
-    ></script>
-
 </body>
 
 </html>
+```
