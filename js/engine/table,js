@@ -1,1 +1,1776 @@
+```javascript
+/**
+ * ============================================================
+ * TABLE
+ * Painel Frota
+ *
+ * Arquivo:
+ * js/engine/table.js
+ *
+ * Responsabilidade:
+ *
+ * - Renderizar tabelas
+ * - Usar dados já existentes no State
+ * - Paginação
+ * - Filtro
+ * - Ordenação
+ * - Ações padrão
+ * - Ações personalizadas
+ *
+ * NÃO acessa:
+ *
+ * - Supabase
+ * - API
+ * - CRUD Service
+ *
+ * ============================================================
+ */
+
+
+// ============================================================
+// CRIAR TABELA
+// ============================================================
+
+export function createTable(options = {}) {
+
+    const {
+
+        container,
+
+        schema = null,
+
+        state = null,
+
+        actions = {},
+
+        onEdit = null,
+
+        onDelete = null,
+
+        onRowClick = null,
+
+        emptyMessage =
+            "Nenhum registro encontrado."
+
+    } = options;
+
+
+    // ----------------------------------------------------------
+    // VALIDAR CONTAINER
+    // ----------------------------------------------------------
+
+    const elemento =
+        resolverContainer(container);
+
+
+    if (!elemento) {
+
+        throw new Error(
+            "Table: container não encontrado."
+        );
+
+    }
+
+
+    // ----------------------------------------------------------
+    // API DA TABELA
+    // ----------------------------------------------------------
+
+    const tabela = {
+
+        container:
+            elemento,
+
+        schema,
+
+        state,
+
+        actions,
+
+        render,
+
+        limpar,
+
+        atualizar,
+
+        obterRegistrosVisiveis
+
+    };
+
+
+    return tabela;
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
+    function render(registros = null) {
+
+        const lista =
+            Array.isArray(registros)
+
+                ? registros
+
+                : obterRegistrosVisiveis();
+
+
+        // ------------------------------------------------------
+        // LIMPAR
+        // ------------------------------------------------------
+
+        elemento.innerHTML = "";
+
+
+        // ------------------------------------------------------
+        // CONTAINER
+        // ------------------------------------------------------
+
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+
+        wrapper.className =
+            "table-wrapper";
+
+
+        // ------------------------------------------------------
+        // TABELA
+        // ------------------------------------------------------
+
+        const table =
+            document.createElement(
+                "table"
+            );
+
+
+        table.className =
+            "engine-table";
+
+
+        // ------------------------------------------------------
+        // THEAD
+        // ------------------------------------------------------
+
+        const thead =
+            document.createElement(
+                "thead"
+            );
+
+
+        const linhaCabecalho =
+            document.createElement(
+                "tr"
+            );
+
+
+        const campos =
+            obterCamposVisiveis();
+
+
+        campos.forEach(
+            campo => {
+
+                const th =
+                    document.createElement(
+                        "th"
+                    );
+
+
+                th.textContent =
+                    campo.label ||
+                    campo.titulo ||
+                    campo.name ||
+                    campo.campo ||
+                    "";
+
+
+                if (
+                    state &&
+                    state.ordenarPor ===
+                    obterNomeCampo(campo)
+                ) {
+
+                    th.classList.add(
+                        "ordenacao-ativa"
+                    );
+
+
+                    th.dataset.ordem =
+                        state.ordenarDirecao;
+
+                }
+
+
+                th.addEventListener(
+                    "click",
+                    () => {
+
+                        ordenar(
+                            obterNomeCampo(campo)
+                        );
+
+                    }
+                );
+
+
+                linhaCabecalho.appendChild(
+                    th
+                );
+
+            }
+        );
+
+
+        // ------------------------------------------------------
+        // COLUNA AÇÕES
+        // ------------------------------------------------------
+
+        if (
+            possuiAcoes()
+        ) {
+
+            const th =
+                document.createElement(
+                    "th"
+                );
+
+
+            th.textContent =
+                "Ações";
+
+
+            th.className =
+                "coluna-acoes";
+
+
+            linhaCabecalho.appendChild(
+                th
+            );
+
+        }
+
+
+        thead.appendChild(
+            linhaCabecalho
+        );
+
+
+        table.appendChild(
+            thead
+        );
+
+
+        // ------------------------------------------------------
+        // TBODY
+        // ------------------------------------------------------
+
+        const tbody =
+            document.createElement(
+                "tbody"
+            );
+
+
+        // ------------------------------------------------------
+        // SEM REGISTROS
+        // ------------------------------------------------------
+
+        if (
+            lista.length === 0
+        ) {
+
+            const tr =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const td =
+                document.createElement(
+                    "td"
+                );
+
+
+            td.colSpan =
+                campos.length +
+                (
+                    possuiAcoes()
+                        ? 1
+                        : 0
+                );
+
+
+            td.className =
+                "table-vazia";
+
+
+            td.textContent =
+                emptyMessage;
+
+
+            tr.appendChild(
+                td
+            );
+
+
+            tbody.appendChild(
+                tr
+            );
+
+        }
+
+
+        // ------------------------------------------------------
+        // REGISTROS
+        // ------------------------------------------------------
+
+        else {
+
+            lista.forEach(
+                registro => {
+
+                    tbody.appendChild(
+
+                        criarLinha(
+                            registro
+                        )
+
+                    );
+
+                }
+            );
+
+        }
+
+
+        table.appendChild(
+            tbody
+        );
+
+
+        wrapper.appendChild(
+            table
+        );
+
+
+        elemento.appendChild(
+            wrapper
+        );
+
+
+        // ------------------------------------------------------
+        // PAGINAÇÃO
+        // ------------------------------------------------------
+
+        if (
+            state &&
+            state.totalPaginas > 1
+        ) {
+
+            elemento.appendChild(
+                criarPaginacao()
+            );
+
+        }
+
+
+        return tabela;
+
+    }
+
+
+    // ==========================================================
+    // CRIAR LINHA
+    // ==========================================================
+
+    function criarLinha(
+        registro
+    ) {
+
+        const tr =
+            document.createElement(
+                "tr"
+            );
+
+
+        tr.dataset.id =
+            registro.ID ||
+            "";
+
+
+        // ------------------------------------------------------
+        // CLIQUE NA LINHA
+        // ------------------------------------------------------
+
+        if (
+            typeof onRowClick ===
+            "function"
+        ) {
+
+            tr.classList.add(
+                "linha-clicavel"
+            );
+
+
+            tr.addEventListener(
+                "click",
+                evento => {
+
+                    if (
+                        evento.target.closest(
+                            "button"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    onRowClick(
+                        registro
+                    );
+
+                }
+            );
+
+        }
+
+
+        // ------------------------------------------------------
+        // CAMPOS
+        // ------------------------------------------------------
+
+        const campos =
+            obterCamposVisiveis();
+
+
+        campos.forEach(
+            campo => {
+
+                const td =
+                    document.createElement(
+                        "td"
+                    );
+
+
+                const nome =
+                    obterNomeCampo(
+                        campo
+                    );
+
+
+                const valor =
+                    registro[nome];
+
+
+                td.appendChild(
+
+                    criarValor(
+                        campo,
+                        valor,
+                        registro
+                    )
+
+                );
+
+
+                tr.appendChild(
+                    td
+                );
+
+            }
+        );
+
+
+        // ------------------------------------------------------
+        // AÇÕES
+        // ------------------------------------------------------
+
+        if (
+            possuiAcoes()
+        ) {
+
+            const tdAcoes =
+                criarAcoes(
+                    registro
+                );
+
+
+            tr.appendChild(
+                tdAcoes
+            );
+
+        }
+
+
+        return tr;
+
+    }
+
+
+    // ==========================================================
+    // CRIAR VALOR
+    // ==========================================================
+
+    function criarValor(
+        campo,
+        valor,
+        registro
+    ) {
+
+        const span =
+            document.createElement(
+                "span"
+            );
+
+
+        // ------------------------------------------------------
+        // VALOR VAZIO
+        // ------------------------------------------------------
+
+        if (
+            valor === null ||
+            valor === undefined ||
+            valor === ""
+        ) {
+
+            span.textContent =
+                "—";
+
+
+            span.classList.add(
+                "valor-vazio"
+            );
+
+
+            return span;
+
+        }
+
+
+        // ------------------------------------------------------
+        // BOOLEAN
+        // ------------------------------------------------------
+
+        if (
+            campo.tipo ===
+            "boolean"
+        ) {
+
+            const ativo =
+                valor === true ||
+                valor === "true" ||
+                valor === "TRUE" ||
+                valor === "SIM";
+
+
+            span.textContent =
+                ativo
+                    ? "Sim"
+                    : "Não";
+
+
+            return span;
+
+        }
+
+
+        // ------------------------------------------------------
+        // STATUS
+        // ------------------------------------------------------
+
+        if (
+            obterNomeCampo(
+                campo
+            ).toLowerCase()
+                .includes("status")
+        ) {
+
+            span.textContent =
+                String(valor);
+
+
+            span.className =
+                "status-badge " +
+                obterClasseStatus(
+                    valor
+                );
+
+
+            return span;
+
+        }
+
+
+        // ------------------------------------------------------
+        // PADRÃO
+        // ------------------------------------------------------
+
+        span.textContent =
+            formatarValor(
+                campo,
+                valor,
+                registro
+            );
+
+
+        return span;
+
+    }
+
+
+    // ==========================================================
+    // FORMATAR VALOR
+    // ==========================================================
+
+    function formatarValor(
+        campo,
+        valor,
+        registro
+    ) {
+
+        if (
+            typeof campo.formatar ===
+            "function"
+        ) {
+
+            return campo.formatar(
+                valor,
+                registro
+            );
+
+        }
+
+
+        switch (
+            String(
+                campo.tipo || ""
+            ).toLowerCase()
+        ) {
+
+            case "numero":
+
+                return formatarNumero(
+                    valor
+                );
+
+
+            case "data":
+
+                return formatarData(
+                    valor
+                );
+
+
+            case "hora":
+
+                return formatarHora(
+                    valor
+                );
+
+
+            default:
+
+                return String(
+                    valor
+                );
+
+        }
+
+    }
+
+
+    // ==========================================================
+    // CRIAR AÇÕES
+    // ==========================================================
+
+    function criarAcoes(
+        registro
+    ) {
+
+        const containerAcoes =
+            document.createElement(
+                "div"
+            );
+
+
+        containerAcoes.className =
+            "table-acoes";
+
+
+        // ------------------------------------------------------
+        // AÇÕES PERSONALIZADAS
+        // ------------------------------------------------------
+
+        Object.entries(
+            actions
+        ).forEach(
+            ([nome, configuracao]) => {
+
+                if (
+                    !configuracao
+                ) {
+
+                    return;
+
+                }
+
+
+                let funcao =
+                    configuracao;
+
+
+                let titulo =
+                    nome;
+
+
+                let classe =
+                    "btn-acao";
+
+
+                let icone =
+                    "";
+
+
+                // ------------------------------------------------
+                // CONFIGURAÇÃO COMO OBJETO
+                // ------------------------------------------------
+
+                if (
+                    typeof configuracao ===
+                    "object"
+                ) {
+
+                    funcao =
+                        configuracao.handler ||
+                        configuracao.acao ||
+                        configuracao.callback;
+
+
+                    titulo =
+                        configuracao.label ||
+                        configuracao.titulo ||
+                        nome;
+
+
+                    classe =
+                        configuracao.className ||
+                        "btn-acao";
+
+
+                    icone =
+                        configuracao.icon ||
+                        configuracao.icone ||
+                        "";
+
+                }
+
+
+                if (
+                    typeof funcao !==
+                    "function"
+                ) {
+
+                    return;
+
+                }
+
+
+                const botao =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                botao.type =
+                    "button";
+
+
+                botao.className =
+                    classe;
+
+
+                botao.dataset.action =
+                    nome;
+
+
+                if (icone) {
+
+                    const spanIcone =
+                        document.createElement(
+                            "span"
+                        );
+
+
+                    spanIcone.textContent =
+                        icone;
+
+
+                    botao.appendChild(
+                        spanIcone
+                    );
+
+                }
+
+
+                const spanTexto =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                spanTexto.textContent =
+                    titulo;
+
+
+                botao.appendChild(
+                    spanTexto
+                );
+
+
+                botao.addEventListener(
+                    "click",
+                    evento => {
+
+                        evento.preventDefault();
+
+                        evento.stopPropagation();
+
+
+                        funcao(
+                            registro,
+                            evento
+                        );
+
+                    }
+                );
+
+
+                containerAcoes.appendChild(
+                    botao
+                );
+
+            }
+        );
+
+
+        // ------------------------------------------------------
+        // EDITAR
+        // ------------------------------------------------------
+
+        if (
+            typeof onEdit ===
+            "function"
+        ) {
+
+            containerAcoes.appendChild(
+
+                criarBotaoAcao(
+                    "Editar",
+                    "editar",
+                    registro,
+                    onEdit
+                )
+
+            );
+
+        }
+
+
+        // ------------------------------------------------------
+        // EXCLUIR
+        // ------------------------------------------------------
+
+        if (
+            typeof onDelete ===
+            "function"
+        ) {
+
+            containerAcoes.appendChild(
+
+                criarBotaoAcao(
+                    "Excluir",
+                    "excluir",
+                    registro,
+                    onDelete
+                )
+
+            );
+
+        }
+
+
+        return containerAcoes;
+
+    }
+
+
+    // ==========================================================
+    // BOTÃO DE AÇÃO
+    // ==========================================================
+
+    function criarBotaoAcao(
+        titulo,
+        nome,
+        registro,
+        callback
+    ) {
+
+        const botao =
+            document.createElement(
+                "button"
+            );
+
+
+        botao.type =
+            "button";
+
+
+        botao.className =
+            `btn-acao btn-${nome}`;
+
+
+        botao.textContent =
+            titulo;
+
+
+        botao.dataset.action =
+            nome;
+
+
+        botao.addEventListener(
+            "click",
+            evento => {
+
+                evento.preventDefault();
+
+                evento.stopPropagation();
+
+
+                callback(
+                    registro,
+                    evento
+                );
+
+            }
+        );
+
+
+        return botao;
+
+    }
+
+
+    // ==========================================================
+    // POSSUI AÇÕES
+    // ==========================================================
+
+    function possuiAcoes() {
+
+        return (
+
+            Object.keys(
+                actions
+            ).length > 0 ||
+
+            typeof onEdit ===
+            "function" ||
+
+            typeof onDelete ===
+            "function"
+
+        );
+
+    }
+
+
+    // ==========================================================
+    // CAMPOS VISÍVEIS
+    // ==========================================================
+
+    function obterCamposVisiveis() {
+
+        if (!schema) {
+
+            return [];
+
+        }
+
+
+        const campos =
+            schema.fields ||
+            schema.campos ||
+            [];
+
+
+        return campos.filter(
+            campo => {
+
+                // ------------------------------------------------
+                // NUNCA MOSTRAR ID
+                // ------------------------------------------------
+
+                const nome =
+                    obterNomeCampo(
+                        campo
+                    );
+
+
+                if (
+                    nome === "ID" ||
+                    nome.startsWith("ID ")
+                ) {
+
+                    return false;
+
+                }
+
+
+                // ------------------------------------------------
+                // HIDDEN / INVISÍVEL
+                // ------------------------------------------------
+
+                if (
+                    campo.hidden ===
+                    true
+                ) {
+
+                    return false;
+
+                }
+
+
+                if (
+                    campo.visible ===
+                    false
+                ) {
+
+                    return false;
+
+                }
+
+
+                return true;
+
+            }
+        );
+
+    }
+
+
+    // ==========================================================
+    // NOME DO CAMPO
+    // ==========================================================
+
+    function obterNomeCampo(
+        campo
+    ) {
+
+        return (
+
+            campo.name ||
+
+            campo.campo ||
+
+            campo.field ||
+
+            ""
+
+        );
+
+    }
+
+
+    // ==========================================================
+    // ORDENAR
+    // ==========================================================
+
+    function ordenar(
+        campo
+    ) {
+
+        if (!state) {
+
+            return;
+
+        }
+
+
+        if (
+            state.ordenarPor ===
+            campo
+        ) {
+
+            state.ordenarDirecao =
+                state.ordenarDirecao ===
+                "asc"
+
+                    ? "desc"
+
+                    : "asc";
+
+        }
+
+        else {
+
+            state.ordenarPor =
+                campo;
+
+            state.ordenarDirecao =
+                "asc";
+
+        }
+
+
+        state.registros =
+            ordenarLista(
+                state.registros,
+                campo,
+                state.ordenarDirecao
+            );
+
+
+        render();
+
+    }
+
+
+    // ==========================================================
+    // ORDENAR LISTA
+    // ==========================================================
+
+    function ordenarLista(
+        lista,
+        campo,
+        direcao
+    ) {
+
+        return [
+            ...lista
+        ].sort(
+            (a, b) => {
+
+                const valorA =
+                    a[campo];
+
+                const valorB =
+                    b[campo];
+
+
+                if (
+                    valorA ===
+                    valorB
+                ) {
+
+                    return 0;
+
+                }
+
+
+                if (
+                    valorA ===
+                    null ||
+                    valorA ===
+                    undefined ||
+                    valorA === ""
+                ) {
+
+                    return 1;
+
+                }
+
+
+                if (
+                    valorB ===
+                    null ||
+                    valorB ===
+                    undefined ||
+                    valorB === ""
+                ) {
+
+                    return -1;
+
+                }
+
+
+                const resultado =
+                    String(
+                        valorA
+                    ).localeCompare(
+
+                        String(
+                            valorB
+                        ),
+
+                        "pt-BR",
+
+                        {
+                            numeric:
+                                true,
+
+                            sensitivity:
+                                "base"
+
+                        }
+
+                    );
+
+
+                return (
+
+                    direcao ===
+                    "desc"
+
+                        ? -resultado
+
+                        : resultado
+
+                );
+
+            }
+        );
+
+    }
+
+
+    // ==========================================================
+    // REGISTROS VISÍVEIS
+    // ==========================================================
+
+    function obterRegistrosVisiveis() {
+
+        if (!state) {
+
+            return [];
+
+        }
+
+
+        let lista =
+            Array.isArray(
+                state.registros
+            )
+
+                ? state.registros
+
+                : [];
+
+
+        // ------------------------------------------------------
+        // FILTRO
+        // ------------------------------------------------------
+
+        if (
+            state.filtro
+        ) {
+
+            const filtro =
+                String(
+                    state.filtro
+                )
+                .toLowerCase();
+
+
+            lista =
+                lista.filter(
+                    registro => {
+
+                        return Object.values(
+                            registro
+                        ).some(
+                            valor =>
+
+                                String(
+                                    valor ??
+                                    ""
+                                )
+                                .toLowerCase()
+                                .includes(
+                                    filtro
+                                )
+
+                        );
+
+                    }
+                );
+
+        }
+
+
+        // ------------------------------------------------------
+        // FILTROS ESPECÍFICOS
+        // ------------------------------------------------------
+
+        if (
+            state.filtros &&
+            typeof state.filtros ===
+            "object"
+        ) {
+
+            Object.entries(
+                state.filtros
+            ).forEach(
+                ([campo, valor]) => {
+
+                    if (
+                        valor ===
+                        "" ||
+                        valor ===
+                        null ||
+                        valor ===
+                        undefined
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    lista =
+                        lista.filter(
+                            registro => {
+
+                                return String(
+                                    registro[
+                                        campo
+                                    ] ??
+                                    ""
+                                )
+                                .toLowerCase()
+                                ===
+                                String(
+                                    valor
+                                )
+                                .toLowerCase();
+
+                            }
+                        );
+
+                }
+            );
+
+        }
+
+
+        // ------------------------------------------------------
+        // PAGINAÇÃO
+        // ------------------------------------------------------
+
+        const inicio =
+            (
+                state.paginaAtual -
+                1
+            ) *
+            state.pageSize;
+
+
+        return lista.slice(
+
+            inicio,
+
+            inicio +
+            state.pageSize
+
+        );
+
+    }
+
+
+    // ==========================================================
+    // PAGINAÇÃO
+    // ==========================================================
+
+    function criarPaginacao() {
+
+        const container =
+            document.createElement(
+                "div"
+            );
+
+
+        container.className =
+            "table-paginacao";
+
+
+        const anterior =
+            document.createElement(
+                "button"
+            );
+
+
+        anterior.type =
+            "button";
+
+
+        anterior.textContent =
+            "‹ Anterior";
+
+
+        anterior.disabled =
+            state.paginaAtual <= 1;
+
+
+        anterior.addEventListener(
+            "click",
+            () => {
+
+                state.paginaAtual--;
+
+                render();
+
+            }
+        );
+
+
+        const info =
+            document.createElement(
+                "span"
+            );
+
+
+        info.textContent =
+            `Página ${state.paginaAtual} de ${state.totalPaginas}`;
+
+
+        const proxima =
+            document.createElement(
+                "button"
+            );
+
+
+        proxima.type =
+            "button";
+
+
+        proxima.textContent =
+            "Próxima ›";
+
+
+        proxima.disabled =
+            state.paginaAtual >=
+            state.totalPaginas;
+
+
+        proxima.addEventListener(
+            "click",
+            () => {
+
+                state.paginaAtual++;
+
+                render();
+
+            }
+        );
+
+
+        container.appendChild(
+            anterior
+        );
+
+
+        container.appendChild(
+            info
+        );
+
+
+        container.appendChild(
+            proxima
+        );
+
+
+        return container;
+
+    }
+
+
+    // ==========================================================
+    // ATUALIZAR
+    // ==========================================================
+
+    function atualizar(
+        registros = null
+    ) {
+
+        render(
+            registros
+        );
+
+    }
+
+
+    // ==========================================================
+    // LIMPAR
+    // ==========================================================
+
+    function limpar() {
+
+        elemento.innerHTML =
+            "";
+
+    }
+
+}
+
+
+// ============================================================
+// RESOLVER CONTAINER
+// ============================================================
+
+function resolverContainer(
+    container
+) {
+
+    if (
+        container instanceof
+        HTMLElement
+    ) {
+
+        return container;
+
+    }
+
+
+    if (
+        typeof container ===
+        "string"
+    ) {
+
+        return document.querySelector(
+            container
+        );
+
+    }
+
+
+    return null;
+
+}
+
+
+// ============================================================
+// FORMATAR NÚMERO
+// ============================================================
+
+function formatarNumero(
+    valor
+) {
+
+    const numero =
+        Number(valor);
+
+
+    if (
+        Number.isNaN(numero)
+    ) {
+
+        return String(
+            valor
+        );
+
+    }
+
+
+    return new Intl.NumberFormat(
+        "pt-BR",
+        {
+            maximumFractionDigits:
+                2
+        }
+    ).format(
+        numero
+    );
+
+}
+
+
+// ============================================================
+// FORMATAR DATA
+// ============================================================
+
+function formatarData(
+    valor
+) {
+
+    if (
+        !valor
+    ) {
+
+        return "";
+
+    }
+
+
+    const texto =
+        String(valor);
+
+
+    // YYYY-MM-DD
+
+    if (
+        /^\d{4}-\d{2}-\d{2}$/
+            .test(texto)
+    ) {
+
+        const [
+            ano,
+            mes,
+            dia
+        ] =
+            texto.split("-");
+
+
+        return `${dia}/${mes}/${ano}`;
+
+    }
+
+
+    return texto;
+
+}
+
+
+// ============================================================
+// FORMATAR HORA
+// ============================================================
+
+function formatarHora(
+    valor
+) {
+
+    if (
+        !valor
+    ) {
+
+        return "";
+
+    }
+
+
+    const texto =
+        String(valor);
+
+
+    return texto
+        .substring(
+            0,
+            5
+        );
+
+}
+
+
+// ============================================================
+// STATUS
+// ============================================================
+
+function obterClasseStatus(
+    valor
+) {
+
+    const status =
+        String(
+            valor || ""
+        )
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .toLowerCase()
+        .replace(
+            /\s+/g,
+            "-"
+        );
+
+
+    const mapa = {
+
+        "livre":
+            "status-livre",
+
+        "ocupado":
+            "status-ocupado",
+
+        "em-andamento":
+            "status-andamento",
+
+        "agendado":
+            "status-agendado",
+
+        "finalizado":
+            "status-concluido",
+
+        "concluido":
+            "status-concluido",
+
+        "cancelado":
+            "status-cancelado",
+
+        "manutencao":
+            "status-manutencao"
+
+    };
+
+
+    return (
+        mapa[status] ||
+        "status-default"
+    );
+
+}
+
+
+// ============================================================
+// FUNÇÃO AUXILIAR — RENDER DIRETO
+// ============================================================
+
+export function renderTable(
+    container,
+    schema,
+    registros,
+    options = {}
+) {
+
+    const tabela =
+        createTable({
+
+            container,
+
+            schema,
+
+            state:
+                options.state ||
+                null,
+
+            actions:
+                options.actions ||
+                {},
+
+            onEdit:
+                options.onEdit ||
+                null,
+
+            onDelete:
+                options.onDelete ||
+                null,
+
+            onRowClick:
+                options.onRowClick ||
+                null
+
+        });
+
+
+    tabela.render(
+        registros
+    );
+
+
+    return tabela;
+
+}
+```
 
