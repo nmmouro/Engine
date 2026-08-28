@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * TABLE
@@ -1772,5 +1771,3 @@ export function renderTable(
     return tabela;
 
 }
-```
-
