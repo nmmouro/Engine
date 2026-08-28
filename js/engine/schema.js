@@ -1,57 +1,92 @@
 ```javascript
 // ============================================================================
-// ENGINE SCHEMA
+// ENGINE - SCHEMA
 // Arquivo: js/engine/schema.js
 //
 // Responsável por:
 //
-// - Validar schemas
+// - Criar schemas
+// - Normalizar schemas
 // - Normalizar campos
 // - Localizar campos
-// - Separar campos visíveis e ocultos
-// - Preparar configurações utilizadas pelo Engine
+// - Obter campos do formulário
+// - Obter campos da tabela
+// - Validar campos
+//
+// Compatível com:
+//
+// createSchema({
+//     entity: "VEICULOS",
+//     fields: []
+// })
+//
+// e também com:
+//
+// {
+//     nome: "VEÍCULOS",
+//     campos: []
+// }
 //
 // ============================================================================
 
 
 // ============================================================================
-// CRIAR SCHEMA
+// CREATE SCHEMA
 // ============================================================================
 
 export function createSchema(config = {}) {
 
-    const {
+    const entity =
+        config.entity ||
+        config.nome ||
+        config.name ||
+        "";
 
-        entity,
+    const table =
+        config.table ||
+        config.tabela ||
+        entity;
 
-        table,
+    const title =
+        config.title ||
+        config.titulo ||
+        config.nome ||
+        entity;
 
-        title,
+    const key =
+        config.key ||
+        config.chave ||
+        "ID";
 
-        key = "ID",
-
-        fields = []
-
-    } = config;
+    const fields =
+        config.fields ||
+        config.campos ||
+        [];
 
 
     // ------------------------------------------------------------------------
-    // VALIDAÇÕES
+    // VALIDAR ENTIDADE
     // ------------------------------------------------------------------------
 
     if (!entity) {
 
         throw new Error(
-            "Schema: propriedade 'entity' não informada."
+            "Schema: entidade não informada."
         );
 
     }
 
 
+    // ------------------------------------------------------------------------
+    // VALIDAR CAMPOS
+    // ------------------------------------------------------------------------
+
     if (!Array.isArray(fields)) {
 
         throw new Error(
-            `Schema ${entity}: 'fields' deve ser um array.`
+            "Schema " +
+            entity +
+            ": 'fields' deve ser um array."
         );
 
     }
@@ -62,21 +97,20 @@ export function createSchema(config = {}) {
     // ------------------------------------------------------------------------
 
     const normalizedFields =
-
         fields.map(
+            (field, index) => {
 
-            (field, index) =>
-
-                normalizeField(
+                return normalizeField(
                     field,
                     index
-                )
+                );
 
+            }
         );
 
 
     // ------------------------------------------------------------------------
-    // VALIDAR CAMPOS DUPLICADOS
+    // VALIDAR DUPLICIDADE
     // ------------------------------------------------------------------------
 
     validateDuplicateFields(
@@ -86,23 +120,26 @@ export function createSchema(config = {}) {
 
 
     // ------------------------------------------------------------------------
-    // RETORNO DO SCHEMA
+    // RETORNAR SCHEMA
     // ------------------------------------------------------------------------
 
     return {
 
         entity,
 
-        table:
-            table || entity.toLowerCase(),
+        table,
 
-        title:
-            title || entity,
+        title,
 
         key,
 
         fields:
             normalizedFields,
+
+
+        // ------------------------------------------------------------
+        // OBTER CAMPO
+        // ------------------------------------------------------------
 
         getField(name) {
 
@@ -113,6 +150,25 @@ export function createSchema(config = {}) {
 
         },
 
+
+        // ------------------------------------------------------------
+        // VERIFICAR CAMPO
+        // ------------------------------------------------------------
+
+        hasField(name) {
+
+            return hasField(
+                normalizedFields,
+                name
+            );
+
+        },
+
+
+        // ------------------------------------------------------------
+        // CAMPOS VISÍVEIS
+        // ------------------------------------------------------------
+
         getVisibleFields() {
 
             return getVisibleFields(
@@ -121,6 +177,11 @@ export function createSchema(config = {}) {
 
         },
 
+
+        // ------------------------------------------------------------
+        // CAMPOS DO FORMULÁRIO
+        // ------------------------------------------------------------
+
         getFormFields() {
 
             return getFormFields(
@@ -128,6 +189,11 @@ export function createSchema(config = {}) {
             );
 
         },
+
+
+        // ------------------------------------------------------------
+        // CAMPOS DA TABELA
+        // ------------------------------------------------------------
 
         getTableFields() {
 
@@ -151,40 +217,188 @@ export function normalizeField(
     index = 0
 ) {
 
-    if (!field || typeof field !== "object") {
+    if (
+        !field ||
+        typeof field !== "object"
+    ) {
 
         throw new Error(
-            `Schema: campo inválido na posição ${index}.`
+            "Schema: campo inválido na posição " +
+            index +
+            "."
         );
 
     }
 
 
-    const {
+    // ------------------------------------------------------------------------
+    // NOME
+    // ------------------------------------------------------------------------
+
+    const name =
+        field.name ||
+        field.field ||
+        field.campo ||
+        "";
+
+
+    if (!name) {
+
+        throw new Error(
+            "Schema: campo sem nome na posição " +
+            index +
+            "."
+        );
+
+    }
+
+
+    // ------------------------------------------------------------------------
+    // LABEL
+    // ------------------------------------------------------------------------
+
+    const label =
+        field.label ||
+        field.title ||
+        field.titulo ||
+        name;
+
+
+    // ------------------------------------------------------------------------
+    // TIPO
+    // ------------------------------------------------------------------------
+
+    const type =
+        field.type ||
+        field.tipo ||
+        "text";
+
+
+    // ------------------------------------------------------------------------
+    // OPÇÕES
+    // ------------------------------------------------------------------------
+
+    let options =
+        field.options ||
+        field.opcoes ||
+        [];
+
+
+    if (!Array.isArray(options)) {
+
+        options = [];
+
+    }
+
+
+    // ------------------------------------------------------------------------
+    // OBRIGATÓRIO
+    // ------------------------------------------------------------------------
+
+    const required =
+        field.required === true ||
+        field.obrigatorio === true;
+
+
+    // ------------------------------------------------------------------------
+    // VISIBILIDADE
+    // ------------------------------------------------------------------------
+
+    const visible =
+        field.visible !== false;
+
+
+    // ------------------------------------------------------------------------
+    // FORMULÁRIO
+    // ------------------------------------------------------------------------
+
+    const form =
+        field.form !== false;
+
+
+    // ------------------------------------------------------------------------
+    // TABELA
+    // ------------------------------------------------------------------------
+
+    const table =
+        field.table !== false;
+
+
+    // ------------------------------------------------------------------------
+    // SOMENTE LEITURA
+    // ------------------------------------------------------------------------
+
+    const readonly =
+        field.readonly === true;
+
+
+    // ------------------------------------------------------------------------
+    // DESABILITADO
+    // ------------------------------------------------------------------------
+
+    const disabled =
+        field.disabled === true;
+
+
+    // ------------------------------------------------------------------------
+    // VALOR PADRÃO
+    // ------------------------------------------------------------------------
+
+    let defaultValue;
+
+    if (
+        field.defaultValue !== undefined
+    ) {
+
+        defaultValue =
+            field.defaultValue;
+
+    } else {
+
+        defaultValue =
+            field.valorPadrao;
+
+    }
+
+
+    // ------------------------------------------------------------------------
+    // RETORNO
+    // ------------------------------------------------------------------------
+
+    return {
+
+        ...field,
 
         name,
 
-        field: fieldName,
+        field:
+            name,
 
-        campo,
+        campo:
+            name,
 
         label,
 
-        title,
+        title:
+            label,
 
-        titulo,
+        titulo:
+            label,
 
         type,
 
-        tipo,
+        tipo:
+            type,
 
         options,
 
-        opcoes,
+        opcoes:
+            options,
 
         required,
 
-        obrigatorio,
+        obrigatorio:
+            required,
 
         visible,
 
@@ -198,209 +412,10 @@ export function normalizeField(
 
         defaultValue,
 
-        valorPadrao,
-
-        placeholder,
-
-        width
-
-    } = field;
-
-
-    // ------------------------------------------------------------------------
-    // NOME DO CAMPO
-    // ------------------------------------------------------------------------
-
-    const finalName =
-        name ||
-        fieldName ||
-        campo;
-
-
-    if (!finalName) {
-
-        throw new Error(
-            `Schema: campo sem nome na posição ${index}.`
-        );
-
-    }
-
-
-    // ------------------------------------------------------------------------
-    // LABEL
-    // ------------------------------------------------------------------------
-
-    const finalLabel =
-        label ||
-        title ||
-        titulo ||
-        finalName;
-
-
-    // ------------------------------------------------------------------------
-    // TIPO
-    // ------------------------------------------------------------------------
-
-    const finalType =
-        type ||
-        tipo ||
-        "text";
-
-
-    // ------------------------------------------------------------------------
-    // OPÇÕES
-    // ------------------------------------------------------------------------
-
-    const finalOptions =
-        options ||
-        opcoes ||
-        [];
-
-
-    // ------------------------------------------------------------------------
-    // OBRIGATÓRIO
-    // ------------------------------------------------------------------------
-
-    const finalRequired =
-
-        required === true ||
-        obrigatorio === true;
-
-
-    // ------------------------------------------------------------------------
-    // VALOR PADRÃO
-    // ------------------------------------------------------------------------
-
-    const finalDefaultValue =
-
-        defaultValue !== undefined
-            ? defaultValue
-            : valorPadrao;
-
-
-    // ------------------------------------------------------------------------
-    // CONFIGURAÇÃO NORMALIZADA
-    // ------------------------------------------------------------------------
-
-    return {
-
-        ...field,
-
-        name:
-            finalName,
-
-        field:
-            finalName,
-
-        campo:
-            finalName,
-
-
-        label:
-            finalLabel,
-
-        title:
-            finalLabel,
-
-        titulo:
-            finalLabel,
-
-
-        type:
-            finalType,
-
-        tipo:
-            finalType,
-
-
-        options:
-            finalOptions,
-
-        opcoes:
-            finalOptions,
-
-
-        required:
-            finalRequired,
-
-        obrigatorio:
-            finalRequired,
-
-
-        visible:
-            visible !== false,
-
-
-        form:
-            form !== false,
-
-
-        table:
-            table !== false,
-
-
-        readonly:
-            readonly === true,
-
-
-        disabled:
-            disabled === true,
-
-
-        defaultValue:
-            finalDefaultValue,
-
         valorPadrao:
-            finalDefaultValue,
-
-
-        placeholder:
-            placeholder || "",
-
-
-        width:
-            width || null
+            defaultValue
 
     };
-
-}
-
-
-// ============================================================================
-// VALIDAR CAMPOS DUPLICADOS
-// ============================================================================
-
-export function validateDuplicateFields(
-    fields,
-    entity = ""
-) {
-
-    const names =
-        new Set();
-
-
-    fields.forEach(
-        field => {
-
-            if (
-                names.has(
-                    field.name
-                )
-            ) {
-
-                throw new Error(
-                    `Schema ${entity}: campo duplicado '${field.name}'.`
-                );
-
-            }
-
-
-            names.add(
-                field.name
-            );
-
-        }
-    );
 
 }
 
@@ -414,7 +429,10 @@ export function getField(
     name
 ) {
 
-    if (!name) {
+    if (
+        !Array.isArray(fields) ||
+        !name
+    ) {
 
         return null;
 
@@ -424,18 +442,22 @@ export function getField(
     return (
 
         fields.find(
-            field =>
+            field => {
 
-                field.name === name ||
+                return (
 
-                field.field === name ||
+                    field.name === name ||
 
-                field.campo === name
+                    field.field === name ||
+
+                    field.campo === name
+
+                );
+
+            }
         )
 
-        ||
-
-        null
+        || null
 
     );
 
@@ -443,7 +465,7 @@ export function getField(
 
 
 // ============================================================================
-// VERIFICAR SE CAMPO EXISTE
+// VERIFICAR CAMPO
 // ============================================================================
 
 export function hasField(
@@ -469,10 +491,21 @@ export function getVisibleFields(
     fields = []
 ) {
 
-    return fields.filter(
-        field =>
+    if (
+        !Array.isArray(fields)
+    ) {
 
-            field.visible !== false
+        return [];
+
+    }
+
+
+    return fields.filter(
+        field => {
+
+            return field.visible !== false;
+
+        }
     );
 
 }
@@ -486,20 +519,51 @@ export function getFormFields(
     fields = []
 ) {
 
+    if (
+        !Array.isArray(fields)
+    ) {
+
+        return [];
+
+    }
+
+
     return fields.filter(
         field => {
 
-            return (
+            if (
+                field.visible === false
+            ) {
 
-                field.visible !== false &&
+                return false;
 
-                field.form !== false &&
+            }
 
-                field.type !== "id" &&
 
-                field.tipo !== "id"
+            if (
+                field.form === false
+            ) {
 
-            );
+                return false;
+
+            }
+
+
+            // ------------------------------------------------------------
+            // ID NÃO APARECE NO FORMULÁRIO
+            // ------------------------------------------------------------
+
+            if (
+                field.type === "id" ||
+                field.tipo === "id"
+            ) {
+
+                return false;
+
+            }
+
+
+            return true;
 
         }
     );
@@ -515,19 +579,93 @@ export function getTableFields(
     fields = []
 ) {
 
+    if (
+        !Array.isArray(fields)
+    ) {
+
+        return [];
+
+    }
+
+
     return fields.filter(
         field => {
 
-            return (
+            if (
+                field.visible === false
+            ) {
 
-                field.visible !== false &&
+                return false;
 
-                field.table !== false &&
+            }
 
-                field.type !== "id" &&
 
-                field.tipo !== "id"
+            if (
+                field.table === false
+            ) {
 
+                return false;
+
+            }
+
+
+            // ------------------------------------------------------------
+            // ID NÃO APARECE NA TABELA
+            // ------------------------------------------------------------
+
+            if (
+                field.type === "id" ||
+                field.tipo === "id"
+            ) {
+
+                return false;
+
+            }
+
+
+            return true;
+
+        }
+    );
+
+}
+
+
+// ============================================================================
+// VALIDAR CAMPOS DUPLICADOS
+// ============================================================================
+
+export function validateDuplicateFields(
+    fields = [],
+    entity = ""
+) {
+
+    const names =
+        new Set();
+
+
+    fields.forEach(
+        field => {
+
+            if (
+                names.has(
+                    field.name
+                )
+            ) {
+
+                throw new Error(
+                    "Schema " +
+                    entity +
+                    ": campo duplicado '" +
+                    field.name +
+                    "'."
+                );
+
+            }
+
+
+            names.add(
+                field.name
             );
 
         }
@@ -537,34 +675,32 @@ export function getTableFields(
 
 
 // ============================================================================
-// NORMALIZAR SCHEMA JÁ EXISTENTE
+// NORMALIZAR SCHEMA EXISTENTE
 // ============================================================================
 
 export function normalizeSchema(
     schema = {}
 ) {
 
-    if (!schema) {
+    if (
+        !schema ||
+        typeof schema !== "object"
+    ) {
 
         throw new Error(
-            "Schema não informado."
+            "Schema inválido."
         );
 
     }
 
 
     // ------------------------------------------------------------------------
-    // SE JÁ FOI CRIADO PELO createSchema()
+    // SE JÁ ESTIVER NORMALIZADO
     // ------------------------------------------------------------------------
 
     if (
-
-        typeof schema.getField === "function" &&
-
-        Array.isArray(
-            schema.fields
-        )
-
+        Array.isArray(schema.fields) &&
+        typeof schema.getField === "function"
     ) {
 
         return schema;
@@ -573,63 +709,33 @@ export function normalizeSchema(
 
 
     // ------------------------------------------------------------------------
-    // COMPATIBILIDADE COM:
-    //
-    // {
-    //     entity: "VEICULOS",
-    //     fields: [...]
-    // }
-    //
-    // E:
-    //
-    // {
-    //     nome: "VEÍCULOS",
-    //     campos: [...]
-    // }
+    // CONVERTER SCHEMA ANTIGO
     // ------------------------------------------------------------------------
 
     return createSchema({
 
         entity:
-
             schema.entity ||
-
             schema.nome ||
-
             schema.name,
 
-
         table:
-
             schema.table ||
-
             schema.tabela,
 
-
         title:
-
             schema.title ||
-
             schema.titulo ||
-
             schema.nome,
 
-
         key:
-
             schema.key ||
-
             schema.chave ||
-
             "ID",
 
-
         fields:
-
             schema.fields ||
-
             schema.campos ||
-
             []
 
     });
@@ -638,7 +744,7 @@ export function normalizeSchema(
 
 
 // ============================================================================
-// EXPORT PADRÃO
+// EXPORT DEFAULT
 // ============================================================================
 
 export default {
