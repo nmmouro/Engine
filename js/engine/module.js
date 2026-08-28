@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * MODULE
@@ -413,5 +412,3 @@ export function createModule(config = {}) {
     return modulo;
 
 }
-```
-
