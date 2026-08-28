@@ -57,7 +57,7 @@ export const CONFIG = {
 
         // URL base do servidor
         url:
-            API_URL,
+            "http://localhost:3000",
 
 
         // Tempo máximo de espera das requisições
