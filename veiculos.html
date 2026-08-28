@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
+
+    <!-- ============================================================
+         CONFIGURAÇÕES BÁSICAS
+    ============================================================ -->
 
     <meta charset="UTF-8">
 
@@ -11,21 +14,28 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Cadastro de Veículos - Painel Frota</title>
+    <meta
+        name="description"
+        content="Cadastro e gerenciamento de veículos - Painel Frota"
+    >
+
+    <title>
+        Veículos — Painel Frota
+    </title>
 
 
-    <!-- ========================================================
-         CSS GLOBAL
-    ========================================================= -->
+    <!-- ============================================================
+         CSS
+    ============================================================ -->
 
     <link
         rel="stylesheet"
-        href="css/style.css"
+        href="./css/style.css"
     >
 
     <link
         rel="stylesheet"
-        href="css/components.css"
+        href="./css/components.css"
     >
 
 </head>
@@ -33,25 +43,41 @@
 
 <body>
 
-    <!-- ========================================================
-         CONTAINER PRINCIPAL
-    ========================================================= -->
+
+    <!-- ============================================================
+         APLICAÇÃO
+    ============================================================ -->
 
     <main
         id="app"
-        class="page-container"
+        class="app-container"
     >
+
+        <!--
+            O Engine irá criar aqui:
+
+            - Cabeçalho
+            - Título
+            - Botão Novo
+            - Formulário
+            - Tabela
+            - Paginação
+            - Loading
+            - Mensagens
+        -->
+
     </main>
 
 
-    <!-- ========================================================
-         JAVASCRIPT
-    ========================================================= -->
+    <!-- ============================================================
+         SCRIPT PRINCIPAL
+    ============================================================ -->
 
     <script
         type="module"
-        src="js/pages/veiculos.js"
+        src="./js/pages/veiculos.js"
     ></script>
+
 
 </body>
 
