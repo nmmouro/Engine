@@ -34,7 +34,6 @@ import {
     listar,
     obter,
     criar,
-    salvar,
     atualizar,
     excluir
 
@@ -176,7 +175,20 @@ export function createEngine(config = {}) {
 
             registrarEventos();
 
-            await carregar();
+            /*
+             * CORREÇÃO PRINCIPAL
+             *
+             * carregar() é método do objeto engine.
+             * Portanto precisamos chamar:
+             *
+             *     engine.carregar()
+             *
+             * e não:
+             *
+             *     carregar()
+             */
+
+            await engine.carregar();
 
         },
 
@@ -197,6 +209,9 @@ export function createEngine(config = {}) {
 
 
             state.carregando = true;
+
+
+            mostrarLoading();
 
 
             emitirEvento(
@@ -255,6 +270,10 @@ export function createEngine(config = {}) {
                 state.carregando =
                     false;
 
+
+                esconderLoading();
+
+
                 emitirEvento(
                     "fim-carregamento"
                 );
@@ -270,7 +289,14 @@ export function createEngine(config = {}) {
 
         async recarregar() {
 
-            return carregar();
+            /*
+             * CORREÇÃO:
+             *
+             * carregar() não é função local.
+             * É método do objeto engine.
+             */
+
+            return engine.carregar();
 
         },
 
@@ -404,6 +430,9 @@ export function createEngine(config = {}) {
                 true;
 
 
+            mostrarLoading();
+
+
             emitirEvento(
                 "salvando"
             );
@@ -423,14 +452,13 @@ export function createEngine(config = {}) {
                     state.registroEditando.ID
                 ) {
 
-                    const registro =
-                        {
+                    const registro = {
 
-                            ...state.registroEditando,
+                        ...state.registroEditando,
 
-                            ...dados
+                        ...dados
 
-                        };
+                    };
 
 
                     resposta =
@@ -518,6 +546,9 @@ export function createEngine(config = {}) {
                     false;
 
 
+                esconderLoading();
+
+
                 emitirEvento(
                     "fim-salvamento"
                 );
@@ -567,7 +598,11 @@ export function createEngine(config = {}) {
                     state.registros.filter(
 
                         registro =>
-                            registro.ID !== id
+
+                            String(
+                                registro.ID
+                            ) !==
+                            String(id)
 
                     );
 
@@ -738,10 +773,10 @@ export function createEngine(config = {}) {
 
     function renderizarEstrutura() {
 
-        // ----------------------------------------------------
-        // Se o módulo já possui HTML próprio,
-        // não sobrescrever.
-        // ----------------------------------------------------
+        /*
+         * Se o módulo já possui HTML próprio,
+         * não sobrescrever.
+         */
 
         if (
             container.children.length > 0
@@ -770,6 +805,7 @@ export function createEngine(config = {}) {
                         </h1>
 
                     </div>
+
 
                     <div class="engine-toolbar">
 
@@ -804,9 +840,11 @@ export function createEngine(config = {}) {
 
                 <div class="engine-table-container">
 
-                    <div class="engine-loading"
-                         data-engine-loading
-                         hidden>
+                    <div
+                        class="engine-loading"
+                        data-engine-loading
+                        hidden
+                    >
 
                         Carregando...
 
@@ -892,6 +930,7 @@ export function createEngine(config = {}) {
                         id
                     );
 
+
                     return;
 
                 }
@@ -912,6 +951,7 @@ export function createEngine(config = {}) {
                     engine.excluir(
                         id
                     );
+
 
                     return;
 
@@ -938,6 +978,7 @@ export function createEngine(config = {}) {
                         state.registros.find(
 
                             item =>
+
                                 String(
                                     item.ID
                                 ) ===
@@ -1008,7 +1049,6 @@ export function createEngine(config = {}) {
 
             `;
 
-
             return;
 
         }
@@ -1035,11 +1075,13 @@ export function createEngine(config = {}) {
                 html += `
 
                     <th>
+
                         ${escaparHTML(
                             obterTituloColuna(
                                 coluna
                             )
                         )}
+
                     </th>
 
                 `;
@@ -1079,10 +1121,12 @@ export function createEngine(config = {}) {
                         html += `
 
                             <td>
+
                                 ${formatarCelula(
                                     registro[nome],
                                     coluna
                                 )}
+
                             </td>
 
                         `;
@@ -1207,11 +1251,13 @@ export function createEngine(config = {}) {
                                 registro.ID
                             )}"
                         >
+
                             ${escaparHTML(
                                 obterTituloAction(
                                     nome
                                 )
                             )}
+
                         </button>
 
                     `;
@@ -1253,7 +1299,9 @@ export function createEngine(config = {}) {
 
                     campo.visible !== false &&
 
-                    campo.hidden !== true
+                    campo.hidden !== true &&
+
+                    campo.name !== "ID"
 
             );
 
@@ -1271,8 +1319,11 @@ export function createEngine(config = {}) {
 
         .map(
             campo => ({
+
                 name: campo,
+
                 label: campo
+
             })
         );
 
@@ -1653,9 +1704,11 @@ export function createEngine(config = {}) {
             state.registros.findIndex(
 
                 item =>
+
                     String(
                         item.ID
                     ) ===
+
                     String(
                         registro.ID
                     )
@@ -1756,10 +1809,6 @@ export function createEngine(config = {}) {
 
             "Ocorreu um erro.";
 
-        
-        // Evita interromper o Engine
-        // caso o projeto possua seu próprio
-        // sistema de toast.
 
         if (
             typeof window.mostrarToast ===
