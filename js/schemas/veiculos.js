@@ -1,4 +1,3 @@
-```javascript
 // ============================================================================
 // SCHEMA — VEÍCULOS
 // Painel Frota
@@ -297,4 +296,3 @@ export const SCHEMA_VEICULOS = createSchema({
     ]
 
 });
-```
