@@ -1,24 +1,41 @@
+```javascript
 /**
  * ============================================================
  * CRUD SERVICE
  * Painel Frota
  *
- * Comunicação entre o Engine e a API Node.js.
+ * Arquivo:
  *
- * Não possui conhecimento específico de:
- * - VEICULOS
- * - EMPREGADOS
- * - LANCAMENTOS
+ *     js/services/crudService.js
  *
- * O nome da entidade/rota é recebido dinamicamente.
+ * ============================================================
+ *
+ * RESPONSABILIDADE
+ * ============================================================
+ *
+ * Fazer a comunicação entre:
+ *
+ *     Engine
+ *        ↓
+ *     CRUD Service
+ *        ↓
+ *     Google Apps Script
+ *        ↓
+ *     Router
+ *        ↓
+ *     Google Sheets
+ *
+ *
+ * O Service NÃO conhece detalhes das páginas.
  *
  * Exemplos:
  *
- * listar("VEICULOS")
- * obter("VEICULOS", "VEI000001")
- * criar("VEICULOS", dados)
- * atualizar("VEICULOS", dados)
- * excluir("VEICULOS", "VEI000001")
+ *     listar("VEICULOS")
+ *     obter("VEICULOS", "VEI000001")
+ *     criar("VEICULOS", dados)
+ *     atualizar("VEICULOS", dados)
+ *     excluir("VEICULOS", "VEI000001")
+ *
  * ============================================================
  */
 
@@ -26,53 +43,158 @@ import { CONFIG } from "../config/config.js";
 
 
 // ============================================================
-// CONFIGURAÇÃO
+// CONFIGURAÇÃO DA API
 // ============================================================
 
 const API_URL =
-    CONFIG?.api?.url || "http://localhost:3000/api";
+    CONFIG?.api?.url || "";
 
 
 // ============================================================
-// REQUISIÇÃO BASE
+// VALIDAR URL DA API
 // ============================================================
 
-async function requisicao(
-    endpoint,
-    opcoes = {}
-) {
+if (!API_URL) {
 
-    const url =
-        `${API_URL}${endpoint}`;
+    console.error(
+        "CRUD SERVICE: CONFIG.api.url não foi configurada."
+    );
+
+}
 
 
-    const configuracao = {
+// ============================================================
+// MAPA DAS ENTIDADES
+// ============================================================
+//
+// O Engine trabalha com nomes simples:
+//
+//     VEICULOS
+//     EMPREGADOS
+//     LANCAMENTOS
+//
+// A planilha pode possuir nomes diferentes.
+//
+// Aqui fazemos a conversão.
+//
+// ============================================================
 
-        method:
-            opcoes.method || "GET",
+const MAPA_ABAS = {
 
-        headers: {
+    VEICULOS:
+        "VEÍCULOS",
 
-            "Content-Type":
-                "application/json",
+    "VEÍCULOS":
+        "VEÍCULOS",
 
-            ...(opcoes.headers || {})
+    EMPREGADOS:
+        "EMPREGADOS",
 
-        }
+    LANCAMENTOS:
+        "LANCAMENTOS"
 
-    };
+};
+
+
+// ============================================================
+// NORMALIZAR ENTIDADE
+// ============================================================
+
+function normalizarEntidade(entidade) {
+
+    if (
+        !entidade ||
+        typeof entidade !== "string"
+    ) {
+
+        throw new Error(
+            "CRUD Service: entidade não informada."
+        );
+
+    }
+
+
+    const nome =
+        entidade
+            .trim()
+            .toUpperCase();
+
+
+    return MAPA_ABAS[nome] || nome;
+
+}
+
+
+// ============================================================
+// VALIDAR CONFIGURAÇÃO
+// ============================================================
+
+function validarAPI() {
+
+    if (!API_URL) {
+
+        throw new Error(
+            "CRUD Service: URL da API não configurada. " +
+            "Verifique CONFIG.api.url."
+        );
+
+    }
 
 
     if (
-        opcoes.body !== undefined
+        API_URL.includes("localhost")
     ) {
 
-        configuracao.body =
-            JSON.stringify(
-                opcoes.body
-            );
+        throw new Error(
+            "CRUD Service: CONFIG.api.url ainda aponta para localhost. " +
+            "Configure a URL do Google Apps Script."
+        );
 
     }
+
+}
+
+
+// ============================================================
+// REQUISIÇÃO GET
+// ============================================================
+
+async function requisicaoGET(
+    parametros = {}
+) {
+
+    validarAPI();
+
+
+    const url =
+        new URL(API_URL);
+
+
+    Object.entries(parametros)
+        .forEach(
+            ([chave, valor]) => {
+
+                if (
+                    valor !== undefined &&
+                    valor !== null &&
+                    valor !== ""
+                ) {
+
+                    url.searchParams.set(
+                        chave,
+                        valor
+                    );
+
+                }
+
+            }
+        );
+
+
+    console.log(
+        "CRUD SERVICE → GET:",
+        url.toString()
+    );
 
 
     let resposta;
@@ -82,8 +204,14 @@ async function requisicao(
 
         resposta =
             await fetch(
-                url,
-                configuracao
+                url.toString(),
+                {
+
+                    method: "GET",
+
+                    cache: "no-store"
+
+                }
             );
 
     } catch (erro) {
@@ -93,18 +221,109 @@ async function requisicao(
             erro
         );
 
+
         throw new Error(
-            "Não foi possível conectar ao servidor."
+            "Não foi possível conectar ao Google Apps Script."
         );
 
     }
 
 
-    // ========================================================
-    // TENTAR LER JSON
-    // ========================================================
+    return processarResposta(
+        resposta
+    );
 
-    let dadosResposta = null;
+}
+
+
+// ============================================================
+// REQUISIÇÃO POST
+// ============================================================
+
+async function requisicaoPOST(
+    dados = {}
+) {
+
+    validarAPI();
+
+
+    console.log(
+        "CRUD SERVICE → POST:",
+        dados
+    );
+
+
+    let resposta;
+
+
+    try {
+
+        resposta =
+            await fetch(
+                API_URL,
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "text/plain;charset=utf-8"
+
+                    },
+
+                    body:
+                        JSON.stringify(
+                            dados
+                        )
+
+                }
+            );
+
+    } catch (erro) {
+
+        console.error(
+            "CRUD SERVICE → erro de conexão:",
+            erro
+        );
+
+
+        throw new Error(
+            "Não foi possível conectar ao Google Apps Script."
+        );
+
+    }
+
+
+    return processarResposta(
+        resposta
+    );
+
+}
+
+
+// ============================================================
+// PROCESSAR RESPOSTA
+// ============================================================
+
+async function processarResposta(
+    resposta
+) {
+
+    // --------------------------------------------------------
+    // HTTP
+    // --------------------------------------------------------
+
+    if (!resposta) {
+
+        throw new Error(
+            "CRUD Service: resposta vazia da API."
+        );
+
+    }
+
+
+    let dadosResposta;
 
 
     try {
@@ -114,16 +333,28 @@ async function requisicao(
 
     } catch (erro) {
 
+        console.error(
+            "CRUD SERVICE → resposta não é JSON:",
+            erro
+        );
+
+
         throw new Error(
-            `Servidor retornou uma resposta inválida. HTTP ${resposta.status}.`
+            `Resposta inválida do servidor. HTTP ${resposta.status}.`
         );
 
     }
 
 
-    // ========================================================
+    console.log(
+        "CRUD SERVICE → RESPOSTA:",
+        dadosResposta
+    );
+
+
+    // --------------------------------------------------------
     // ERRO HTTP
-    // ========================================================
+    // --------------------------------------------------------
 
     if (
         !resposta.ok
@@ -147,9 +378,9 @@ async function requisicao(
     }
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // ERRO DA API
-    // ========================================================
+    // --------------------------------------------------------
 
     if (
         dadosResposta &&
@@ -177,35 +408,6 @@ async function requisicao(
 
 
 // ============================================================
-// NORMALIZAR ENTIDADE
-// ============================================================
-
-function normalizarEntidade(
-    entidade
-) {
-
-    if (
-        !entidade ||
-        typeof entidade !== "string"
-    ) {
-
-        throw new Error(
-            "CRUD Service: entidade não informada."
-        );
-
-    }
-
-
-    return entidade
-
-        .trim()
-
-        .toLowerCase();
-
-}
-
-
-// ============================================================
 // EXTRAIR DADOS
 // ============================================================
 
@@ -224,12 +426,7 @@ function extrairDados(
 
 
     // --------------------------------------------------------
-    // API:
-    //
-    // {
-    //   sucesso: true,
-    //   dados: [...]
-    // }
+    // { sucesso: true, dados: [...] }
     // --------------------------------------------------------
 
     if (
@@ -242,11 +439,7 @@ function extrairDados(
 
 
     // --------------------------------------------------------
-    // API:
-    //
-    // {
-    //   data: [...]
-    // }
+    // { sucesso: true, data: [...] }
     // --------------------------------------------------------
 
     if (
@@ -259,7 +452,7 @@ function extrairDados(
 
 
     // --------------------------------------------------------
-    // API retorna diretamente o objeto/array
+    // Resposta direta
     // --------------------------------------------------------
 
     return resposta;
@@ -275,31 +468,38 @@ export async function listar(
     entidade
 ) {
 
-    const nome =
+    const aba =
         normalizarEntidade(
             entidade
         );
 
 
     console.log(
-        `CRUD SERVICE → LISTAR ${entidade}`
+        `CRUD SERVICE → LISTAR ${aba}`
     );
 
 
     const resposta =
-        await requisicao(
-            `/${nome}`,
-            {
-                method: "GET"
-            }
+        await requisicaoGET({
+
+            acao:
+                "listar",
+
+            aba:
+                aba
+
+        });
+
+
+    const dados =
+        extrairDados(
+            resposta
         );
 
 
-    return (
-        extrairDados(
-            resposta
-        ) || []
-    );
+    return Array.isArray(dados)
+        ? dados
+        : [];
 
 }
 
@@ -313,7 +513,7 @@ export async function obter(
     id
 ) {
 
-    const nome =
+    const aba =
         normalizarEntidade(
             entidade
         );
@@ -332,16 +532,25 @@ export async function obter(
     }
 
 
+    console.log(
+        `CRUD SERVICE → OBTER ${aba}:`,
+        id
+    );
+
+
     const resposta =
-        await requisicao(
+        await requisicaoGET({
 
-            `/${nome}/${encodeURIComponent(id)}`,
+            acao:
+                "obter",
 
-            {
-                method: "GET"
-            }
+            aba:
+                aba,
 
-        );
+            id:
+                id
+
+        });
 
 
     return extrairDados(
@@ -360,7 +569,7 @@ export async function criar(
     dados
 ) {
 
-    const nome =
+    const aba =
         normalizarEntidade(
             entidade
         );
@@ -372,25 +581,24 @@ export async function criar(
 
 
     console.log(
-        `CRUD SERVICE → CRIAR ${entidade}`,
+        `CRUD SERVICE → CRIAR ${aba}:`,
         dados
     );
 
 
     const resposta =
-        await requisicao(
+        await requisicaoPOST({
 
-            `/${nome}`,
+            acao:
+                "criar",
 
-            {
+            aba:
+                aba,
 
-                method: "POST",
+            dados:
+                dados
 
-                body: dados
-
-            }
-
-        );
+        });
 
 
     return extrairDados(
@@ -404,11 +612,11 @@ export async function criar(
 // SALVAR
 // ============================================================
 //
-// Alias de criar().
+// Compatibilidade com versões anteriores.
 //
-// Mantido para compatibilidade
-// com partes existentes do Engine.
+// salvar() = criar()
 //
+// ============================================================
 
 export async function salvar(
     entidade,
@@ -432,7 +640,7 @@ export async function atualizar(
     dados
 ) {
 
-    const nome =
+    const aba =
         normalizarEntidade(
             entidade
         );
@@ -455,25 +663,27 @@ export async function atualizar(
 
 
     console.log(
-        `CRUD SERVICE → ATUALIZAR ${entidade}`,
+        `CRUD SERVICE → ATUALIZAR ${aba}:`,
         dados
     );
 
 
     const resposta =
-        await requisicao(
+        await requisicaoPOST({
 
-            `/${nome}/${encodeURIComponent(dados.ID)}`,
+            acao:
+                "atualizar",
 
-            {
+            aba:
+                aba,
 
-                method: "PUT",
+            id:
+                dados.ID,
 
-                body: dados
+            dados:
+                dados
 
-            }
-
-        );
+        });
 
 
     return extrairDados(
@@ -492,7 +702,7 @@ export async function excluir(
     id
 ) {
 
-    const nome =
+    const aba =
         normalizarEntidade(
             entidade
         );
@@ -512,23 +722,24 @@ export async function excluir(
 
 
     console.log(
-        `CRUD SERVICE → EXCLUIR ${entidade}:`,
+        `CRUD SERVICE → EXCLUIR ${aba}:`,
         id
     );
 
 
     const resposta =
-        await requisicao(
+        await requisicaoPOST({
 
-            `/${nome}/${encodeURIComponent(id)}`,
+            acao:
+                "excluir",
 
-            {
+            aba:
+                aba,
 
-                method: "DELETE"
+            id:
+                id
 
-            }
-
-        );
+        });
 
 
     return extrairDados(
@@ -562,7 +773,7 @@ function validarDados(
 
 
 // ============================================================
-// EXPORTAÇÃO
+// EXPORTAÇÃO DEFAULT
 // ============================================================
 
 export default {
@@ -580,3 +791,4 @@ export default {
     excluir
 
 };
+```
