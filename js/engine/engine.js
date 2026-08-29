@@ -1,52 +1,54 @@
-```javascript
 /**
  * ============================================================
  * ENGINE
  * Painel Frota
- * Arquivo: js/engine/engine.js
+ * Arquivo: engine.js
  *
- * Engine genérico da aplicação.
+ * Engine principal da aplicação.
  *
  * Responsabilidades:
- * - Inicializar módulo
+ *
+ * - Criar e controlar módulos
+ * - Manter estado em memória
  * - Carregar registros
- * - Renderizar tabela
- * - Renderizar formulário pelo Schema
- * - Criar registro
- * - Editar registro
- * - Atualizar registro
- * - Excluir registro
- * - Filtrar
- * - Paginar
+ * - Criar registros
+ * - Atualizar registros
+ * - Excluir registros
+ * - Integrar formulário
+ * - Integrar tabela
+ * - Executar actions personalizadas
  *
- * Banco:
- * - Supabase / PostgreSQL
+ * O Engine NÃO conhece PostgreSQL.
+ * O Engine NÃO conhece Supabase.
+ * O Engine NÃO conhece Google Sheets.
  *
- * Padrão de campos:
- * - id
- * - snake_case
+ * A comunicação com o backend é feita pelo:
+ *
+ *     services/crudService.js
  *
  * ============================================================
  */
 
 import {
+
     listar,
     obter,
     criar,
     atualizar,
-    excluir as excluirRegistro
+    excluir
+
 } from "../services/crudService.js";
 
 
 // ============================================================
-// CREATE ENGINE
+// ENGINE
 // ============================================================
 
 export function createEngine(config = {}) {
 
-    // --------------------------------------------------------
-    // VALIDAÇÃO
-    // --------------------------------------------------------
+    // ========================================================
+    // VALIDAR CONFIGURAÇÃO
+    // ========================================================
 
     if (!config.entity) {
 
@@ -66,38 +68,44 @@ export function createEngine(config = {}) {
     }
 
 
-    if (!config.schema) {
-
-        throw new Error(
-            `Engine ${config.entity}: schema não informado.`
-        );
-
-    }
-
-
-    // --------------------------------------------------------
+    // ========================================================
     // CONFIGURAÇÃO
-    // --------------------------------------------------------
+    // ========================================================
 
     const entity =
         config.entity;
 
+
     const schema =
-        config.schema;
+        config.schema || null;
+
+
+    const containerSelector =
+        config.container;
+
 
     const options =
         config.options || {};
 
+
+    // ========================================================
+    // CONTAINER
+    // ========================================================
+
     const container =
-        resolverElemento(
-            config.container
-        );
+        typeof containerSelector === "string"
+
+            ? document.querySelector(
+                containerSelector
+            )
+
+            : containerSelector;
 
 
     if (!container) {
 
         throw new Error(
-            `Engine ${entity}: container não encontrado.`
+            `Engine ${entity}: container "${containerSelector}" não encontrado.`
         );
 
     }
@@ -122,9 +130,7 @@ export function createEngine(config = {}) {
         paginaAtual: 1,
 
         paginaTamanho:
-            Number(
-                options.pageSize || 10
-            )
+            options.pageSize || 10
 
     };
 
@@ -141,7 +147,7 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // ENGINE
+    // API PÚBLICA DO ENGINE
     // ========================================================
 
     const engine = {
@@ -158,7 +164,7 @@ export function createEngine(config = {}) {
 
 
         // ====================================================
-        // INICIAR
+        // INICIALIZAR
         // ====================================================
 
         async iniciar() {
@@ -167,11 +173,20 @@ export function createEngine(config = {}) {
 
             localizarElementos();
 
-            renderizarFormulario();
-
             registrarEventos();
 
-            esconderFormulario();
+            /*
+             * CORREÇÃO PRINCIPAL
+             *
+             * carregar() é método do objeto engine.
+             * Portanto precisamos chamar:
+             *
+             *     engine.carregar()
+             *
+             * e não:
+             *
+             *     carregar()
+             */
 
             await engine.carregar();
 
@@ -193,8 +208,7 @@ export function createEngine(config = {}) {
             }
 
 
-            state.carregando =
-                true;
+            state.carregando = true;
 
 
             mostrarLoading();
@@ -215,7 +229,9 @@ export function createEngine(config = {}) {
 
                 state.registros =
                     Array.isArray(dados)
+
                         ? dados
+
                         : [];
 
 
@@ -271,11 +287,9 @@ export function createEngine(config = {}) {
         // RECARREGAR
         // ====================================================
 
-        async recarregar() {
-
-            return engine.carregar();
-
-        },
+      async recarregar() {
+    return engine.carregar();
+},
 
 
         // ====================================================
@@ -284,9 +298,13 @@ export function createEngine(config = {}) {
 
         async obter(id) {
 
-            validarId(
-                id
-            );
+            if (!id) {
+
+                throw new Error(
+                    "Engine: ID não informado."
+                );
+
+            }
 
 
             return obter(
@@ -307,9 +325,6 @@ export function createEngine(config = {}) {
                 null;
 
 
-            renderizarFormulario();
-
-
             limparFormulario();
 
 
@@ -327,7 +342,7 @@ export function createEngine(config = {}) {
         // EDITAR
         // ====================================================
 
-                async editar(id) {
+        async editar(id) {
 
             if (!id) {
 
@@ -337,6 +352,7 @@ export function createEngine(config = {}) {
 
             }
 
+
             try {
 
                 const registro =
@@ -345,34 +361,24 @@ export function createEngine(config = {}) {
                         id
                     );
 
-                console.log(
-                    "ENGINE → REGISTRO OBTIDO:",
-                    registro
-                );
-
-                if (!registro) {
-
-                    throw new Error(
-                        `Registro ${id} não encontrado.`
-                    );
-
-                }
 
                 state.registroEditando =
                     registro;
 
-                renderizarFormulario();
 
                 preencherFormulario(
                     registro
                 );
 
+
                 mostrarFormulario();
+
 
                 emitirEvento(
                     "editar",
                     registro
                 );
+
 
                 return registro;
 
@@ -383,9 +389,11 @@ export function createEngine(config = {}) {
                     erro
                 );
 
+
                 mostrarErro(
                     erro
                 );
+
 
                 throw erro;
 
@@ -416,45 +424,32 @@ export function createEngine(config = {}) {
             mostrarLoading();
 
 
+            emitirEvento(
+                "salvando"
+            );
+
+
             try {
 
                 let resposta;
 
 
-                // ==============================================
+                // ------------------------------------------------
                 // EDIÇÃO
-                // ==============================================
+                // ------------------------------------------------
 
                 if (
-                    state.registroEditando
+                    state.registroEditando &&
+                    state.registroEditando.ID
                 ) {
-
-                    const id =
-                        obterIdRegistro(
-                            state.registroEditando
-                        );
-
-
-                    validarId(
-                        id
-                    );
-
 
                     const registro = {
 
                         ...state.registroEditando,
 
-                        ...dados,
-
-                        id
+                        ...dados
 
                     };
-
-
-                    console.log(
-                        `Engine ${entity}: atualizando`,
-                        registro
-                    );
 
 
                     resposta =
@@ -471,17 +466,11 @@ export function createEngine(config = {}) {
                 }
 
 
-                // ==============================================
-                // NOVO
-                // ==============================================
+                // ------------------------------------------------
+                // NOVO REGISTRO
+                // ------------------------------------------------
 
                 else {
-
-                    console.log(
-                        `Engine ${entity}: criando`,
-                        dados
-                    );
-
 
                     resposta =
                         await criar(
@@ -513,7 +502,7 @@ export function createEngine(config = {}) {
                     null;
 
 
-                esconderFormulario();
+                limparFormulario();
 
 
                 renderizarTabela();
@@ -550,6 +539,11 @@ export function createEngine(config = {}) {
 
                 esconderLoading();
 
+
+                emitirEvento(
+                    "fim-salvamento"
+                );
+
             }
 
         },
@@ -561,9 +555,13 @@ export function createEngine(config = {}) {
 
         async excluir(id) {
 
-            validarId(
-                id
-            );
+            if (!id) {
+
+                throw new Error(
+                    "Engine: ID não informado."
+                );
+
+            }
 
 
             const confirmar =
@@ -581,7 +579,7 @@ export function createEngine(config = {}) {
 
             try {
 
-                await excluirRegistro(
+                await excluir(
                     entity,
                     id
                 );
@@ -589,13 +587,14 @@ export function createEngine(config = {}) {
 
                 state.registros =
                     state.registros.filter(
+
                         registro =>
+
                             String(
-                                obterIdRegistro(
-                                    registro
-                                )
+                                registro.ID
                             ) !==
                             String(id)
+
                     );
 
 
@@ -666,21 +665,30 @@ export function createEngine(config = {}) {
 
             const paginas =
                 Math.max(
+
                     1,
+
                     Math.ceil(
+
                         total /
+
                         state.paginaTamanho
+
                     )
+
                 );
 
 
             state.paginaAtual =
                 Math.min(
+
                     Math.max(
                         1,
-                        Number(numero) || 1
+                        numero
                     ),
+
                     paginas
+
                 );
 
 
@@ -710,7 +718,7 @@ export function createEngine(config = {}) {
 
 
         // ====================================================
-        // ACTION
+        // EXECUTAR ACTION
         // ====================================================
 
         action(
@@ -727,8 +735,7 @@ export function createEngine(config = {}) {
 
 
             if (
-                typeof funcao !==
-                "function"
+                typeof funcao !== "function"
             ) {
 
                 console.warn(
@@ -746,33 +753,35 @@ export function createEngine(config = {}) {
                 engine
             );
 
-        },
-
-
-        // ====================================================
-        // MÉTODOS AUXILIARES PÚBLICOS
-        // ====================================================
-
-        renderizarTabela,
-
-        renderizarFormulario,
-
-        mostrarFormulario,
-
-        esconderFormulario,
-
-        limparFormulario,
-
-        preencherFormulario
+        }
 
     };
 
 
     // ========================================================
-    // ESTRUTURA
+    // RENDERIZAR ESTRUTURA
     // ========================================================
 
     function renderizarEstrutura() {
+
+        /*
+         * Se o módulo já possui HTML próprio,
+         * não sobrescrever.
+         */
+
+        if (
+            container.children.length > 0
+        ) {
+
+            return;
+
+        }
+
+
+        const titulo =
+            options.titulo ||
+            entity;
+
 
         container.innerHTML = `
 
@@ -780,13 +789,10 @@ export function createEngine(config = {}) {
 
                 <header class="engine-header">
 
-                    <div class="engine-title">
+                    <div>
 
                         <h1>
-                            ${escaparHTML(
-                                options.titulo ||
-                                entity
-                            )}
+                            ${escaparHTML(titulo)}
                         </h1>
 
                     </div>
@@ -801,7 +807,6 @@ export function createEngine(config = {}) {
 
                                     <button
                                         type="button"
-                                        class="btn btn-primary"
                                         data-engine-novo
                                     >
                                         Novo
@@ -821,20 +826,19 @@ export function createEngine(config = {}) {
                 <div
                     class="engine-form-container"
                     data-engine-form
-                    hidden
                 ></div>
 
 
-                <div
-                    class="engine-table-container"
-                >
+                <div class="engine-table-container">
 
                     <div
                         class="engine-loading"
                         data-engine-loading
                         hidden
                     >
+
                         Carregando...
+
                     </div>
 
 
@@ -883,9 +887,7 @@ export function createEngine(config = {}) {
 
     function registrarEventos() {
 
-        if (
-            btnNovo
-        ) {
+        if (btnNovo) {
 
             btnNovo.addEventListener(
                 "click",
@@ -903,44 +905,20 @@ export function createEngine(config = {}) {
             "click",
             evento => {
 
-                const editarBotao =
+                const editar =
                     evento.target.closest(
                         "[data-action='editar']"
                     );
 
 
-                if (
-                    editarBotao
-                ) {
+                if (editar) {
 
                     const id =
-                        editarBotao.dataset.id;
-
-
-                    if (!id) {
-
-                        console.error(
-                            "Engine: botão Editar sem data-id.",
-                            editarBotao
-                        );
-
-
-                        return;
-
-                    }
+                        editar.dataset.id;
 
 
                     engine.editar(
                         id
-                    )
-                    .catch(
-                        erro => {
-
-                            console.error(
-                                erro
-                            );
-
-                        }
                     );
 
 
@@ -955,38 +933,14 @@ export function createEngine(config = {}) {
                     );
 
 
-                if (
-                    excluirBotao
-                ) {
+                if (excluirBotao) {
 
                     const id =
                         excluirBotao.dataset.id;
 
 
-                    if (!id) {
-
-                        console.error(
-                            "Engine: botão Excluir sem data-id.",
-                            excluirBotao
-                        );
-
-
-                        return;
-
-                    }
-
-
                     engine.excluir(
                         id
-                    )
-                    .catch(
-                        erro => {
-
-                            console.error(
-                                erro
-                            );
-
-                        }
                     );
 
 
@@ -995,33 +949,32 @@ export function createEngine(config = {}) {
                 }
 
 
-                const actionBotao =
+                const action =
                     evento.target.closest(
                         "[data-engine-action]"
                     );
 
 
-                if (
-                    actionBotao
-                ) {
+                if (action) {
 
                     const nome =
-                        actionBotao.dataset.engineAction;
+                        action.dataset.engineAction;
 
 
                     const id =
-                        actionBotao.dataset.id;
+                        action.dataset.id;
 
 
                     const registro =
                         state.registros.find(
+
                             item =>
+
                                 String(
-                                    obterIdRegistro(
-                                        item
-                                    )
+                                    item.ID
                                 ) ===
                                 String(id)
+
                         );
 
 
@@ -1039,826 +992,12 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // RENDERIZAR FORMULÁRIO
-    // ========================================================
-
-   
-
-
-        // ----------------------------------------------------
-        // BOTÕES
-        // ----------------------------------------------------
-
-        const actions =
-            document.createElement(
-                "div"
-            );
-
-
-        actions.className =
-            "engine-form-actions";
-
-
-        const btnSalvar =
-            document.createElement(
-                "button"
-            );
-
-
-        btnSalvar.type =
-            "submit";
-
-
-        btnSalvar.className =
-            "btn btn-primary";
-
-
-        btnSalvar.textContent =
-            state.registroEditando
-                ? "Atualizar"
-                : "Salvar";
-
-
-        const btnCancelar =
-            document.createElement(
-                "button"
-            );
-
-
-        btnCancelar.type =
-            "button";
-
-
-        btnCancelar.className =
-            "btn btn-secondary";
-
-
-        btnCancelar.textContent =
-            "Cancelar";
-
-
-        actions.appendChild(
-            btnSalvar
-        );
-
-
-        actions.appendChild(
-            btnCancelar
-        );
-
-
-        form.appendChild(
-            actions
-        );
-
-
-        // ----------------------------------------------------
-        // SUBMIT
-        // ----------------------------------------------------
-
-        form.addEventListener(
-            "submit",
-            evento => {
-
-                evento.preventDefault();
-
-
-                const dados =
-                    obterDadosFormulario();
-
-
-                if (
-                    !validarDados(
-                        dados
-                    )
-                ) {
-
-                    return;
-
-                }
-
-
-                engine.salvar(
-                    dados
-                )
-                .catch(
-                    erro => {
-
-                        console.error(
-                            erro
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-
-        // ----------------------------------------------------
-        // CANCELAR
-        // ----------------------------------------------------
-
-        btnCancelar.addEventListener(
-            "click",
-            () => {
-
-                engine.fecharFormulario();
-
-            }
-        );
-
-
-        formulario.innerHTML =
-            "";
-
-
-        formulario.appendChild(
-            form
-        );
-
-    }
-
-
-    // ========================================================
-    // CRIAR CAMPO
-    // ========================================================
-
-    function criarCampo(
-        campo
-    ) {
-
-        if (
-            !campo ||
-            !campo.name
-        ) {
-
-            return null;
-
-        }
-
-
-        if (
-            campo.hidden === true
-        ) {
-
-            return null;
-
-        }
-
-
-        if (
-            campo.visible === false &&
-            campo.hidden !== false
-        ) {
-
-            return null;
-
-        }
-
-
-        const grupo =
-            document.createElement(
-                "div"
-            );
-
-
-        grupo.className =
-            "engine-field";
-
-
-        const label =
-            document.createElement(
-                "label"
-            );
-
-
-        label.htmlFor =
-            gerarIdCampo(
-                campo.name
-            );
-
-
-        label.textContent =
-            campo.label ||
-            campo.name;
-
-
-        grupo.appendChild(
-            label
-        );
-
-
-        let input;
-
-
-        // ====================================================
-        // SELECT
-        // ====================================================
-
-        if (
-            campo.type ===
-            "select"
-        ) {
-
-            input =
-                document.createElement(
-                    "select"
-                );
-
-
-            adicionarOpcaoVazia(
-                input
-            );
-
-
-            const opcoes =
-                Array.isArray(
-                    campo.options
-                )
-                    ? campo.options
-                    : [];
-
-
-            opcoes.forEach(
-                opcao => {
-
-                    const option =
-                        document.createElement(
-                            "option"
-                        );
-
-
-                    if (
-                        typeof opcao ===
-                        "object"
-                    ) {
-
-                        option.value =
-                            opcao.value ??
-                            opcao.id ??
-                            "";
-
-
-                        option.textContent =
-                            opcao.label ??
-                            opcao.text ??
-                            option.value;
-
-                    }
-
-                    else {
-
-                        option.value =
-                            String(
-                                opcao
-                            );
-
-
-                        option.textContent =
-                            String(
-                                opcao
-                            );
-
-                    }
-
-
-                    input.appendChild(
-                        option
-                    );
-
-                }
-            );
-
-        }
-
-
-        // ====================================================
-        // TEXTAREA
-        // ====================================================
-
-        else if (
-            campo.type ===
-            "textarea"
-        ) {
-
-            input =
-                document.createElement(
-                    "textarea"
-                );
-
-        }
-
-
-        // ====================================================
-        // INPUT
-        // ====================================================
-
-        else {
-
-            input =
-                document.createElement(
-                    "input"
-                );
-
-
-            input.type =
-                normalizarTipoInput(
-                    campo.type
-                );
-
-        }
-
-
-        input.id =
-            gerarIdCampo(
-                campo.name
-            );
-
-
-        input.name =
-            campo.name;
-
-
-        if (
-            campo.placeholder
-        ) {
-
-            input.placeholder =
-                campo.placeholder;
-
-        }
-
-
-        if (
-            campo.required
-        ) {
-
-            input.required =
-                true;
-
-        }
-
-
-        if (
-            campo.readonly
-        ) {
-
-            input.readOnly =
-                true;
-
-        }
-
-
-        if (
-            campo.disabled
-        ) {
-
-            input.disabled =
-                true;
-
-        }
-
-
-        // ----------------------------------------------------
-        // STEP
-        // ----------------------------------------------------
-
-        if (
-            campo.type ===
-            "number"
-        ) {
-
-            input.step =
-                campo.step ??
-                "any";
-
-        }
-
-
-        grupo.appendChild(
-            input
-        );
-
-
-        return grupo;
-
-    }
-
-
-    // ========================================================
-    // OBTER DADOS DO FORMULÁRIO
-    // ========================================================
-
-    function obterDadosFormulario() {
-
-        const dados = {};
-
-
-        if (
-            !formulario
-        ) {
-
-            return dados;
-
-        }
-
-
-        const form =
-            formulario.querySelector(
-                "form"
-            );
-
-
-        if (
-            !form
-        ) {
-
-            return dados;
-
-        }
-
-
-        const campos =
-            Array.isArray(
-                schema.fields
-            )
-                ? schema.fields
-                : [];
-
-
-        campos.forEach(
-            campo => {
-
-                if (
-                    !campo ||
-                    !campo.name
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    form.querySelector(
-                        `[name="${cssEscape(
-                            campo.name
-                        )}"]`
-                    );
-
-
-                if (
-                    !input
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type ===
-                    "file"
-                ) {
-
-                    dados[
-                        campo.name
-                    ] =
-                        input.files &&
-                        input.files.length
-                            ? input.files[0]
-                            : null;
-
-
-                    return;
-
-                }
-
-
-                if (
-                    input.type ===
-                    "checkbox"
-                ) {
-
-                    dados[
-                        campo.name
-                    ] =
-                        input.checked;
-
-
-                    return;
-
-                }
-
-
-                dados[
-                    campo.name
-                ] =
-                    input.value;
-
-            }
-        );
-
-
-        // ----------------------------------------------------
-        // ID DO REGISTRO EM EDIÇÃO
-        // ----------------------------------------------------
-
-        if (
-            state.registroEditando
-        ) {
-
-            const id =
-                obterIdRegistro(
-                    state.registroEditando
-                );
-
-
-            if (
-                id
-            ) {
-
-                dados.id =
-                    id;
-
-            }
-
-        }
-
-
-        return dados;
-
-    }
-
-
-    // ========================================================
-    // PREENCHER FORMULÁRIO
-    // ========================================================
-
-    function preencherFormulario(
-        registro
-    ) {
-
-        if (
-            !formulario ||
-            !registro
-        ) {
-
-            return;
-
-        }
-
-
-        const form =
-            formulario.querySelector(
-                "form"
-            );
-
-
-        if (
-            !form
-        ) {
-
-            return;
-
-        }
-
-
-        const campos =
-            Array.isArray(
-                schema.fields
-            )
-                ? schema.fields
-                : [];
-
-
-        campos.forEach(
-            campo => {
-
-                if (
-                    !campo ||
-                    !campo.name
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    form.querySelector(
-                        `[name="${cssEscape(
-                            campo.name
-                        )}"]`
-                    );
-
-
-                if (
-                    !input
-                ) {
-
-                    return;
-
-                }
-
-
-                const valor =
-                    registro[
-                        campo.name
-                    ];
-
-
-                if (
-                    input.type ===
-                    "file"
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    input.type ===
-                    "checkbox"
-                ) {
-
-                    input.checked =
-                        Boolean(
-                            valor
-                        );
-
-
-                    return;
-
-                }
-
-
-                if (
-                    input.tagName ===
-                    "SELECT"
-                ) {
-
-                    selecionarOpcao(
-                        input,
-                        valor
-                    );
-
-
-                    return;
-
-                }
-
-
-                input.value =
-                    valor ??
-                    "";
-
-            }
-        );
-
-
-        console.log(
-            `Engine ${entity}: formulário preenchido.`,
-            registro
-        );
-
-    }
-
-
-    // ========================================================
-    // LIMPAR FORMULÁRIO
-    // ========================================================
-
-    function limparFormulario() {
-
-        if (
-            !formulario
-        ) {
-
-            return;
-
-        }
-
-
-        const form =
-            formulario.querySelector(
-                "form"
-            );
-
-
-        if (
-            !form
-        ) {
-
-            return;
-
-        }
-
-
-        form.reset();
-
-
-        const campos =
-            Array.isArray(
-                schema.fields
-            )
-                ? schema.fields
-                : [];
-
-
-        campos.forEach(
-            campo => {
-
-                if (
-                    !campo ||
-                    !campo.name
-                ) {
-
-                    return;
-
-                }
-
-
-                const input =
-                    form.querySelector(
-                        `[name="${cssEscape(
-                            campo.name
-                        )}"]`
-                    );
-
-
-                if (
-                    !input
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
-
-                    input.checked =
-                        false;
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // ========================================================
-    // MOSTRAR FORMULÁRIO
-    // ========================================================
-
-    function mostrarFormulario() {
-
-        if (
-            formulario
-        ) {
-
-            formulario.hidden =
-                false;
-
-        }
-
-    }
-
-
-    // ========================================================
-    // ESCONDER FORMULÁRIO
-    // ========================================================
-
-    function esconderFormulario() {
-
-        if (
-            formulario
-        ) {
-
-            formulario.hidden =
-                true;
-
-        }
-
-    }
-
-
-    // ========================================================
     // RENDERIZAR TABELA
     // ========================================================
 
     function renderizarTabela() {
 
-        if (
-            !tabela
-        ) {
+        if (!tabela) {
 
             return;
 
@@ -1869,45 +1008,27 @@ export function createEngine(config = {}) {
             obterRegistrosFiltrados();
 
 
-        const totalPaginas =
-            Math.max(
-                1,
-                Math.ceil(
-                    registros.length /
-                    state.paginaTamanho
-                )
-            );
-
-
-        if (
-            state.paginaAtual >
-            totalPaginas
-        ) {
-
-            state.paginaAtual =
-                totalPaginas;
-
-        }
-
-
         const inicio =
+
             (
                 state.paginaAtual - 1
             ) *
+
             state.paginaTamanho;
 
 
         const pagina =
             registros.slice(
+
                 inicio,
+
                 inicio +
                 state.paginaTamanho
+
             );
 
 
-        if (
-            pagina.length === 0
-        ) {
+        if (!pagina.length) {
 
             tabela.innerHTML = `
 
@@ -1918,7 +1039,6 @@ export function createEngine(config = {}) {
                 </div>
 
             `;
-
 
             return;
 
@@ -1946,11 +1066,13 @@ export function createEngine(config = {}) {
                 html += `
 
                     <th>
+
                         ${escaparHTML(
                             obterTituloColuna(
                                 coluna
                             )
                         )}
+
                     </th>
 
                 `;
@@ -1975,15 +1097,7 @@ export function createEngine(config = {}) {
         pagina.forEach(
             registro => {
 
-                const id =
-                    obterIdRegistro(
-                        registro
-                    );
-
-
-                html += `
-                    <tr>
-                `;
+                html += "<tr>";
 
 
                 colunas.forEach(
@@ -1998,12 +1112,12 @@ export function createEngine(config = {}) {
                         html += `
 
                             <td>
+
                                 ${formatarCelula(
-                                    registro[
-                                        nome
-                                    ],
+                                    registro[nome],
                                     coluna
                                 )}
+
                             </td>
 
                         `;
@@ -2016,68 +1130,60 @@ export function createEngine(config = {}) {
 
                     <td class="engine-actions">
 
-                `;
+                        ${
+                            options.permitirEditar !== false
+
+                                ? `
+
+                                    <button
+                                        type="button"
+                                        data-action="editar"
+                                        data-id="${escaparAtributo(
+                                            registro.ID
+                                        )}"
+                                    >
+                                        Editar
+                                    </button>
+
+                                  `
+
+                                : ""
+
+                        }
 
 
-                if (
-                    options.permitirEditar !==
-                    false
-                ) {
+                        ${
+                            options.permitirExcluir !== false
 
-                    html += `
+                                ? `
 
-                        <button
-                            type="button"
-                            class="btn btn-sm"
-                            data-action="editar"
-                            data-id="${escaparAtributo(
-                                id
-                            )}"
-                        >
-                            Editar
-                        </button>
+                                    <button
+                                        type="button"
+                                        data-action="excluir"
+                                        data-id="${escaparAtributo(
+                                            registro.ID
+                                        )}"
+                                    >
+                                        Excluir
+                                    </button>
 
-                    `;
+                                  `
 
-                }
+                                : ""
 
-
-                if (
-                    options.permitirExcluir !==
-                    false
-                ) {
-
-                    html += `
-
-                        <button
-                            type="button"
-                            class="btn btn-sm"
-                            data-action="excluir"
-                            data-id="${escaparAtributo(
-                                id
-                            )}"
-                        >
-                            Excluir
-                        </button>
-
-                    `;
-
-                }
+                        }
 
 
-                html +=
-                    renderizarActions(
-                        registro
-                    );
-
-
-                html += `
+                        ${renderizarActions(
+                            registro
+                        )}
 
                     </td>
 
-                    </tr>
-
                 `;
+
+
+                html += "</tr>";
 
             }
         );
@@ -2092,12 +1198,6 @@ export function createEngine(config = {}) {
         `;
 
 
-        html +=
-            renderizarPaginacao(
-                totalPaginas
-            );
-
-
         tabela.innerHTML =
             html;
 
@@ -2105,7 +1205,7 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // ACTIONS
+    // ACTIONS PERSONALIZADAS
     // ========================================================
 
     function renderizarActions(
@@ -2116,115 +1216,47 @@ export function createEngine(config = {}) {
             options.actions || {};
 
 
-        return Object.keys(
-            actions
-        )
-        .map(
-            nome => {
+        return Object.keys(actions)
 
-                if (
-                    typeof actions[
-                        nome
-                    ] !==
-                    "function"
-                ) {
+            .map(
+                nome => {
 
-                    return "";
+                    if (
+                        typeof actions[nome] !==
+                        "function"
+                    ) {
+
+                        return "";
+
+                    }
+
+
+                    return `
+
+                        <button
+                            type="button"
+                            data-engine-action="${escaparAtributo(
+                                nome
+                            )}"
+                            data-id="${escaparAtributo(
+                                registro.ID
+                            )}"
+                        >
+
+                            ${escaparHTML(
+                                obterTituloAction(
+                                    nome
+                                )
+                            )}
+
+                        </button>
+
+                    `;
 
                 }
+            )
 
-
-                const id =
-                    obterIdRegistro(
-                        registro
-                    );
-
-
-                return `
-
-                    <button
-                        type="button"
-                        class="btn btn-sm"
-                        data-engine-action="${escaparAtributo(
-                            nome
-                        )}"
-                        data-id="${escaparAtributo(
-                            id
-                        )}"
-                    >
-                        ${escaparHTML(
-                            obterTituloAction(
-                                nome
-                            )
-                        )}
-                    </button>
-
-                `;
-
-            }
-        )
-        .join("");
-
-    }
-
-
-    // ========================================================
-    // PAGINAÇÃO HTML
-    // ========================================================
-
-    function renderizarPaginacao(
-        totalPaginas
-    ) {
-
-        if (
-            totalPaginas <= 1
-        ) {
-
-            return "";
-
-        }
-
-
-        let html = `
-
-            <div class="engine-pagination">
-
-        `;
-
-
-        for (
-            let i = 1;
-            i <= totalPaginas;
-            i++
-        ) {
-
-            html += `
-
-                <button
-                    type="button"
-                    class="${
-                        i === state.paginaAtual
-                            ? "ativo"
-                            : ""
-                    }"
-                    data-engine-pagina="${i}"
-                >
-                    ${i}
-                </button>
-
-            `;
-
-        }
-
-
-        html += `
-
-            </div>
-
-        `;
-
-
-        return html;
+            .join("");
 
     }
 
@@ -2247,6 +1279,7 @@ export function createEngine(config = {}) {
 
 
         if (
+            schema &&
             Array.isArray(
                 schema.fields
             )
@@ -2255,14 +1288,11 @@ export function createEngine(config = {}) {
             return schema.fields.filter(
                 campo =>
 
-                    campo.visible !==
-                    false &&
+                    campo.visible !== false &&
 
-                    campo.hidden !==
-                    true &&
+                    campo.hidden !== true &&
 
-                    campo.name !==
-                    "id"
+                    campo.name !== "ID"
 
             );
 
@@ -2270,21 +1300,20 @@ export function createEngine(config = {}) {
 
 
         return Object.keys(
-            state.registros[0] ||
-            {}
+            state.registros[0] || {}
         )
+
         .filter(
-            nome =>
-                nome !== "id"
+            campo =>
+                campo !== "ID"
         )
+
         .map(
-            nome => ({
+            campo => ({
 
-                name:
-                    nome,
+                name: campo,
 
-                label:
-                    nome
+                label: campo
 
             })
         );
@@ -2293,7 +1322,7 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // FILTRAR REGISTROS
+    // REGISTROS FILTRADOS
     // ========================================================
 
     function obterRegistrosFiltrados() {
@@ -2313,17 +1342,18 @@ export function createEngine(config = {}) {
                 Object.values(
                     registro
                 )
+
                 .some(
                     valor =>
 
                         String(
-                            valor ??
-                            ""
+                            valor ?? ""
                         )
                         .toLowerCase()
                         .includes(
                             state.filtro
                         )
+
                 )
 
         );
@@ -2332,42 +1362,231 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // ATUALIZAR ESTADO LOCAL
+    // FORMULÁRIO
     // ========================================================
 
-    function atualizarEstadoLocal(
+    function mostrarFormulario() {
+
+        if (!formulario) {
+
+            return;
+
+        }
+
+
+        formulario.hidden =
+            false;
+
+    }
+
+
+    function esconderFormulario() {
+
+        if (!formulario) {
+
+            return;
+
+        }
+
+
+        formulario.hidden =
+            true;
+
+    }
+
+
+    function limparFormulario() {
+
+        if (!formulario) {
+
+            return;
+
+        }
+
+
+        const form =
+            formulario.querySelector(
+                "form"
+            );
+
+
+        if (form) {
+
+            form.reset();
+
+        }
+
+    }
+
+
+    function preencherFormulario(
         registro
     ) {
 
-        const id =
-            obterIdRegistro(
-                registro
-            );
+        if (!formulario) {
+
+            return;
+
+        }
 
 
-        const indice =
-            state.registros.findIndex(
-                item =>
+        Object.entries(
+            registro || {}
+        )
 
-                    String(
-                        obterIdRegistro(
-                            item
-                        )
-                    ) ===
-                    String(id)
-            );
+        .forEach(
+            ([nome, valor]) => {
+
+                const campo =
+                    formulario.querySelector(
+                        `[name="${cssEscape(
+                            nome
+                        )}"]`
+                    );
+
+
+                if (!campo) {
+
+                    return;
+
+                }
+
+
+                if (
+                    campo.type === "checkbox"
+                ) {
+
+                    campo.checked =
+                        Boolean(
+                            valor
+                        );
+
+                } else {
+
+                    campo.value =
+                        valor ?? "";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // COLUNA
+    // ========================================================
+
+    function obterNomeColuna(
+        coluna
+    ) {
+
+        return (
+
+            coluna?.name ||
+
+            coluna?.campo ||
+
+            coluna
+
+        );
+
+    }
+
+
+    function obterTituloColuna(
+        coluna
+    ) {
+
+        return (
+
+            coluna?.label ||
+
+            coluna?.titulo ||
+
+            coluna?.name ||
+
+            coluna?.campo ||
+
+            coluna
+
+        );
+
+    }
+
+
+    // ========================================================
+    // FORMATAR CÉLULA
+    // ========================================================
+
+    function formatarCelula(
+        valor,
+        coluna
+    ) {
+
+        if (
+            valor === null ||
+            valor === undefined ||
+            valor === ""
+        ) {
+
+            return "";
+
+        }
 
 
         if (
-            indice >= 0
+            coluna?.type === "boolean" ||
+            coluna?.tipo === "boolean"
         ) {
 
-            state.registros[
-                indice
-            ] =
-                registro;
+            return valor
+                ? "SIM"
+                : "NÃO";
 
         }
+
+
+        return escaparHTML(
+            String(valor)
+        );
+
+    }
+
+
+    // ========================================================
+    // TÍTULO ACTION
+    // ========================================================
+
+    function obterTituloAction(
+        nome
+    ) {
+
+        const titulos = {
+
+            abrirChecklist:
+                "Checklist",
+
+            abastecer:
+                "Abastecer",
+
+            visualizar:
+                "Visualizar",
+
+            finalizar:
+                "Finalizar"
+
+        };
+
+
+        return (
+
+            titulos[nome] ||
+
+            nome
+
+        );
 
     }
 
@@ -2380,9 +1599,7 @@ export function createEngine(config = {}) {
         resposta
     ) {
 
-        if (
-            !resposta
-        ) {
+        if (!resposta) {
 
             return null;
 
@@ -2395,40 +1612,7 @@ export function createEngine(config = {}) {
             )
         ) {
 
-            return (
-                resposta[0] ||
-                null
-            );
-
-        }
-
-
-        if (
-            resposta.data
-        ) {
-
-            if (
-                Array.isArray(
-                    resposta.data
-                )
-            ) {
-
-                return (
-                    resposta.data[0] ||
-                    null
-                );
-
-            }
-
-
-            if (
-                typeof resposta.data ===
-                "object"
-            ) {
-
-                return resposta.data;
-
-            }
+            return resposta[0] || null;
 
         }
 
@@ -2443,17 +1627,13 @@ export function createEngine(config = {}) {
                 )
             ) {
 
-                return (
-                    resposta.dados[0] ||
-                    null
-                );
+                return resposta.dados[0] || null;
 
             }
 
 
             if (
-                typeof resposta.dados ===
-                "object"
+                resposta.dados.ID
             ) {
 
                 return resposta.dados;
@@ -2464,7 +1644,33 @@ export function createEngine(config = {}) {
 
 
         if (
-            resposta.id
+            resposta.data
+        ) {
+
+            if (
+                Array.isArray(
+                    resposta.data
+                )
+            ) {
+
+                return resposta.data[0] || null;
+
+            }
+
+
+            if (
+                resposta.data.ID
+            ) {
+
+                return resposta.data;
+
+            }
+
+        }
+
+
+        if (
+            resposta.ID
         ) {
 
             return resposta;
@@ -2478,161 +1684,60 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // ID
+    // ATUALIZAR ESTADO LOCAL
     // ========================================================
 
-    function obterIdRegistro(
+    function atualizarEstadoLocal(
         registro
     ) {
 
-        if (
-            registro ===
-            null ||
-            registro ===
-            undefined
-        ) {
+        const indice =
+            state.registros.findIndex(
 
-            return null;
+                item =>
 
-        }
+                    String(
+                        item.ID
+                    ) ===
 
+                    String(
+                        registro.ID
+                    )
 
-        if (
-            typeof registro !==
-            "object"
-        ) {
-
-            return registro;
-
-        }
-
-
-        return (
-
-            registro.id ??
-            registro.ID ??
-            registro.Id ??
-            null
-
-        );
-
-    }
-
-
-    // ========================================================
-    // VALIDAÇÃO DE ID
-    // ========================================================
-
-    function validarId(
-        id
-    ) {
-
-        if (
-            id ===
-            null ||
-            id ===
-            undefined ||
-            String(id).trim() ===
-            ""
-        ) {
-
-            throw new Error(
-                "Engine: ID não informado."
             );
 
+
+        if (
+            indice >= 0
+        ) {
+
+            state.registros[indice] =
+                registro;
+
         }
 
     }
 
 
     // ========================================================
-    // VALIDAÇÃO
+    // EVENTOS CUSTOMIZADOS
     // ========================================================
 
-    function validarDados(
-        dados
+    function emitirEvento(
+        nome,
+        detalhe
     ) {
 
-        const campos =
-            Array.isArray(
-                schema.fields
-            )
-                ? schema.fields
-                : [];
+        container.dispatchEvent(
 
-
-        for (
-            const campo of campos
-        ) {
-
-            if (
-                !campo.required
-            ) {
-
-                continue;
-
-            }
-
-
-            if (
-                campo.hidden ===
-                true
-            ) {
-
-                continue;
-
-            }
-
-
-            const valor =
-                dados[
-                    campo.name
-                ];
-
-
-            if (
-                valor ===
-                null ||
-                valor ===
-                undefined ||
-                String(
-                    valor
-                ).trim() ===
-                ""
-            ) {
-
-                mostrarErro(
-                    new Error(
-                        `O campo "${campo.label || campo.name}" é obrigatório.`
-                    )
-                );
-
-
-                const input =
-                    formulario?.querySelector(
-                        `[name="${cssEscape(
-                            campo.name
-                        )}"]`
-                    );
-
-
-                if (
-                    input
-                ) {
-
-                    input.focus();
-
+            new CustomEvent(
+                `engine:${nome}`,
+                {
+                    detail: detalhe
                 }
+            )
 
-
-                return false;
-
-            }
-
-        }
-
-
-        return true;
+        );
 
     }
 
@@ -2649,9 +1754,7 @@ export function createEngine(config = {}) {
             );
 
 
-        if (
-            elemento
-        ) {
+        if (elemento) {
 
             elemento.hidden =
                 false;
@@ -2669,9 +1772,7 @@ export function createEngine(config = {}) {
             );
 
 
-        if (
-            elemento
-        ) {
+        if (elemento) {
 
             elemento.hidden =
                 true;
@@ -2696,10 +1797,8 @@ export function createEngine(config = {}) {
 
         const mensagem =
             erro?.message ||
-            String(
-                erro ||
-                "Ocorreu um erro."
-            );
+
+            "Ocorreu um erro.";
 
 
         if (
@@ -2711,7 +1810,6 @@ export function createEngine(config = {}) {
                 mensagem,
                 "erro"
             );
-
 
             return;
 
@@ -2726,407 +1824,37 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // EVENTO
+    // ESCAPAR HTML
     // ========================================================
-
-    function emitirEvento(
-        nome,
-        detalhe
-    ) {
-
-        container.dispatchEvent(
-            new CustomEvent(
-                `engine:${nome}`,
-                {
-                    detail:
-                        detalhe
-                }
-            )
-        );
-
-    }
-
-
-    // ========================================================
-    // HELPERS
-    // ========================================================
-
-    function resolverElemento(
-        valor
-    ) {
-
-        if (
-            !valor
-        ) {
-
-            return null;
-
-        }
-
-
-        if (
-            valor instanceof
-            HTMLElement
-        ) {
-
-            return valor;
-
-        }
-
-
-        if (
-            typeof valor ===
-            "string"
-        ) {
-
-            return document.querySelector(
-                valor
-            );
-
-        }
-
-
-        return null;
-
-    }
-
-
-    function gerarIdCampo(
-        nome
-    ) {
-
-        return (
-            `engine-campo-${String(
-                nome
-            )
-            .replace(
-                /[^a-zA-Z0-9_-]/g,
-                "-"
-            )}`
-        );
-
-    }
-
-
-    function normalizarTipoInput(
-        tipo
-    ) {
-
-        const tipos = {
-
-            text:
-                "text",
-
-            number:
-                "number",
-
-            date:
-                "date",
-
-            datetime:
-                "datetime-local",
-
-            "datetime-local":
-                "datetime-local",
-
-            time:
-                "time",
-
-            email:
-                "email",
-
-            tel:
-                "tel",
-
-            url:
-                "url",
-
-            password:
-                "password",
-
-            checkbox:
-                "checkbox",
-
-            file:
-                "file"
-
-        };
-
-
-        return (
-            tipos[tipo] ||
-            "text"
-        );
-
-    }
-
-
-    function adicionarOpcaoVazia(
-        select
-    ) {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-
-        option.value =
-            "";
-
-
-        option.textContent =
-            "Selecione...";
-
-
-        select.appendChild(
-            option
-        );
-
-    }
-
-
-    function selecionarOpcao(
-        select,
-        valor
-    ) {
-
-        if (
-            valor ===
-            null ||
-            valor ===
-            undefined
-        ) {
-
-            select.value =
-                "";
-
-
-            return;
-
-        }
-
-
-        const texto =
-            String(
-                valor
-            );
-
-
-        select.value =
-            texto;
-
-
-        if (
-            select.value ===
-            texto
-        ) {
-
-            return;
-
-        }
-
-
-        const encontrado =
-            Array.from(
-                select.options
-            )
-            .find(
-                option =>
-                    String(
-                        option.value
-                    )
-                    .toLowerCase() ===
-                    texto.toLowerCase()
-            );
-
-
-        if (
-            encontrado
-        ) {
-
-            select.value =
-                encontrado.value;
-
-        }
-
-    }
-
-
-    function formatarCelula(
-        valor,
-        coluna
-    ) {
-
-        if (
-            valor ===
-            null ||
-            valor ===
-            undefined ||
-            valor ===
-            ""
-        ) {
-
-            return "";
-
-        }
-
-
-        if (
-            coluna?.type ===
-            "date"
-        ) {
-
-            return escaparHTML(
-                formatarData(
-                    valor
-                )
-            );
-
-        }
-
-
-        if (
-            coluna?.type ===
-            "boolean"
-        ) {
-
-            return valor
-                ? "SIM"
-                : "NÃO";
-
-        }
-
-
-        return escaparHTML(
-            String(
-                valor
-            )
-        );
-
-    }
-
-
-    function formatarData(
-        valor
-    ) {
-
-        const texto =
-            String(
-                valor
-            );
-
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/
-                .test(
-                    texto
-                )
-        ) {
-
-            const partes =
-                texto.split(
-                    "-"
-                );
-
-
-            return (
-                `${partes[2]}/${partes[1]}/${partes[0]}`
-            );
-
-        }
-
-
-        return texto;
-
-    }
-
-
-    function obterNomeColuna(
-        coluna
-    ) {
-
-        return (
-
-            coluna?.name ??
-            coluna?.campo ??
-            coluna
-
-        );
-
-    }
-
-
-    function obterTituloColuna(
-        coluna
-    ) {
-
-        return (
-
-            coluna?.label ??
-            coluna?.titulo ??
-            coluna?.name ??
-            coluna?.campo ??
-            coluna
-
-        );
-
-    }
-
-
-    function obterTituloAction(
-        nome
-    ) {
-
-        const titulos = {
-
-            abrirChecklist:
-                "Checklist",
-
-            abastecer:
-                "Abastecer",
-
-            visualizar:
-                "Visualizar",
-
-            finalizar:
-                "Finalizar"
-
-        };
-
-
-        return (
-            titulos[nome] ||
-            nome
-        );
-
-    }
-
 
     function escaparHTML(
         valor
     ) {
 
         return String(
-            valor ??
-            ""
+            valor ?? ""
         )
+
         .replace(
             /&/g,
             "&amp;"
         )
+
         .replace(
             /</g,
             "&lt;"
         )
+
         .replace(
             />/g,
             "&gt;"
         )
+
         .replace(
             /"/g,
             "&quot;"
         )
+
         .replace(
             /'/g,
             "&#039;"
@@ -3134,6 +1862,10 @@ export function createEngine(config = {}) {
 
     }
 
+
+    // ========================================================
+    // ESCAPAR ATRIBUTO
+    // ========================================================
 
     function escaparAtributo(
         valor
@@ -3146,6 +1878,10 @@ export function createEngine(config = {}) {
     }
 
 
+    // ========================================================
+    // CSS ESCAPE
+    // ========================================================
+
     function cssEscape(
         valor
     ) {
@@ -3157,9 +1893,7 @@ export function createEngine(config = {}) {
         ) {
 
             return window.CSS.escape(
-                String(
-                    valor
-                )
+                valor
             );
 
         }
@@ -3177,44 +1911,31 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // PAGINAÇÃO
+    // TORNAR MÉTODOS DISPONÍVEIS
     // ========================================================
 
-    container.addEventListener(
-        "click",
-        evento => {
+    Object.assign(
+        engine,
+        {
 
-            const botao =
-                evento.target.closest(
-                    "[data-engine-pagina]"
-                );
+            renderizarTabela,
 
+            obterRegistrosFiltrados,
 
-            if (
-                !botao
-            ) {
+            mostrarFormulario,
 
-                return;
+            esconderFormulario,
 
-            }
+            limparFormulario,
 
-
-            const pagina =
-                Number(
-                    botao.dataset.enginePagina
-                );
-
-
-            engine.pagina(
-                pagina
-            );
+            preencherFormulario
 
         }
     );
 
 
     // ========================================================
-    // INICIALIZAÇÃO
+    // INICIALIZAÇÃO AUTOMÁTICA
     // ========================================================
 
     engine.iniciar()
@@ -3233,4 +1954,3 @@ export function createEngine(config = {}) {
     return engine;
 
 }
-```
