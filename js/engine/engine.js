@@ -366,6 +366,23 @@ export function createEngine(config = {}) {
     "ENGINE → REGISTRO OBTIDO:",
     registro
 );
+                console.log(
+    "ENGINE → REGISTRO OBTIDO:",
+    registro
+);
+
+console.log(
+    "ENGINE → formulario:",
+    formulario
+);
+
+console.log(
+    "ENGINE → typeof preencherFormulario:",
+    typeof preencherFormulario
+);
+
+
+                
 
 
                 state.registroEditando =
