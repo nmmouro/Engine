@@ -1,1604 +1,1394 @@
+```javascript
 /**
- * ============================================================================
- * FORM ENGINE
+ * ============================================================
+ * FORM
  * Painel Frota
- * Arquivo: js/engine/form.js
+ * Arquivo: form.js
  *
- * Responsável por:
+ * Responsabilidade:
  *
- * - Criar formulários automaticamente a partir do schema
- * - Criar campos
- * - Preencher campos
- * - Ler dados do formulário
+ * - Criar formulário
+ * - Abrir formulário
+ * - Fechar formulário
+ * - Novo registro
+ * - Editar registro
+ * - Preencher formulário
+ * - Ler formulário
  * - Validar formulário
- * - Controlar modo novo/edição
- * - Trabalhar com valores padrão
+ * - Salvar registro
+ * - Cancelar edição
  *
- * O FORM NÃO conhece:
+ * Este arquivo NÃO conhece:
  *
- * - VEICULOS
- * - EMPREGADOS
- * - LANCAMENTOS
- * - SUPABASE
  * - PostgreSQL
+ * - Supabase
+ * - Google Sheets
+ * - API diretamente
  *
- * Toda a definição vem do SCHEMA.
- * ============================================================================
+ * A comunicação acontece através do:
+ *
+ *     engine.salvar()
+ *     engine.editar()
+ *
+ * ============================================================
  */
 
 
-/* ============================================================================
-   ESTADO INTERNO
-============================================================================ */
+// ============================================================
+// CREATE FORM
+// ============================================================
 
-let formularioAtual = null;
+export function createForm(config = {}) {
 
-let schemaAtual = null;
+    // ========================================================
+    // CONFIGURAÇÃO
+    // ========================================================
 
-let registroAtual = null;
+    const entity =
+        config.entity || "";
+
+    const schema =
+        config.schema || null;
+
+    const container =
+        config.container || null;
+
+    const state =
+        config.state || null;
+
+    const engine =
+        config.engine || null;
+
+    const options =
+        config.options || {};
 
 
-/* ============================================================================
-   CRIAR FORM
-============================================================================ */
+    // ========================================================
+    // VALIDAR
+    // ========================================================
 
-/**
- * Cria o formulário dentro do container informado.
- *
- * @param {Object} options
- * @param {Object} options.schema
- * @param {string|HTMLElement} options.container
- * @param {string} options.id
- * @param {Function} options.onSubmit
- * @param {Function} options.onCancel
- */
+    if (!container) {
 
-export function createForm(options = {}) {
+        throw new Error(
+            `Form ${entity}: container não informado.`
+        );
 
-    const {
+    }
+
+    if (!state) {
+
+        throw new Error(
+            `Form ${entity}: state não informado.`
+        );
+
+    }
+
+    if (!engine) {
+
+        throw new Error(
+            `Form ${entity}: engine não informado.`
+        );
+
+    }
+
+
+    // ========================================================
+    // ELEMENTOS
+    // ========================================================
+
+    let formContainer = null;
+
+    let form = null;
+
+
+    // ========================================================
+    // API PÚBLICA
+    // ========================================================
+
+    const api = {
+
+        entity,
 
         schema,
 
-        container = "#form-container",
+        container,
 
-        id = "formEngine",
+        state,
 
-        onSubmit = null,
+        engine,
 
-        onCancel = null,
+        options,
 
-        modo = "novo"
+        iniciar,
 
-    } = options;
+        destruir,
 
+        novo,
 
-    if (!schema) {
+        editar,
 
-        throw new Error(
-            "Form: schema não informado."
-        );
+        salvar,
 
-    }
+        cancelar,
 
+        abrir,
 
-    if (
-        !Array.isArray(schema.fields)
-    ) {
+        fechar,
 
-        throw new Error(
-            "Form: schema.fields deve ser um array."
-        );
+        limpar,
 
-    }
+        preencher,
 
+        obterDados,
 
-    const elementoContainer =
-
-        obterElemento(container);
-
-
-    if (!elementoContainer) {
-
-        throw new Error(
-            `Form: container "${container}" não encontrado.`
-        );
-
-    }
-
-
-    schemaAtual = schema;
-
-
-    elementoContainer.innerHTML = "";
-
-
-    /* ========================================================================
-       FORM
-    ======================================================================== */
-
-    const form = document.createElement("form");
-
-    form.id = id;
-
-    form.className = "engine-form";
-
-    form.noValidate = true;
-
-
-    /* ========================================================================
-       CAMPOS
-    ======================================================================== */
-
-    schema.fields.forEach(
-
-        campo => {
-
-            const elementoCampo =
-
-                criarCampo(campo);
-
-
-            if (elementoCampo) {
-
-                form.appendChild(
-                    elementoCampo
-                );
-
-            }
-
-        }
-
-    );
-
-
-    /* ========================================================================
-       AÇÕES
-    ======================================================================== */
-
-    const acoes =
-
-        document.createElement("div");
-
-    acoes.className =
-        "form-actions";
-
-
-    const btnSalvar =
-
-        document.createElement("button");
-
-    btnSalvar.type = "submit";
-
-    btnSalvar.className =
-        "btn btn-primary";
-
-    btnSalvar.textContent =
-        modo === "editar"
-            ? "Salvar alterações"
-            : "Salvar";
-
-
-    acoes.appendChild(
-        btnSalvar
-    );
-
-
-    if (onCancel) {
-
-        const btnCancelar =
-
-            document.createElement("button");
-
-        btnCancelar.type = "button";
-
-        btnCancelar.className =
-            "btn btn-secondary";
-
-        btnCancelar.textContent =
-            "Cancelar";
-
-
-        btnCancelar.addEventListener(
-            "click",
-            () => onCancel()
-        );
-
-
-        acoes.appendChild(
-            btnCancelar
-        );
-
-    }
-
-
-    form.appendChild(
-        acoes
-    );
-
-
-    /* ========================================================================
-       SUBMIT
-    ======================================================================== */
-
-    form.addEventListener(
-
-        "submit",
-
-        async evento => {
-
-            evento.preventDefault();
-
-
-            if (
-                !validarFormulario(form)
-            ) {
-
-                return;
-
-            }
-
-
-            const dados =
-
-                obterDados(form);
-
-
-            if (onSubmit) {
-
-                await onSubmit(
-                    dados,
-                    evento
-                );
-
-            }
-
-        }
-
-    );
-
-
-    elementoContainer.appendChild(
-        form
-    );
-
-
-    formularioAtual = form;
-
-
-    /* ========================================================================
-       MODO
-    ======================================================================== */
-
-    if (
-        modo === "editar" &&
-        registroAtual
-    ) {
-
-        preencherFormulario(
-            registroAtual
-        );
-
-    }
-
-
-    return form;
-
-}
-
-
-/* ============================================================================
-   CRIAR CAMPO
-============================================================================ */
-
-function criarCampo(campo) {
-
-    if (!campo || !campo.name) {
-
-        return null;
-
-    }
-
-
-    /* ========================================================================
-       CAMPO OCULTO
-    ======================================================================== */
-
-    if (
-        campo.hidden === true ||
-        campo.visible === false
-    ) {
-
-        const input =
-            document.createElement("input");
-
-        input.type = "hidden";
-
-        input.name = campo.name;
-
-        input.id = gerarIdCampo(
-            campo.name
-        );
-
-
-        return input;
-
-    }
-
-
-    /* ========================================================================
-       WRAPPER
-    ======================================================================== */
-
-    const wrapper =
-        document.createElement("div");
-
-    wrapper.className =
-        "form-field";
-
-
-    /* ========================================================================
-       LABEL
-    ======================================================================== */
-
-    const label =
-        document.createElement("label");
-
-    label.htmlFor =
-        gerarIdCampo(
-            campo.name
-        );
-
-
-    label.textContent =
-        campo.label ||
-        campo.name;
-
-
-    if (campo.required) {
-
-        const obrigatorio =
-            document.createElement("span");
-
-        obrigatorio.className =
-            "campo-obrigatorio";
-
-        obrigatorio.textContent =
-            " *";
-
-
-        label.appendChild(
-            obrigatorio
-        );
-
-    }
-
-
-    wrapper.appendChild(
-        label
-    );
-
-
-    /* ========================================================================
-       INPUT
-    ======================================================================== */
-
-    const input =
-        criarInput(campo);
-
-
-    wrapper.appendChild(
-        input
-    );
-
-
-    /* ========================================================================
-       AJUDA
-    ======================================================================== */
-
-    if (campo.help) {
-
-        const help =
-            document.createElement("small");
-
-        help.className =
-            "form-help";
-
-        help.textContent =
-            campo.help;
-
-
-        wrapper.appendChild(
-            help
-        );
-
-    }
-
-
-    return wrapper;
-
-}
-
-
-/* ============================================================================
-   CRIAR INPUT
-============================================================================ */
-
-function criarInput(campo) {
-
-    const tipo =
-        normalizarTipo(
-            campo.type
-        );
-
-
-    let input;
-
-
-    /* ========================================================================
-       TEXT
-    ======================================================================== */
-
-    if (
-        tipo === "text" ||
-        tipo === "string"
-    ) {
-
-        input =
-            document.createElement("input");
-
-        input.type =
-            "text";
-
-    }
-
-
-    /* ========================================================================
-       NUMBER
-    ======================================================================== */
-
-    else if (
-        tipo === "number"
-    ) {
-
-        input =
-            document.createElement("input");
-
-        input.type =
-            "number";
-
-        input.step =
-            campo.step ??
-            "any";
-
-    }
-
-
-    /* ========================================================================
-       DATE
-    ======================================================================== */
-
-    else if (
-        tipo === "date"
-    ) {
-
-        input =
-            document.createElement("input");
-
-        input.type =
-            "date";
-
-    }
-
-
-    /* ========================================================================
-       TIME
-    ======================================================================== */
-
-    else if (
-        tipo === "time"
-    ) {
-
-        input =
-            document.createElement("input");
-
-        input.type =
-            "time";
-
-    }
-
-
-    /* ========================================================================
-       SELECT
-    ======================================================================== */
-
-    else if (
-        tipo === "select"
-    ) {
-
-        input =
-            document.createElement("select");
-
-
-        const opcaoInicial =
-            document.createElement("option");
-
-        opcaoInicial.value = "";
-
-        opcaoInicial.textContent =
-            campo.placeholder ||
-            "Selecione...";
-
-
-        input.appendChild(
-            opcaoInicial
-        );
-
-
-        const opcoes =
-            Array.isArray(
-                campo.options
-            )
-                ? campo.options
-                : [];
-
-
-        opcoes.forEach(
-            opcao => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                if (
-                    typeof opcao ===
-                    "object"
-                ) {
-
-                    option.value =
-                        opcao.value ?? "";
-
-                    option.textContent =
-                        opcao.label ??
-                        opcao.value ??
-                        "";
-
-                }
-
-                else {
-
-                    option.value =
-                        String(opcao);
-
-                    option.textContent =
-                        String(opcao);
-
-                }
-
-
-                input.appendChild(
-                    option
-                );
-
-            }
-        );
-
-    }
-
-
-    /* ========================================================================
-       TEXTAREA
-    ======================================================================== */
-
-    else if (
-        tipo === "textarea"
-    ) {
-
-        input =
-            document.createElement(
-                "textarea"
-            );
-
-
-        input.rows =
-            campo.rows || 4;
-
-    }
-
-
-    /* ========================================================================
-       CHECKBOX
-    ======================================================================== */
-
-    else if (
-        tipo === "checkbox" ||
-        tipo === "boolean"
-    ) {
-
-        input =
-            document.createElement(
-                "input"
-            );
-
-        input.type =
-            "checkbox";
-
-    }
-
-
-    /* ========================================================================
-       FILE
-    ======================================================================== */
-
-    else if (
-        tipo === "file"
-    ) {
-
-        input =
-            document.createElement(
-                "input"
-            );
-
-        input.type =
-            "file";
-
-
-        if (campo.accept) {
-
-            input.accept =
-                campo.accept;
-
-        }
-
-    }
-
-
-    /* ========================================================================
-       DEFAULT
-    ======================================================================== */
-
-    else {
-
-        input =
-            document.createElement(
-                "input"
-            );
-
-        input.type =
-            "text";
-
-    }
-
-
-    /* ========================================================================
-       ATRIBUTOS
-    ======================================================================== */
-
-    input.id =
-        gerarIdCampo(
-            campo.name
-        );
-
-
-    input.name =
-        campo.name;
-
-
-    if (campo.placeholder) {
-
-        input.placeholder =
-            campo.placeholder;
-
-    }
-
-
-    if (campo.required) {
-
-        input.required =
-            true;
-
-    }
-
-
-    if (campo.readonly) {
-
-        input.readOnly =
-            true;
-
-    }
-
-
-    if (campo.disabled) {
-
-        input.disabled =
-            true;
-
-    }
-
-
-    if (
-        campo.min !== undefined
-    ) {
-
-        input.min =
-            campo.min;
-
-    }
-
-
-    if (
-        campo.max !== undefined
-    ) {
-
-        input.max =
-            campo.max;
-
-    }
-
-
-    if (
-        campo.maxlength !== undefined
-    ) {
-
-        input.maxLength =
-            campo.maxlength;
-
-    }
-
-
-    /* ========================================================================
-       VALOR PADRÃO
-    ======================================================================== */
-
-    aplicarValorPadrao(
-        input,
-        campo
-    );
-
-
-    return input;
-
-}
-
-
-/* ============================================================================
-   VALOR PADRÃO
-============================================================================ */
-
-function aplicarValorPadrao(
-    input,
-    campo
-) {
-
-    if (
-        campo.default === undefined
-    ) {
-
-        return;
-
-    }
-
-
-    let valor;
-
-
-    if (
-        typeof campo.default ===
-        "function"
-    ) {
-
-        valor =
-            campo.default();
-
-    }
-
-    else {
-
-        valor =
-            campo.default;
-
-    }
-
-
-    definirValor(
-        input,
-        valor,
-        campo
-    );
-
-}
-
-
-/* ============================================================================
-   DEFINIR VALOR
-============================================================================ */
-
-function definirValor(
-    input,
-    valor,
-    campo = {}
-) {
-
-    if (!input) {
-
-        return;
-
-    }
-
-
-    const tipo =
-        normalizarTipo(
-            campo.type
-        );
-
-
-    /* ========================================================================
-       CHECKBOX
-    ======================================================================== */
-
-    if (
-        tipo === "checkbox" ||
-        tipo === "boolean"
-    ) {
-
-        input.checked =
-            valor === true ||
-            valor === "true" ||
-            valor === "TRUE" ||
-            valor === "SIM" ||
-            valor === 1;
-
-        return;
-
-    }
-
-
-    /* ========================================================================
-       DATA
-    ======================================================================== */
-
-    if (
-        tipo === "date"
-    ) {
-
-        input.value =
-            normalizarDataInput(
-                valor
-            );
-
-        return;
-
-    }
-
-
-    /* ========================================================================
-       TIME
-    ======================================================================== */
-
-    if (
-        tipo === "time"
-    ) {
-
-        input.value =
-            normalizarHoraInput(
-                valor
-            );
-
-        return;
-
-    }
-
-
-    /* ========================================================================
-       OUTROS
-    ======================================================================== */
-
-    input.value =
-        valor ?? "";
-
-}
-
-
-/* ============================================================================
-   PREENCHER FORMULÁRIO
-============================================================================ */
-
-export function preencherFormulario(
-    registro = {}
-) {
-
-    if (!formularioAtual) {
-
-        return;
-
-    }
-
-
-    registroAtual =
-        registro;
-
-
-    const campos =
-        schemaAtual?.fields || [];
-
-
-    campos.forEach(
-        campo => {
-
-            const input =
-                formularioAtual.elements[
-                    campo.name
-                ];
-
-
-            if (!input) {
-
-                return;
-
-            }
-
-
-            definirValor(
-                input,
-                registro[
-                    campo.name
-                ],
-                campo
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================================
-   OBTER DADOS
-============================================================================ */
-
-export function obterDados(
-    form = formularioAtual
-) {
-
-    if (!form) {
-
-        return {};
-
-    }
-
-
-    const dados = {};
-
-
-    const campos =
-        schemaAtual?.fields || [];
-
-
-    campos.forEach(
-        campo => {
-
-            const input =
-                form.elements[
-                    campo.name
-                ];
-
-
-            if (!input) {
-
-                return;
-
-            }
-
-
-            const tipo =
-                normalizarTipo(
-                    campo.type
-                );
-
-
-            /* ================================================================
-               CHECKBOX
-            ================================================================ */
-
-            if (
-                tipo === "checkbox" ||
-                tipo === "boolean"
-            ) {
-
-                dados[
-                    campo.name
-                ] =
-                    input.checked;
-
-                return;
-
-            }
-
-
-            /* ================================================================
-               FILE
-            ================================================================ */
-
-            if (
-                tipo === "file"
-            ) {
-
-                dados[
-                    campo.name
-                ] =
-                    input.files?.[0] ||
-                    "";
-
-                return;
-
-            }
-
-
-            /* ================================================================
-               NUMBER
-            ================================================================ */
-
-            if (
-                tipo === "number"
-            ) {
-
-                const valor =
-                    input.value.trim();
-
-
-                dados[
-                    campo.name
-                ] =
-                    valor === ""
-                        ? ""
-                        : Number(valor);
-
-                return;
-
-            }
-
-
-            /* ================================================================
-               DEMAIS
-            ================================================================ */
-
-            dados[
-                campo.name
-            ] =
-                input.value;
-
-        }
-    );
-
-
-    return dados;
-
-}
-
-
-/* ============================================================================
-   VALIDAR FORMULÁRIO
-============================================================================ */
-
-export function validarFormulario(
-    form = formularioAtual
-) {
-
-    if (!form) {
-
-        return false;
-
-    }
-
-
-    let valido = true;
-
-
-    const campos =
-        schemaAtual?.fields || [];
-
-
-    campos.forEach(
-        campo => {
-
-            if (!campo.required) {
-
-                return;
-
-            }
-
-
-            const input =
-                form.elements[
-                    campo.name
-                ];
-
-
-            if (!input) {
-
-                return;
-
-            }
-
-
-            const tipo =
-                normalizarTipo(
-                    campo.type
-                );
-
-
-            let preenchido =
-                true;
-
-
-            if (
-                tipo === "checkbox" ||
-                tipo === "boolean"
-            ) {
-
-                preenchido =
-                    input.checked;
-
-            }
-
-            else if (
-                tipo === "file"
-            ) {
-
-                preenchido =
-                    input.files &&
-                    input.files.length > 0;
-
-            }
-
-            else {
-
-                preenchido =
-                    String(
-                        input.value || ""
-                    ).trim() !== "";
-
-            }
-
-
-            input.classList.toggle(
-                "campo-invalido",
-                !preenchido
-            );
-
-
-            if (!preenchido) {
-
-                valido = false;
-
-            }
-
-        }
-    );
-
-
-    if (!valido) {
-
-        mostrarMensagem(
-            "Preencha os campos obrigatórios."
-        );
-
-    }
-
-
-    return valido;
-
-}
-
-
-/* ============================================================================
-   LIMPAR
-============================================================================ */
-
-export function limparFormulario() {
-
-    if (!formularioAtual) {
-
-        return;
-
-    }
-
-
-    formularioAtual.reset();
-
-    registroAtual = null;
-
-
-    /* ========================================================================
-       REAPLICAR DEFAULTS
-    ======================================================================== */
-
-    const campos =
-        schemaAtual?.fields || [];
-
-
-    campos.forEach(
-        campo => {
-
-            const input =
-                formularioAtual.elements[
-                    campo.name
-                ];
-
-
-            if (!input) {
-
-                return;
-
-            }
-
-
-            aplicarValorPadrao(
-                input,
-                campo
-            );
-
-        }
-    );
-
-}
-
-
-/* ============================================================================
-   DESABILITAR
-============================================================================ */
-
-export function desabilitarFormulario() {
-
-    if (!formularioAtual) {
-
-        return;
-
-    }
-
-
-    Array.from(
-        formularioAtual.elements
-    ).forEach(
-        elemento => {
-
-            elemento.disabled =
-                true;
-
-        }
-    );
-
-}
-
-
-/* ============================================================================
-   HABILITAR
-============================================================================ */
-
-export function habilitarFormulario() {
-
-    if (!formularioAtual) {
-
-        return;
-
-    }
-
-
-    Array.from(
-        formularioAtual.elements
-    ).forEach(
-        elemento => {
-
-            elemento.disabled =
-                false;
-
-        }
-    );
-
-}
-
-
-/* ============================================================================
-   MODO NOVO
-============================================================================ */
-
-export function modoNovo() {
-
-    registroAtual = null;
-
-    limparFormulario();
-
-}
-
-
-/* ============================================================================
-   MODO EDIÇÃO
-============================================================================ */
-
-export function modoEdicao(
-    registro
-) {
-
-    registroAtual =
-        registro || {};
-
-
-    preencherFormulario(
-        registroAtual
-    );
-
-}
-
-
-/* ============================================================================
-   OBTER ELEMENTO
-============================================================================ */
-
-function obterElemento(
-    elemento
-) {
-
-    if (
-        elemento instanceof HTMLElement
-    ) {
-
-        return elemento;
-
-    }
-
-
-    if (
-        typeof elemento ===
-        "string"
-    ) {
-
-        return document.querySelector(
-            elemento
-        );
-
-    }
-
-
-    return null;
-
-}
-
-
-/* ============================================================================
-   NORMALIZAR TIPO
-============================================================================ */
-
-function normalizarTipo(
-    tipo
-) {
-
-    const valor =
-        String(
-            tipo || "text"
-        )
-        .toLowerCase()
-        .trim();
-
-
-    const mapa = {
-
-        texto: "text",
-
-        string: "text",
-
-        numero: "number",
-
-        data: "date",
-
-        hora: "time",
-
-        select: "select",
-
-        boolean: "boolean",
-
-        checkbox: "checkbox",
-
-        textarea: "textarea",
-
-        arquivo: "file",
-
-        foto: "file"
+        validar
 
     };
 
 
-    return mapa[valor] || valor;
+    // ========================================================
+    // INICIAR
+    // ========================================================
 
-}
+    function iniciar() {
 
+        localizarContainer();
 
-/* ============================================================================
-   ID DO CAMPO
-============================================================================ */
+        registrarEventos();
 
-function gerarIdCampo(
-    nome
-) {
+        /*
+         * O formulário começa fechado.
+         */
 
-    return (
-        "campo-" +
+        fechar();
 
-        String(nome)
-            .normalize("NFD")
-            .replace(
-                /[\u0300-\u036f]/g,
-                ""
-            )
-            .replace(
-                /[^a-zA-Z0-9]+/g,
-                "-"
-            )
-            .replace(
-                /^-+|-+$/g,
-                ""
-            )
-            .toLowerCase()
-    );
-
-}
-
-
-/* ============================================================================
-   DATA PARA INPUT
-============================================================================ */
-
-function normalizarDataInput(
-    valor
-) {
-
-    if (!valor) {
-
-        return "";
+        return api;
 
     }
 
 
-    if (
-        valor instanceof Date
+    // ========================================================
+    // LOCALIZAR CONTAINER
+    // ========================================================
+
+    function localizarContainer() {
+
+        formContainer =
+            container.querySelector(
+                "[data-engine-form]"
+            );
+
+
+        if (!formContainer) {
+
+            throw new Error(
+                `Form ${entity}: elemento [data-engine-form] não encontrado.`
+            );
+
+        }
+
+    }
+
+
+    // ========================================================
+    // CRIAR FORMULÁRIO
+    // ========================================================
+
+    function criarFormulario() {
+
+        if (!formContainer) {
+            localizarContainer();
+        }
+
+
+        /*
+         * Se o módulo já forneceu um formulário,
+         * usamos o formulário existente.
+         */
+
+        form =
+            formContainer.querySelector(
+                "form"
+            );
+
+
+        if (form) {
+
+            return form;
+
+        }
+
+
+        /*
+         * Se não existe formulário,
+         * criamos automaticamente com o Schema.
+         */
+
+        formContainer.innerHTML =
+            montarHTMLFormulario();
+
+
+        form =
+            formContainer.querySelector(
+                "form"
+            );
+
+
+        if (!form) {
+
+            throw new Error(
+                `Form ${entity}: não foi possível criar o formulário.`
+            );
+
+        }
+
+
+        return form;
+
+    }
+
+
+    // ========================================================
+    // MONTAR HTML
+    // ========================================================
+
+    function montarHTMLFormulario() {
+
+        const tituloNovo =
+            options.tituloNovo ||
+            "Novo registro";
+
+        const tituloEditar =
+            options.tituloEditar ||
+            "Editar registro";
+
+
+        return `
+
+            <div class="engine-form">
+
+                <div class="engine-form-header">
+
+                    <h2
+                        data-form-titulo
+                    >
+                        ${escaparHTML(
+                            tituloNovo
+                        )}
+                    </h2>
+
+                </div>
+
+
+                <form
+                    data-engine-formulario
+                    novalidate
+                >
+
+                    <div
+                        class="engine-form-fields"
+                        data-form-fields
+                    >
+
+                        ${montarCampos()}
+
+                    </div>
+
+
+                    <div class="engine-form-actions">
+
+                        <button
+                            type="submit"
+                            data-form-salvar
+                        >
+                            Salvar
+                        </button>
+
+
+                        <button
+                            type="button"
+                            data-form-cancelar
+                        >
+                            Cancelar
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        `;
+
+    }
+
+
+    // ========================================================
+    // MONTAR CAMPOS
+    // ========================================================
+
+    function montarCampos() {
+
+        if (
+            !schema ||
+            !Array.isArray(
+                schema.fields
+            )
+        ) {
+
+            return `
+
+                <div class="engine-form-empty">
+
+                    Schema não possui campos.
+
+                </div>
+
+            `;
+
+        }
+
+
+        return schema.fields
+
+            .filter(
+                campo =>
+
+                    campo.hidden !== true &&
+
+                    campo.form !== false &&
+
+                    campo.name !== "id"
+
+            )
+
+            .map(
+                campo =>
+                    montarCampo(
+                        campo
+                    )
+            )
+
+            .join("");
+
+    }
+
+
+    // ========================================================
+    // MONTAR CAMPO
+    // ========================================================
+
+    function montarCampo(
+        campo
     ) {
 
-        const ano =
-            valor.getFullYear();
+        const nome =
+            campo.name;
 
-        const mes =
-            String(
-                valor.getMonth() + 1
-            ).padStart(2, "0");
+        const label =
+            campo.label ||
+            campo.titulo ||
+            nome;
 
-        const dia =
-            String(
-                valor.getDate()
-            ).padStart(2, "0");
+        const tipo =
+            campo.type ||
+            campo.tipo ||
+            "text";
+
+        const required =
+            campo.required === true;
 
 
-        return `${ano}-${mes}-${dia}`;
+        const atributoRequired =
+            required
+                ? "required"
+                : "";
+
+
+        // ====================================================
+        // SELECT
+        // ====================================================
+
+        if (
+            tipo === "select"
+        ) {
+
+            const opcoes =
+                Array.isArray(
+                    campo.options
+                )
+
+                    ? campo.options
+
+                    : [];
+
+
+            const htmlOpcoes =
+                opcoes
+                    .map(
+                        opcao => {
+
+                            const valor =
+                                typeof opcao === "object"
+
+                                    ? (
+                                        opcao.value ??
+                                        opcao.id ??
+                                        ""
+                                    )
+
+                                    : opcao;
+
+
+                            const texto =
+                                typeof opcao === "object"
+
+                                    ? (
+                                        opcao.label ??
+                                        opcao.text ??
+                                        valor
+                                    )
+
+                                    : opcao;
+
+
+                            return `
+
+                                <option
+                                    value="${escaparAtributo(
+                                        valor
+                                    )}"
+                                >
+                                    ${escaparHTML(
+                                        texto
+                                    )}
+                                </option>
+
+                            `;
+
+                        }
+                    )
+                    .join("");
+
+
+            return `
+
+                <div class="engine-field">
+
+                    <label
+                        for="field-${escaparAtributo(
+                            nome
+                        )}"
+                    >
+                        ${escaparHTML(
+                            label
+                        )}
+                    </label>
+
+
+                    <select
+                        id="field-${escaparAtributo(
+                            nome
+                        )}"
+                        name="${escaparAtributo(
+                            nome
+                        )}"
+                        ${atributoRequired}
+                    >
+
+                        <option value="">
+                            Selecione...
+                        </option>
+
+                        ${htmlOpcoes}
+
+                    </select>
+
+                </div>
+
+            `;
+
+        }
+
+
+        // ====================================================
+        // TEXTAREA
+        // ====================================================
+
+        if (
+            tipo === "textarea"
+        ) {
+
+            return `
+
+                <div class="engine-field">
+
+                    <label
+                        for="field-${escaparAtributo(
+                            nome
+                        )}"
+                    >
+                        ${escaparHTML(
+                            label
+                        )}
+                    </label>
+
+
+                    <textarea
+                        id="field-${escaparAtributo(
+                            nome
+                        )}"
+                        name="${escaparAtributo(
+                            nome
+                        )}"
+                        ${atributoRequired}
+                    ></textarea>
+
+                </div>
+
+            `;
+
+        }
+
+
+        // ====================================================
+        // CHECKBOX
+        // ====================================================
+
+        if (
+            tipo === "boolean" ||
+            tipo === "checkbox"
+        ) {
+
+            return `
+
+                <div class="engine-field engine-field-checkbox">
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            name="${escaparAtributo(
+                                nome
+                            )}"
+                        >
+
+                        ${escaparHTML(
+                            label
+                        )}
+
+                    </label>
+
+                </div>
+
+            `;
+
+        }
+
+
+        // ====================================================
+        // INPUT PADRÃO
+        // ====================================================
+
+        return `
+
+            <div class="engine-field">
+
+                <label
+                    for="field-${escaparAtributo(
+                        nome
+                    )}"
+                >
+                    ${escaparHTML(
+                        label
+                    )}
+                </label>
+
+
+                <input
+                    id="field-${escaparAtributo(
+                        nome
+                    )}"
+                    type="${escaparAtributo(
+                        converterTipoInput(
+                            tipo
+                        )
+                    )}"
+                    name="${escaparAtributo(
+                        nome
+                    )}"
+                    ${atributoRequired}
+                >
+
+            </div>
+
+        `;
 
     }
 
 
-    const texto =
-        String(valor);
+    // ========================================================
+    // CONVERTER TIPO
+    // ========================================================
+
+    function converterTipoInput(
+        tipo
+    ) {
+
+        const tipos = {
+
+            string: "text",
+
+            text: "text",
+
+            number: "number",
+
+            integer: "number",
+
+            decimal: "number",
+
+            date: "date",
+
+            datetime: "datetime-local",
+
+            time: "time",
+
+            email: "email",
+
+            password: "password",
+
+            url: "url"
+
+        };
 
 
-    /* YYYY-MM-DD */
+        return (
+            tipos[tipo] ||
+            "text"
+        );
 
-    if (
-        /^\d{4}-\d{2}-\d{2}$/.test(
-            texto
+    }
+
+
+    // ========================================================
+    // EVENTOS
+    // ========================================================
+
+    function registrarEventos() {
+
+        if (!formContainer) {
+            return;
+        }
+
+
+        /*
+         * Delegação de eventos.
+         */
+
+        formContainer.addEventListener(
+            "submit",
+            evento => {
+
+                const formulario =
+                    evento.target.closest(
+                        "form"
+                    );
+
+
+                if (!formulario) {
+                    return;
+                }
+
+
+                evento.preventDefault();
+
+
+                salvar();
+
+            }
+        );
+
+
+        formContainer.addEventListener(
+            "click",
+            evento => {
+
+                const cancelarBotao =
+                    evento.target.closest(
+                        "[data-form-cancelar]"
+                    );
+
+
+                if (cancelarBotao) {
+
+                    evento.preventDefault();
+
+                    cancelar();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // NOVO
+    // ========================================================
+
+    function novo() {
+
+        criarFormulario();
+
+
+        state.registroEditando =
+            null;
+
+
+        limpar();
+
+
+        definirTitulo(
+            options.tituloNovo ||
+            "Novo registro"
+        );
+
+
+        abrir();
+
+
+        const primeiroCampo =
+            obterPrimeiroCampo();
+
+
+        if (primeiroCampo) {
+
+            setTimeout(
+                () => {
+
+                    primeiroCampo.focus();
+
+                },
+                0
+            );
+
+        }
+
+
+        emitirEvento(
+            "novo"
+        );
+
+
+        return api;
+
+    }
+
+
+    // ========================================================
+    // EDITAR
+    // ========================================================
+
+    async function editar(
+        id
+    ) {
+
+        if (
+            id === undefined ||
+            id === null ||
+            String(id).trim() === ""
+        ) {
+
+            throw new Error(
+                "Form: ID não informado."
+            );
+
+        }
+
+
+        criarFormulario();
+
+
+        try {
+
+            /*
+             * O Engine é responsável por consultar
+             * o backend.
+             */
+
+            const registro =
+                await engine.obter(
+                    String(id).trim()
+                );
+
+
+            if (!registro) {
+
+                throw new Error(
+                    `Registro ${id} não encontrado.`
+                );
+
+            }
+
+
+            state.registroEditando =
+                registro;
+
+
+            limpar();
+
+
+            preencher(
+                registro
+            );
+
+
+            definirTitulo(
+                options.tituloEditar ||
+                "Editar registro"
+            );
+
+
+            abrir();
+
+
+            emitirEvento(
+                "editar",
+                registro
+            );
+
+
+            return registro;
+
+        } catch (erro) {
+
+            console.error(
+                `Form ${entity}: erro ao editar`,
+                erro
+            );
+
+            mostrarErro(
+                erro
+            );
+
+            throw erro;
+
+        }
+
+    }
+
+
+    // ========================================================
+    // SALVAR
+    // ========================================================
+
+    async function salvar() {
+
+        criarFormulario();
+
+
+        /*
+         * Evita dois salvamentos simultâneos.
+         */
+
+        if (
+            state.salvando
+        ) {
+
+            return;
+
+        }
+
+
+        const valido =
+            validar();
+
+
+        if (!valido) {
+
+            return;
+
+        }
+
+
+        const dados =
+            obterDados();
+
+
+        console.log(
+            `FORM ${entity} → DADOS PARA SALVAR:`,
+            dados
+        );
+
+
+        try {
+
+            state.salvando =
+                true;
+
+
+            /*
+             * IMPORTANTE:
+             *
+             * Não chamamos Supabase.
+             *
+             * O Engine decide se será:
+             *
+             *     criar()
+             *
+             * ou
+             *
+             *     atualizar()
+             */
+
+            const resposta =
+                await engine.salvar(
+                    dados
+                );
+
+
+            state.registroEditando =
+                null;
+
+
+            limpar();
+
+            fechar();
+
+
+            emitirEvento(
+                "salvo",
+                resposta
+            );
+
+
+            return resposta;
+
+        } catch (erro) {
+
+            console.error(
+                `Form ${entity}: erro ao salvar`,
+                erro
+            );
+
+            mostrarErro(
+                erro
+            );
+
+            throw erro;
+
+        } finally {
+
+            state.salvando =
+                false;
+
+        }
+
+    }
+
+
+    // ========================================================
+    // CANCELAR
+    // ========================================================
+
+    function cancelar() {
+
+        state.registroEditando =
+            null;
+
+
+        limpar();
+
+        fechar();
+
+
+        emitirEvento(
+            "cancelado"
+        );
+
+    }
+
+
+    // ========================================================
+    // ABRIR
+    // ========================================================
+
+    function abrir() {
+
+        criarFormulario();
+
+
+        formContainer.hidden =
+            false;
+
+
+        formContainer.classList.add(
+            "is-open"
+        );
+
+    }
+
+
+    // ========================================================
+    // FECHAR
+    // ========================================================
+
+    function fechar() {
+
+        if (!formContainer) {
+            return;
+        }
+
+
+        formContainer.hidden =
+            true;
+
+
+        formContainer.classList.remove(
+            "is-open"
+        );
+
+    }
+
+
+    // ========================================================
+    // LIMPAR
+    // ========================================================
+
+    function limpar() {
+
+        if (!form) {
+
+            criarFormulario();
+
+        }
+
+
+        if (form) {
+
+            form.reset();
+
+        }
+
+    }
+
+
+    // ========================================================
+    // PREENCHER
+    // ========================================================
+
+    function preencher(
+        registro
+    ) {
+
+        if (!registro) {
+            return;
+        }
+
+
+        if (!form) {
+
+            criarFormulario();
+
+        }
+
+
+        Object.entries(
+            registro
         )
+        .forEach(
+            ([nome, valor]) => {
+
+                const campo =
+                    form.querySelector(
+                        `[name="${cssEscape(
+                            nome
+                        )}"]`
+                    );
+
+
+                if (!campo) {
+                    return;
+                }
+
+
+                if (
+                    campo.type ===
+                    "checkbox"
+                ) {
+
+                    campo.checked =
+                        Boolean(
+                            valor
+                        );
+
+                } else {
+
+                    campo.value =
+                        valor ?? "";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // OBTER DADOS
+    // ========================================================
+
+    function obterDados() {
+
+        if (!form) {
+
+            criarFormulario();
+
+        }
+
+
+        const dados = {};
+
+
+        const campos =
+            form.querySelectorAll(
+                "input, select, textarea"
+            );
+
+
+        campos.forEach(
+            campo => {
+
+                if (
+                    !campo.name
+                ) {
+
+                    return;
+
+                }
+
+
+                /*
+                 * ID não deve ser enviado
+                 * no cadastro de novo.
+                 *
+                 * Na edição o Engine já possui
+                 * o registro original em state.
+                 */
+
+                if (
+                    campo.name === "id"
+                ) {
+
+                    return;
+
+                }
+
+
+                // --------------------------------------------
+                // CHECKBOX
+                // --------------------------------------------
+
+                if (
+                    campo.type ===
+                    "checkbox"
+                ) {
+
+                    dados[campo.name] =
+                        campo.checked;
+
+                    return;
+
+                }
+
+
+                // --------------------------------------------
+                // RADIO
+                // --------------------------------------------
+
+                if (
+                    campo.type ===
+                    "radio"
+                ) {
+
+                    if (
+                        campo.checked
+                    ) {
+
+                        dados[campo.name] =
+                            campo.value;
+
+                    }
+
+                    return;
+
+                }
+
+
+                // --------------------------------------------
+                // INPUT NORMAL
+                // --------------------------------------------
+
+                dados[campo.name] =
+                    campo.value;
+
+            }
+        );
+
+
+        return dados;
+
+    }
+
+
+    // ========================================================
+    // VALIDAR
+    // ========================================================
+
+    function validar() {
+
+        if (!form) {
+
+            criarFormulario();
+
+        }
+
+
+        /*
+         * Validação HTML5.
+         */
+
+        if (
+            typeof form.checkValidity ===
+            "function"
+        ) {
+
+            if (
+                !form.checkValidity()
+            ) {
+
+                form.reportValidity();
+
+                return false;
+
+            }
+
+        }
+
+
+        return true;
+
+    }
+
+
+    // ========================================================
+    // PRIMEIRO CAMPO
+    // ========================================================
+
+    function obterPrimeiroCampo() {
+
+        if (!form) {
+            return null;
+        }
+
+
+        return form.querySelector(
+            "input:not([type='hidden']), select, textarea"
+        );
+
+    }
+
+
+    // ========================================================
+    // TÍTULO
+    // ========================================================
+
+    function definirTitulo(
+        titulo
     ) {
 
-        return texto;
+        if (!formContainer) {
+            return;
+        }
+
+
+        const elemento =
+            formContainer.querySelector(
+                "[data-form-titulo]"
+            );
+
+
+        if (elemento) {
+
+            elemento.textContent =
+                titulo;
+
+        }
 
     }
 
 
-    /* DD/MM/YYYY */
+    // ========================================================
+    // EVENTO
+    // ========================================================
 
-    const match =
-        texto.match(
-            /^(\d{2})\/(\d{2})\/(\d{4})$/
-        );
-
-
-    if (match) {
-
-        return (
-            `${match[3]}-${match[2]}-${match[1]}`
-        );
-
-    }
-
-
-    return "";
-
-}
-
-
-/* ============================================================================
-   HORA PARA INPUT
-============================================================================ */
-
-function normalizarHoraInput(
-    valor
-) {
-
-    if (!valor) {
-
-        return "";
-
-    }
-
-
-    if (
-        valor instanceof Date
+    function emitirEvento(
+        nome,
+        detalhe
     ) {
 
-        return (
-            String(
-                valor.getHours()
-            ).padStart(2, "0") +
+        if (!container) {
+            return;
+        }
 
-            ":" +
 
-            String(
-                valor.getMinutes()
-            ).padStart(2, "0")
+        container.dispatchEvent(
+
+            new CustomEvent(
+                `form:${nome}`,
+                {
+                    detail: detalhe
+                }
+            )
+
         );
 
     }
 
 
-    const texto =
-        String(valor);
+    // ========================================================
+    // ERRO
+    // ========================================================
 
-
-    const match =
-        texto.match(
-            /^(\d{1,2}):(\d{2})/
-        );
-
-
-    if (match) {
-
-        return (
-            String(
-                match[1]
-            ).padStart(2, "0") +
-
-            ":" +
-
-            match[2]
-        );
-
-    }
-
-
-    return "";
-
-}
-
-
-/* ============================================================================
-   MENSAGEM
-============================================================================ */
-
-function mostrarMensagem(
-    mensagem
-) {
-
-    if (
-        typeof window !==
-        "undefined" &&
-        typeof window.alert ===
-        "function"
+    function mostrarErro(
+        erro
     ) {
+
+        const mensagem =
+            erro?.message ||
+            "Ocorreu um erro.";
+
+
+        if (
+            typeof window.mostrarToast ===
+            "function"
+        ) {
+
+            window.mostrarToast(
+                mensagem,
+                "erro"
+            );
+
+            return;
+
+        }
+
+
+        console.error(
+            erro
+        );
 
         window.alert(
             mensagem
@@ -1606,29 +1396,120 @@ function mostrarMensagem(
 
     }
 
+
+    // ========================================================
+    // ESCAPAR HTML
+    // ========================================================
+
+    function escaparHTML(
+        valor
+    ) {
+
+        return String(
+            valor ?? ""
+        )
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+    }
+
+
+    // ========================================================
+    // ESCAPAR ATRIBUTO
+    // ========================================================
+
+    function escaparAtributo(
+        valor
+    ) {
+
+        return escaparHTML(
+            valor
+        );
+
+    }
+
+
+    // ========================================================
+    // CSS ESCAPE
+    // ========================================================
+
+    function cssEscape(
+        valor
+    ) {
+
+        if (
+            window.CSS &&
+            typeof window.CSS.escape ===
+            "function"
+        ) {
+
+            return window.CSS.escape(
+                valor
+            );
+
+        }
+
+
+        return String(
+            valor
+        )
+        .replace(
+            /["\\]/g,
+            "\\$&"
+        );
+
+    }
+
+
+    // ========================================================
+    // DESTRUIR
+    // ========================================================
+
+    function destruir() {
+
+        /*
+         * O container é administrado pelo Module.
+         *
+         * Não removemos o HTML aqui.
+         */
+
+        form =
+            null;
+
+        formContainer =
+            null;
+
+    }
+
+
+    // ========================================================
+    // RETORNAR
+    // ========================================================
+
+    return api;
+
 }
-
-
-/* ============================================================================
-   GETTERS
-============================================================================ */
-
-export function getFormularioAtual() {
-
-    return formularioAtual;
-
-}
-
-
-export function getSchemaAtual() {
-
-    return schemaAtual;
-
-}
-
-
-export function getRegistroAtual() {
-
-    return registroAtual;
-
-}
+```
