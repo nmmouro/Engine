@@ -1,2379 +1,923 @@
-```javascript
 /**
  * ============================================================
- * ENGINE
- * Painel Frota
- * Arquivo: js/engine/engine.js
+ * ENGINE PRINCIPAL
+ * ============================================================
  *
- * Arquitetura:
+ * Responsável por integrar:
  *
- * Página
- *   ↓
- * Module
- *   ↓
- * Engine
- *   ↓
- * CRUD Service
- *   ↓
- * Supabase / PostgreSQL
+ * - State
+ * - CRUD
+ * - Form
+ * - Table
+ * - Toolbar
  *
+ * O Engine não conhece nenhuma entidade específica.
  * ============================================================
  */
 
-import {
-    listar,
-    obter,
-    criar,
-    atualizar,
-    excluir
-} from "../services/crudService.js";
+import { createState } from "./state.js";
+import { createCrud } from "./crud.js";
+import { createForm } from "./form.js";
+import { createTable } from "./table.js";
+import { createToolbar } from "./toolbar.js";
 
 
-// ============================================================
-// CREATE ENGINE
-// ============================================================
+/**
+ * ============================================================
+ * CREATE ENGINE
+ * ============================================================
+ */
 
 export function createEngine(config = {}) {
 
-    // --------------------------------------------------------
-    // VALIDAR CONFIGURAÇÃO
-    // --------------------------------------------------------
+    const {
+        entity,
+        schema,
+        container,
+        stateName = entity,
+        options = {}
+    } = config;
 
-    if (!config.entity) {
+
+    // ============================================================
+    // VALIDAÇÃO
+    // ============================================================
+
+    if (!entity) {
+
         throw new Error(
-            "Engine: entidade não informada."
+            "Engine: entity não informado."
         );
+
     }
 
-    if (!config.container) {
+
+    if (!schema) {
+
         throw new Error(
-            "Engine: container não informado."
+            `Engine ${entity}: schema não informado.`
         );
+
     }
-
-
-    // --------------------------------------------------------
-    // CONFIGURAÇÃO
-    // --------------------------------------------------------
-
-    const entity =
-        config.entity;
-
-    const schema =
-        config.schema || null;
-
-    const options =
-        config.options || {};
-
-    const containerSelector =
-        config.container;
-
-
-    // --------------------------------------------------------
-    // CONTAINER
-    // --------------------------------------------------------
-
-    const container =
-        typeof containerSelector === "string"
-            ? document.querySelector(
-                containerSelector
-            )
-            : containerSelector;
 
 
     if (!container) {
 
         throw new Error(
-            `Engine ${entity}: container "${containerSelector}" não encontrado.`
+            `Engine ${entity}: container não informado.`
         );
 
     }
 
 
-    // --------------------------------------------------------
-    // ESTADO
-    // --------------------------------------------------------
+    // ============================================================
+    // CONTAINER PRINCIPAL
+    // ============================================================
 
-    const state = {
-
-        registros: [],
-
-        registroEditando: null,
-
-        carregando: false,
-
-        salvando: false,
-
-        filtro: "",
-
-        paginaAtual: 1,
-
-        paginaTamanho:
-            Number(
-                options.pageSize || 10
-            )
-
-    };
+    const app =
+        resolverElemento(container);
 
 
-    // --------------------------------------------------------
-    // ELEMENTOS
-    // --------------------------------------------------------
+    if (!app) {
 
-    let formulario = null;
+        throw new Error(
+            `Engine ${entity}: container não encontrado: ${container}`
+        );
 
-    let tabela = null;
-
-    let btnNovo = null;
+    }
 
 
-    // ========================================================
-    // OBJETO ENGINE
-    // ========================================================
+    // ============================================================
+    // STATE
+    // ============================================================
 
-    const engine = {
-
-        entity,
-
-        schema,
-
-        options,
-
-        state,
-
-        container,
+    const state =
+        createState(stateName);
 
 
-        // ====================================================
-        // INICIAR
-        // ====================================================
+    // ============================================================
+    // CRUD
+    // ============================================================
 
-        async iniciar() {
-
-            renderizarEstrutura();
-
-            localizarElementos();
-
-            registrarEventos();
-
-            renderizarFormulario();
-
-            esconderFormulario();
-
-            await engine.carregar();
-
-        },
+    const crud =
+        createCrud(entity);
 
 
-        // ====================================================
-        // CARREGAR
-        // ====================================================
+    // ============================================================
+    // ESTRUTURA
+    // ============================================================
 
-        async carregar() {
+    app.innerHTML = "";
 
-            if (
-                state.carregando
-            ) {
 
-                return state.registros;
+    const toolbarContainer =
+        criarContainer(
+            "engine-toolbar-container"
+        );
+
+
+    const formContainer =
+        criarContainer(
+            "engine-form-container"
+        );
+
+
+    const tableContainer =
+        criarContainer(
+            "engine-table-container"
+        );
+
+
+    app.appendChild(
+        toolbarContainer
+    );
+
+
+    app.appendChild(
+        formContainer
+    );
+
+
+    app.appendChild(
+        tableContainer
+    );
+
+
+    // ============================================================
+    // TOOLBAR
+    // ============================================================
+
+    const toolbar =
+        createToolbar({
+
+            container:
+                toolbarContainer,
+
+            titulo:
+                options.titulo ||
+                entity,
+
+            permitirNovo:
+                options.permitirNovo !== false,
+
+            onNovo
+
+        });
+
+
+    // ============================================================
+    // FORM
+    // ============================================================
+
+    const form =
+        createForm({
+
+            schema,
+
+            container:
+                formContainer,
+
+            onSubmit:
+                salvarFormulario,
+
+            onCancel:
+                cancelarFormulario
+
+        });
+
+
+    // ============================================================
+    // TABLE
+    // ============================================================
+
+    const table =
+        createTable({
+
+            schema,
+
+            container:
+                tableContainer,
+
+            actions: {
+
+                editar:
+                    options.permitirEditar !== false
+                        ? editar
+                        : null,
+
+                excluir:
+                    options.permitirExcluir !== false
+                        ? excluir
+                        : null
 
             }
 
-
-            state.carregando =
-                true;
+        });
 
 
-            mostrarLoading();
+    // ============================================================
+    // ESTADO INICIAL
+    // ============================================================
+
+    formContainer.style.display =
+        "none";
 
 
-            try {
+    // ============================================================
+    // FONTES RELACIONADAS
+    // ============================================================
 
-                console.log(
-                    `ENGINE ${entity}: LISTAR`
-                );
+    /**
+     * Carrega todas as fontes usadas por selects relacionais.
+     *
+     * Exemplo:
+     *
+     * EMPREGADOS
+     * VEICULOS
+     */
+
+    async function carregarFontesRelacionadas() {
+
+        const fontes =
+            [
+                ...new Set(
+
+                    schema.fields
+
+                        .filter(
+                            campo =>
+                                campo.type === "select" &&
+                                campo.source
+                        )
+
+                        .map(
+                            campo =>
+                                campo.source
+                        )
+
+                )
+            ];
 
 
-                const resposta =
-                    await listar(
-                        entity
-                    );
+        const resultado = {};
 
 
-                state.registros =
-                    Array.isArray(
-                        resposta
-                    )
-                        ? resposta
-                        : (
-                            Array.isArray(
-                                resposta?.dados
-                            )
-                                ? resposta.dados
-                                : []
+        if (fontes.length === 0) {
+
+            return resultado;
+
+        }
+
+
+        await Promise.all(
+
+            fontes.map(
+                async source => {
+
+                    try {
+
+                        /*
+                         * createCrud() representa a entidade
+                         * atual. Para buscar outra aba,
+                         * usamos diretamente o serviço CRUD.
+                         */
+
+                        const crudFonte =
+                            createCrud(source);
+
+
+                        const registros =
+                            await crudFonte.listar();
+
+
+                        resultado[source] =
+                            Array.isArray(registros)
+                                ? registros
+                                : [];
+
+
+                    } catch (erro) {
+
+                        console.error(
+                            `Engine ${entity}: erro ao carregar fonte ${source}`,
+                            erro
                         );
 
 
-                console.log(
-                    `ENGINE ${entity}: REGISTROS`,
-                    state.registros
-                );
+                        resultado[source] =
+                            [];
+
+                    }
+
+                }
+            )
+
+        );
 
 
-                state.paginaAtual =
-                    1;
+        return resultado;
+
+    }
 
 
-                renderizarTabela();
+    // ============================================================
+    // APLICA FONTES NO SCHEMA
+    // ============================================================
 
+    function aplicarFontesRelacionadas(fontes) {
 
-                emitirEvento(
-                    "carregado",
-                    state.registros
-                );
-
-
-                return state.registros;
-
-
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao carregar`,
-                    erro
-                );
-
-
-                mostrarErro(
-                    erro
-                );
-
-
-                throw erro;
-
-
-            } finally {
-
-                state.carregando =
-                    false;
-
-
-                esconderLoading();
-
-            }
-
-        },
-
-
-        // ====================================================
-        // RECARREGAR
-        // ====================================================
-
-        async recarregar() {
-
-            return engine.carregar();
-
-        },
-
-
-        // ====================================================
-        // OBTER
-        // ====================================================
-
-        async obter(id) {
+        schema.fields.forEach(campo => {
 
             if (
-                id === undefined ||
-                id === null ||
-                String(id).trim() === ""
+                campo.type !== "select" ||
+                !campo.source
             ) {
-
-                throw new Error(
-                    "Engine: ID não informado."
-                );
-
+                return;
             }
 
 
-            return obter(
-                entity,
-                id
+            const registros =
+                fontes[campo.source] || [];
+
+
+            /*
+             * Guarda os registros no próprio campo.
+             *
+             * Isso permite que o form.js utilize posteriormente
+             * os dados para montar os options.
+             */
+
+            campo.records =
+                registros;
+
+
+            /*
+             * Monta options para compatibilidade com
+             * o comportamento atual do form/table.
+             */
+
+            if (
+                campo.valueField &&
+                Array.isArray(campo.labelFields)
+            ) {
+
+                campo.options =
+                    registros.map(registro => {
+
+                        const value =
+                            registro?.[
+                                campo.valueField
+                            ] ?? "";
+
+
+                        const label =
+                            campo.labelFields
+
+                                .map(
+                                    campoLabel =>
+                                        registro?.[
+                                            campoLabel
+                                        ] ?? ""
+                                )
+
+                                .filter(
+                                    valor =>
+                                        valor !== ""
+                                )
+
+                                .join(
+                                    campo.separator || " / "
+                                );
+
+
+                        return {
+
+                            value,
+
+                            label
+
+                        };
+
+                    });
+
+            }
+
+        });
+
+    }
+
+
+    // ============================================================
+    // CARREGAR DADOS
+    // ============================================================
+
+    async function carregar() {
+
+        try {
+
+            state.carregando = true;
+
+
+            table.renderLoading(
+                "Carregando..."
             );
 
-        },
+
+            const registros =
+                await crud.listar();
 
 
-        // ====================================================
-        // NOVO
-        // ====================================================
-
-        novo() {
-
-            state.registroEditando =
-                null;
+            state.registros =
+                Array.isArray(registros)
+                    ? registros
+                    : [];
 
 
-            renderizarFormulario();
+            table.render(
+                state.registros
+            );
 
 
-            limparFormulario();
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
+            );
+
+
+            state.registros = [];
+
+
+            table.renderVazio(
+                "Não foi possível carregar os registros."
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+
+        } finally {
+
+            state.carregando = false;
+
+        }
+
+    }
+
+
+    // ============================================================
+    // NOVO
+    // ============================================================
+
+    async function onNovo() {
+
+        state.registroEditando =
+            null;
+
+
+        state.indiceEditando =
+            null;
+
+
+        try {
+
+            /*
+             * Os selects precisam estar carregados também
+             * no formulário de inclusão.
+             */
+
+            const fontes =
+                await carregarFontesRelacionadas();
+
+
+            aplicarFontesRelacionadas(
+                fontes
+            );
+
+
+            form.reset();
 
 
             mostrarFormulario();
 
 
-            emitirEvento(
-                "novo"
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
             );
 
-        },
 
-
-        // ====================================================
-        // EDITAR
-        // ====================================================
-
-        async editar(id) {
-
-            console.log(
-                "ENGINE → EDITAR → ID:",
-                id
+            mostrarErro(
+                erro
             );
 
+        }
+
+    }
+
+
+    // ============================================================
+    // EDITAR
+    // ============================================================
+
+    async function editar(
+        registro,
+        indice
+    ) {
+
+        try {
+
+            state.registroEditando =
+                registro;
+
+
+            state.indiceEditando =
+                indice;
+
+
+            /*
+             * IMPORTANTE:
+             *
+             * Primeiro carregamos EMPREGADOS e VEICULOS.
+             *
+             * Só depois chamamos form.setData().
+             */
+
+            const fontes =
+                await carregarFontesRelacionadas();
+
+
+            aplicarFontesRelacionadas(
+                fontes
+            );
+
+
+            /*
+             * setData precisa ser chamado depois
+             * que os options existem.
+             */
+
+            await form.setData(
+                registro
+            );
+
+
+            mostrarFormulario();
+
+
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}: erro ao editar`,
+                erro
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+        }
+
+    }
+
+
+    // ============================================================
+    // SALVAR FORMULÁRIO
+    // ============================================================
+
+    async function salvarFormulario(dados) {
+
+        try {
+
+            state.carregando =
+                true;
+
+
+            // ====================================================
+            // EDIÇÃO
+            // ====================================================
 
             if (
-                id === undefined ||
-                id === null ||
-                String(id).trim() === ""
+                state.registroEditando
             ) {
 
-                console.error(
-                    "ENGINE → ID inválido:",
-                    id
-                );
+                const registroOriginal =
+                    state.registroEditando;
 
 
-                throw new Error(
-                    "Engine: ID não informado."
-                );
+                /*
+                 * Mantém todos os campos originais.
+                 *
+                 * Isso é importante para LANCAMENTOS,
+                 * porque existem campos que não aparecem
+                 * no formulário simplificado.
+                 */
 
-            }
+                const dadosAtualizacao = {
+
+                    ...registroOriginal,
+
+                    ...dados,
+
+                    /*
+                     * ID principal
+                     */
+
+                    ID:
+                        registroOriginal.ID
+
+                };
 
 
-            try {
+                /*
+                 * Preserva relacionamento do empregado
+                 * caso o formulário não o tenha alterado.
+                 */
 
-                const registro =
-                    await obter(
-                        entity,
-                        id
-                    );
+                if (
+                    registroOriginal["ID Empregado"] &&
+                    !dadosAtualizacao["ID Empregado"]
+                ) {
 
-
-                console.log(
-                    "ENGINE → REGISTRO OBTIDO:",
-                    registro
-                );
-
-
-                if (!registro) {
-
-                    throw new Error(
-                        `Registro ${id} não encontrado.`
-                    );
+                    dadosAtualizacao["ID Empregado"] =
+                        registroOriginal["ID Empregado"];
 
                 }
 
 
                 /*
-                 * PostgreSQL / Supabase:
-                 *
-                 *     registro.id
+                 * Preserva relacionamento do veículo.
                  */
 
-                state.registroEditando =
-                    registro;
-
-
-                renderizarFormulario();
-
-
-                preencherFormulario(
-                    registro
-                );
-
-
-                mostrarFormulario();
-
-
-                emitirEvento(
-                    "editar",
-                    registro
-                );
-
-
-                return registro;
-
-
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao editar`,
-                    erro
-                );
-
-
-                mostrarErro(
-                    erro
-                );
-
-
-                throw erro;
-
-            }
-
-        },
-
-
-        // ====================================================
-        // SALVAR
-        // ====================================================
-
-        async salvar(dados) {
-
-            if (
-                state.salvando
-            ) {
-
-                return;
-
-            }
-
-
-            state.salvando =
-                true;
-
-
-            mostrarLoading();
-
-
-            try {
-
-                let resposta;
-
-
-                // ------------------------------------------------
-                // EDIÇÃO
-                // ------------------------------------------------
-
                 if (
-                    state.registroEditando &&
-                    state.registroEditando.id
+                    registroOriginal["ID Veículo"] &&
+                    !dadosAtualizacao["ID Veículo"]
                 ) {
 
-                    const registro = {
-
-                        ...state.registroEditando,
-
-                        ...dados,
-
-                        /*
-                         * Preservar sempre o ID original.
-                         */
-
-                        id:
-                            state.registroEditando.id
-
-                    };
-
-
-                    console.log(
-                        "ENGINE → ATUALIZAR:",
-                        registro
-                    );
-
-
-                    resposta =
-                        await atualizar(
-                            entity,
-                            registro
-                        );
-
-
-                    const atualizado =
-                        normalizarRegistroResposta(
-                            resposta
-                        );
-
-
-                    if (atualizado) {
-
-                        atualizarEstadoLocal(
-                            atualizado
-                        );
-
-                    } else {
-
-                        atualizarEstadoLocal(
-                            registro
-                        );
-
-                    }
+                    dadosAtualizacao["ID Veículo"] =
+                        registroOriginal["ID Veículo"];
 
                 }
 
 
-                // ------------------------------------------------
-                // NOVO
-                // ------------------------------------------------
+                console.log(
+                    `Engine ${entity}: atualizando`,
+                    dadosAtualizacao
+                );
 
-                else {
 
-                    console.log(
-                        "ENGINE → CRIAR:",
-                        dados
+                const resposta =
+                    await crud.atualizar(
+                        dadosAtualizacao
                     );
 
 
-                    resposta =
-                        await criar(
-                            entity,
-                            dados
-                        );
-
-
-                    const novoRegistro =
-                        normalizarRegistroResposta(
-                            resposta
-                        );
-
-
-                    if (novoRegistro) {
-
-                        state.registros.push(
-                            novoRegistro
-                        );
-
-                    }
-
-                }
-
-
-                state.registroEditando =
-                    null;
-
-
-                limparFormulario();
-
-
-                esconderFormulario();
-
-
-                renderizarTabela();
-
-
-                emitirEvento(
-                    "salvo",
+                console.log(
+                    `Engine ${entity}: resposta da atualização`,
                     resposta
                 );
 
 
-                return resposta;
-
-
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao salvar`,
-                    erro
-                );
-
-
-                mostrarErro(
-                    erro
-                );
-
-
-                throw erro;
-
-
-            } finally {
-
-                state.salvando =
-                    false;
-
-
-                esconderLoading();
-
-            }
-
-        },
-
-
-        // ====================================================
-        // EXCLUIR
-        // ====================================================
-
-        async excluir(id) {
-
-            if (
-                id === undefined ||
-                id === null ||
-                String(id).trim() === ""
-            ) {
-
-                throw new Error(
-                    "Engine: ID não informado."
+                validarResposta(
+                    resposta,
+                    "atualização"
                 );
 
             }
 
 
-            const confirmar =
-                window.confirm(
-                    "Deseja realmente excluir este registro?"
+            // ====================================================
+            // NOVO
+            // ====================================================
+
+            else {
+
+                console.log(
+                    `Engine ${entity}: criando`,
+                    dados
                 );
 
 
-            if (!confirmar) {
-
-                return false;
-
-            }
-
-
-            try {
-
-                await excluir(
-                    entity,
-                    id
-                );
-
-
-                state.registros =
-                    state.registros.filter(
-
-                        registro =>
-
-                            String(
-                                registro?.id
-                            ) !==
-                            String(id)
-
+                const resposta =
+                    await crud.criar(
+                        dados
                     );
 
 
-                renderizarTabela();
-
-
-                emitirEvento(
-                    "excluido",
-                    id
+                console.log(
+                    `Engine ${entity}: resposta da criação`,
+                    resposta
                 );
 
 
-                return true;
-
-
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao excluir`,
-                    erro
+                validarResposta(
+                    resposta,
+                    "criação"
                 );
-
-
-                mostrarErro(
-                    erro
-                );
-
-
-                throw erro;
 
             }
 
-        },
 
+            // ====================================================
+            // FINALIZAÇÃO
+            // ====================================================
 
-        // ====================================================
-        // FILTRAR
-        // ====================================================
+            esconderFormulario();
 
-        filtrar(valor) {
-
-            state.filtro =
-                String(
-                    valor || ""
-                )
-                .toLowerCase()
-                .trim();
-
-
-            state.paginaAtual =
-                1;
-
-
-            renderizarTabela();
-
-        },
-
-
-        // ====================================================
-        // PAGINAÇÃO
-        // ====================================================
-
-        pagina(numero) {
-
-            const registros =
-                obterRegistrosFiltrados();
-
-
-            const totalPaginas =
-                Math.max(
-
-                    1,
-
-                    Math.ceil(
-                        registros.length /
-                        state.paginaTamanho
-                    )
-
-                );
-
-
-            state.paginaAtual =
-                Math.min(
-
-                    Math.max(
-                        1,
-                        Number(numero) || 1
-                    ),
-
-                    totalPaginas
-
-                );
-
-
-            renderizarTabela();
-
-        },
-
-
-        // ====================================================
-        // FECHAR FORMULÁRIO
-        // ====================================================
-
-        fecharFormulario() {
 
             state.registroEditando =
                 null;
 
 
-            limparFormulario();
+            state.indiceEditando =
+                null;
 
 
-            esconderFormulario();
+            await carregar();
 
 
-            emitirEvento(
-                "formulario-fechado"
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
             );
 
-        },
 
-
-        // ====================================================
-        // ACTION
-        // ====================================================
-
-        action(
-            nome,
-            registro
-        ) {
-
-            const actions =
-                options.actions || {};
-
-
-            const funcao =
-                actions[nome];
-
-
-            if (
-                typeof funcao !== "function"
-            ) {
-
-                console.warn(
-                    `Engine ${entity}: action "${nome}" não encontrada.`
-                );
-
-
-                return;
-
-            }
-
-
-            return funcao(
-                registro,
-                engine
+            mostrarErro(
+                erro
             );
 
-        }
 
-    };
+        } finally {
 
-
-    // ========================================================
-    // RENDERIZAR ESTRUTURA
-    // ========================================================
-
-    function renderizarEstrutura() {
-
-        if (
-            container.children.length > 0
-        ) {
-
-            return;
+            state.carregando =
+                false;
 
         }
-
-
-        const titulo =
-            options.titulo ||
-            entity;
-
-
-        container.innerHTML = `
-
-            <section class="engine">
-
-                <header class="engine-header">
-
-                    <div>
-
-                        <h1>
-                            ${escaparHTML(titulo)}
-                        </h1>
-
-                    </div>
-
-
-                    <div class="engine-toolbar">
-
-                        ${
-                            options.permitirNovo !== false
-
-                                ? `
-
-                                    <button
-                                        type="button"
-                                        data-engine-novo
-                                    >
-                                        Novo
-                                    </button>
-
-                                  `
-
-                                : ""
-
-                        }
-
-                    </div>
-
-                </header>
-
-
-                <div
-                    class="engine-form-container"
-                    data-engine-form
-                ></div>
-
-
-                <div class="engine-table-container">
-
-                    <div
-                        class="engine-loading"
-                        data-engine-loading
-                        hidden
-                    >
-                        Carregando...
-                    </div>
-
-
-                    <div
-                        data-engine-table
-                    ></div>
-
-                </div>
-
-            </section>
-
-        `;
 
     }
 
 
-    // ========================================================
-    // LOCALIZAR ELEMENTOS
-    // ========================================================
-
-    function localizarElementos() {
-
-        formulario =
-            container.querySelector(
-                "[data-engine-form]"
-            );
-
-
-        tabela =
-            container.querySelector(
-                "[data-engine-table]"
-            );
-
-
-        btnNovo =
-            container.querySelector(
-                "[data-engine-novo]"
-            );
-
-    }
-
-
-    // ========================================================
-    // EVENTOS
-    // ========================================================
-
-    function registrarEventos() {
-
-        if (btnNovo) {
-
-            btnNovo.addEventListener(
-                "click",
-                () => {
-
-                    engine.novo();
-
-                }
-            );
-
-        }
-
-
-        container.addEventListener(
-            "click",
-            evento => {
-
-                // ==================================================
-                // EDITAR
-                // ==================================================
-
-                const botaoEditar =
-                    evento.target.closest(
-                        "[data-action='editar']"
-                    );
-
-
-                if (botaoEditar) {
-
-                    const id =
-                        botaoEditar.getAttribute(
-                            "data-id"
-                        );
-
-
-                    console.log(
-                        "ENGINE → BOTÃO EDITAR → ID:",
-                        id
-                    );
-
-
-                    if (
-                        id === null ||
-                        id === ""
-                    ) {
-
-                        console.error(
-                            "ENGINE → botão Editar sem data-id",
-                            botaoEditar
-                        );
-
-
-                        return;
-
-                    }
-
-
-                    engine.editar(
-                        id
-                    )
-                    .catch(
-                        erro => {
-
-                            console.error(
-                                erro
-                            );
-
-                        }
-                    );
-
-
-                    return;
-
-                }
-
-
-                // ==================================================
-                // EXCLUIR
-                // ==================================================
-
-                const botaoExcluir =
-                    evento.target.closest(
-                        "[data-action='excluir']"
-                    );
-
-
-                if (botaoExcluir) {
-
-                    const id =
-                        botaoExcluir.getAttribute(
-                            "data-id"
-                        );
-
-
-                    console.log(
-                        "ENGINE → BOTÃO EXCLUIR → ID:",
-                        id
-                    );
-
-
-                    if (
-                        id === null ||
-                        id === ""
-                    ) {
-
-                        console.error(
-                            "ENGINE → botão Excluir sem data-id",
-                            botaoExcluir
-                        );
-
-
-                        return;
-
-                    }
-
-
-                    engine.excluir(
-                        id
-                    )
-                    .catch(
-                        erro => {
-
-                            console.error(
-                                erro
-                            );
-
-                        }
-                    );
-
-
-                    return;
-
-                }
-
-
-                // ==================================================
-                // ACTION PERSONALIZADA
-                // ==================================================
-
-                const botaoAction =
-                    evento.target.closest(
-                        "[data-engine-action]"
-                    );
-
-
-                if (botaoAction) {
-
-                    const nome =
-                        botaoAction.getAttribute(
-                            "data-engine-action"
-                        );
-
-
-                    const id =
-                        botaoAction.getAttribute(
-                            "data-id"
-                        );
-
-
-                    const registro =
-                        state.registros.find(
-
-                            item =>
-
-                                String(
-                                    item?.id
-                                ) ===
-                                String(id)
-
-                        );
-
-
-                    engine.action(
-                        nome,
-                        registro
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // ========================================================
-    // RENDERIZAR TABELA
-    // ========================================================
-
-    function renderizarTabela() {
-
-        if (!tabela) {
-
-            return;
-
-        }
-
-
-        const registros =
-            obterRegistrosFiltrados();
-
-
-        const inicio =
-            (
-                state.paginaAtual - 1
-            ) *
-            state.paginaTamanho;
-
-
-        const pagina =
-            registros.slice(
-
-                inicio,
-
-                inicio +
-                state.paginaTamanho
-
-            );
-
-
-        if (
-            pagina.length === 0
-        ) {
-
-            tabela.innerHTML = `
-
-                <div class="engine-empty">
-
-                    Nenhum registro encontrado.
-
-                </div>
-
-            `;
-
-
-            return;
-
-        }
-
-
-        const colunas =
-            obterColunas();
-
-
-        let html = `
-
-            <table class="engine-table">
-
-                <thead>
-
-                    <tr>
-
-        `;
-
-
-        colunas.forEach(
-            coluna => {
-
-                html += `
-
-                    <th>
-                        ${escaparHTML(
-                            obterTituloColuna(
-                                coluna
-                            )
-                        )}
-                    </th>
-
-                `;
-
-            }
-        );
-
-
-        html += `
-
-                        <th>
-                            Ações
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-        `;
-
-
-        pagina.forEach(
-            registro => {
-
-                html += "<tr>";
-
-
-                colunas.forEach(
-                    coluna => {
-
-                        const nome =
-                            obterNomeColuna(
-                                coluna
-                            );
-
-
-                        html += `
-
-                            <td>
-
-                                ${formatarCelula(
-                                    registro?.[nome],
-                                    coluna
-                                )}
-
-                            </td>
-
-                        `;
-
-                    }
-                );
-
-
-                /*
-                 * ==================================================
-                 * ID DO POSTGRESQL
-                 * ==================================================
-                 *
-                 * SEMPRE:
-                 *
-                 *     registro.id
-                 *
-                 * Nunca:
-                 *
-                 *     registro.ID
-                 */
-
-                const id =
-                    registro?.id ?? "";
-
-
-                html += `
-
-                    <td class="engine-actions">
-
-                        ${
-                            options.permitirEditar !== false
-
-                                ? `
-
-                                    <button
-                                        type="button"
-                                        data-action="editar"
-                                        data-id="${escaparAtributo(id)}"
-                                    >
-                                        Editar
-                                    </button>
-
-                                  `
-
-                                : ""
-
-                        }
-
-
-                        ${
-                            options.permitirExcluir !== false
-
-                                ? `
-
-                                    <button
-                                        type="button"
-                                        data-action="excluir"
-                                        data-id="${escaparAtributo(id)}"
-                                    >
-                                        Excluir
-                                    </button>
-
-                                  `
-
-                                : ""
-
-                        }
-
-
-                        ${renderizarActions(
-                            registro
-                        )}
-
-                    </td>
-
-                `;
-
-
-                html += "</tr>";
-
-            }
-        );
-
-
-        html += `
-
-                </tbody>
-
-            </table>
-
-        `;
-
-
-        tabela.innerHTML =
-            html;
-
-    }
-
-
-    // ========================================================
-    // ACTIONS PERSONALIZADAS
-    // ========================================================
-
-    function renderizarActions(
-        registro
+    // ============================================================
+    // EXCLUIR
+    // ============================================================
+
+    async function excluir(
+        registro,
+        indice
     ) {
 
-        const actions =
-            options.actions || {};
+        const id =
+            registro?.ID;
 
 
-        return Object.keys(
-            actions
-        )
+        if (!id) {
 
-        .map(
-            nome => {
-
-                if (
-                    typeof actions[nome] !==
-                    "function"
-                ) {
-
-                    return "";
-
-                }
-
-
-                return `
-
-                    <button
-                        type="button"
-                        data-engine-action="${escaparAtributo(nome)}"
-                        data-id="${escaparAtributo(
-                            registro?.id ?? ""
-                        )}"
-                    >
-
-                        ${escaparHTML(
-                            obterTituloAction(
-                                nome
-                            )
-                        )}
-
-                    </button>
-
-                `;
-
-            }
-        )
-
-        .join("");
-
-    }
-
-
-    // ========================================================
-    // COLUNAS
-    // ========================================================
-
-    function obterColunas() {
-
-        if (
-            Array.isArray(
-                options.colunas
-            )
-        ) {
-
-            return options.colunas;
-
-        }
-
-
-        if (
-            schema &&
-            Array.isArray(
-                schema.fields
-            )
-        ) {
-
-            return schema.fields.filter(
-
-                campo =>
-
-                    campo.visible !== false &&
-
-                    campo.hidden !== true &&
-
-                    campo.name !== "id"
-
-            );
-
-        }
-
-
-        if (
-            state.registros.length === 0
-        ) {
-
-            return [];
-
-        }
-
-
-        return Object.keys(
-            state.registros[0]
-        )
-
-        .filter(
-            nome => nome !== "id"
-        )
-
-        .map(
-            nome => ({
-
-                name:
-                    nome,
-
-                label:
-                    nome
-
-            })
-        );
-
-    }
-
-
-    // ========================================================
-    // REGISTROS FILTRADOS
-    // ========================================================
-
-    function obterRegistrosFiltrados() {
-
-        if (
-            !state.filtro
-        ) {
-
-            return state.registros;
-
-        }
-
-
-        return state.registros.filter(
-
-            registro =>
-
-                Object.values(
-                    registro || {}
+            mostrarErro(
+                new Error(
+                    "Registro sem ID."
                 )
-
-                .some(
-
-                    valor =>
-
-                        String(
-                            valor ?? ""
-                        )
-
-                        .toLowerCase()
-
-                        .includes(
-                            state.filtro
-                        )
-
-                )
-
-        );
-
-    }
-
-
-    // ========================================================
-    // FORMULÁRIO
-    // ========================================================
-
-    function renderizarFormulario() {
-
-        if (!formulario) {
+            );
 
             return;
 
         }
 
 
-        const campos =
-            Array.isArray(
-                schema?.fields
-            )
-                ? schema.fields
-                : [];
-
-
-        formulario.innerHTML = `
-
-            <form
-                class="engine-form"
-                data-engine-formulario
-            >
-
-                ${campos
-
-                    .filter(
-
-                        campo =>
-
-                            campo.visible !== false &&
-
-                            campo.hidden !== true
-
-                    )
-
-                    .map(
-                        campo =>
-                            renderizarCampo(
-                                campo
-                            )
-                    )
-
-                    .join("")
-                }
-
-
-                <div class="engine-form-actions">
-
-                    <button
-                        type="submit"
-                        data-engine-salvar
-                    >
-                        Salvar
-                    </button>
-
-
-                    <button
-                        type="button"
-                        data-engine-cancelar
-                    >
-                        Cancelar
-                    </button>
-
-                </div>
-
-            </form>
-
-        `;
-
-
-        const form =
-            formulario.querySelector(
-                "[data-engine-formulario]"
+        const confirmar =
+            window.confirm(
+                `Deseja excluir o registro ${id}?`
             );
 
 
-        if (form) {
-
-            form.addEventListener(
-                "submit",
-                evento => {
-
-                    evento.preventDefault();
-
-
-                    const dados =
-                        obterDadosFormulario(
-                            form
-                        );
-
-
-                    engine.salvar(
-                        dados
-                    )
-                    .catch(
-                        erro => {
-
-                            console.error(
-                                erro
-                            );
-
-                        }
-                    );
-
-                }
-            );
-
-        }
-
-
-        const cancelar =
-            formulario.querySelector(
-                "[data-engine-cancelar]"
-            );
-
-
-        if (cancelar) {
-
-            cancelar.addEventListener(
-                "click",
-                () => {
-
-                    engine.fecharFormulario();
-
-                }
-            );
-
-        }
-
-    }
-
-
-    // ========================================================
-    // RENDERIZAR CAMPO
-    // ========================================================
-
-    function renderizarCampo(
-        campo
-    ) {
-
-        const nome =
-            campo.name || "";
-
-
-        const label =
-            campo.label ||
-            nome;
-
-
-        const tipo =
-            campo.type ||
-            "text";
-
-
-        const required =
-            campo.required
-                ? "required"
-                : "";
-
-
-        const readonly =
-            campo.readonly
-                ? "readonly"
-                : "";
-
-
-        const placeholder =
-            campo.placeholder ||
-            "";
-
-
-        // ----------------------------------------------------
-        // SELECT
-        // ----------------------------------------------------
-
-        if (
-            tipo === "select"
-        ) {
-
-            const optionsHTML =
-                (campo.options || [])
-
-                .map(
-                    opcao => {
-
-                        const valor =
-                            typeof opcao === "object"
-                                ? opcao.value
-                                : opcao;
-
-
-                        const texto =
-                            typeof opcao === "object"
-                                ? (
-                                    opcao.label ??
-                                    opcao.value
-                                )
-                                : opcao;
-
-
-                        return `
-
-                            <option
-                                value="${escaparAtributo(valor)}"
-                            >
-                                ${escaparHTML(texto)}
-                            </option>
-
-                        `;
-
-                    }
-                )
-
-                .join("");
-
-
-            return `
-
-                <div class="engine-field">
-
-                    <label>
-
-                        ${escaparHTML(label)}
-
-                        ${
-                            campo.required
-                                ? " *"
-                                : ""
-                        }
-
-                    </label>
-
-
-                    <select
-                        name="${escaparAtributo(nome)}"
-                        ${required}
-                        ${readonly}
-                    >
-
-                        <option value="">
-                            Selecione...
-                        </option>
-
-                        ${optionsHTML}
-
-                    </select>
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ----------------------------------------------------
-        // TEXTAREA
-        // ----------------------------------------------------
-
-        if (
-            tipo === "textarea"
-        ) {
-
-            return `
-
-                <div class="engine-field">
-
-                    <label>
-
-                        ${escaparHTML(label)}
-
-                        ${
-                            campo.required
-                                ? " *"
-                                : ""
-                        }
-
-                    </label>
-
-
-                    <textarea
-                        name="${escaparAtributo(nome)}"
-                        placeholder="${escaparAtributo(
-                            placeholder
-                        )}"
-                        ${required}
-                        ${readonly}
-                    ></textarea>
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ----------------------------------------------------
-        // FILE
-        // ----------------------------------------------------
-
-        if (
-            tipo === "file"
-        ) {
-
-            return `
-
-                <div class="engine-field">
-
-                    <label>
-
-                        ${escaparHTML(label)}
-
-                    </label>
-
-
-                    <input
-                        type="file"
-                        name="${escaparAtributo(nome)}"
-                    />
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ----------------------------------------------------
-        // INPUT
-        // ----------------------------------------------------
-
-        return `
-
-            <div class="engine-field">
-
-                <label>
-
-                    ${escaparHTML(label)}
-
-                    ${
-                        campo.required
-                            ? " *"
-                            : ""
-                    }
-
-                </label>
-
-
-                <input
-                    type="${escaparAtributo(tipo)}"
-                    name="${escaparAtributo(nome)}"
-                    placeholder="${escaparAtributo(
-                        placeholder
-                    )}"
-                    ${required}
-                    ${readonly}
-                />
-
-            </div>
-
-        `;
-
-    }
-
-
-    // ========================================================
-    // OBTER DADOS
-    // ========================================================
-
-    function obterDadosFormulario(
-        form
-    ) {
-
-        const dados = {};
-
-
-        Array.from(
-            form.elements
-        )
-
-        .forEach(
-            campo => {
-
-                if (
-                    !campo.name
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type === "file"
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type === "checkbox"
-                ) {
-
-                    dados[campo.name] =
-                        campo.checked;
-
-
-                    return;
-
-                }
-
-
-                dados[campo.name] =
-                    campo.value;
-
-            }
-        );
-
-
-        /*
-         * Nunca mandar ID vazio.
-         */
-
-        if (
-            dados.id === ""
-        ) {
-
-            delete dados.id;
-
-        }
-
-
-        return dados;
-
-    }
-
-
-    // ========================================================
-    // PREENCHER FORMULÁRIO
-    // ========================================================
-
-    function preencherFormulario(
-        registro
-    ) {
-
-        if (!formulario) {
+        if (!confirmar) {
 
             return;
 
         }
 
 
-        Object.entries(
-            registro || {}
-        )
+        try {
 
-        .forEach(
-            ([nome, valor]) => {
-
-                const campo =
-                    formulario.querySelector(
-                        `[name="${escaparSeletor(
-                            nome
-                        )}"]`
-                    );
+            state.carregando =
+                true;
 
 
-                if (!campo) {
-
-                    return;
-
-                }
-
-
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
-
-                    campo.checked =
-                        Boolean(
-                            valor
-                        );
-
-                } else if (
-                    campo.type !== "file"
-                ) {
-
-                    campo.value =
-                        valor ?? "";
-
-                }
-
-            }
-        );
-
-    }
-
-
-    // ========================================================
-    // ATUALIZAR ESTADO LOCAL
-    // ========================================================
-
-    function atualizarEstadoLocal(
-        registro
-    ) {
-
-        if (
-            !registro?.id
-        ) {
-
-            return;
-
-        }
-
-
-        const indice =
-            state.registros.findIndex(
-
-                item =>
-
-                    String(
-                        item?.id
-                    ) ===
-                    String(
-                        registro.id
-                    )
-
+            await crud.excluir(
+                id
             );
 
 
-        if (
-            indice >= 0
-        ) {
+            await carregar();
 
-            state.registros[indice] =
-                {
-                    ...state.registros[indice],
-                    ...registro
-                };
+
+        } catch (erro) {
+
+            console.error(
+                `Engine ${entity}:`,
+                erro
+            );
+
+
+            mostrarErro(
+                erro
+            );
+
+
+        } finally {
+
+            state.carregando =
+                false;
 
         }
 
     }
 
 
-    // ========================================================
-    // NORMALIZAR RESPOSTA
-    // ========================================================
+    // ============================================================
+    // CANCELAR
+    // ============================================================
 
-    function normalizarRegistroResposta(
-        resposta
-    ) {
+    function cancelarFormulario() {
 
-        if (!resposta) {
-
-            return null;
-
-        }
+        form.reset();
 
 
-        if (
-            Array.isArray(
-                resposta
-            )
-        ) {
-
-            return resposta[0] || null;
-
-        }
+        state.registroEditando =
+            null;
 
 
-        if (
-            Array.isArray(
-                resposta.dados
-            )
-        ) {
-
-            return resposta.dados[0] || null;
-
-        }
+        state.indiceEditando =
+            null;
 
 
-        if (
-            resposta.dados &&
-            resposta.dados.id
-        ) {
-
-            return resposta.dados;
-
-        }
-
-
-        if (
-            Array.isArray(
-                resposta.data
-            )
-        ) {
-
-            return resposta.data[0] || null;
-
-        }
-
-
-        if (
-            resposta.data &&
-            resposta.data.id
-        ) {
-
-            return resposta.data;
-
-        }
-
-
-        if (
-            resposta.id
-        ) {
-
-            return resposta;
-
-        }
-
-
-        return null;
+        esconderFormulario();
 
     }
 
 
-    // ========================================================
-    // PAGINAÇÃO / TÍTULOS
-    // ========================================================
-
-    function obterNomeColuna(
-        coluna
-    ) {
-
-        return (
-            coluna?.name ||
-            coluna?.campo ||
-            coluna
-        );
-
-    }
-
-
-    function obterTituloColuna(
-        coluna
-    ) {
-
-        return (
-            coluna?.label ||
-            coluna?.titulo ||
-            coluna?.name ||
-            coluna
-        );
-
-    }
-
-
-    function obterTituloAction(
-        nome
-    ) {
-
-        const titulos = {
-
-            visualizar:
-                "Visualizar",
-
-            finalizar:
-                "Finalizar",
-
-            checklist:
-                "Checklist",
-
-            abastecer:
-                "Abastecer"
-
-        };
-
-
-        return (
-            titulos[nome] ||
-            nome
-        );
-
-    }
-
-
-    function formatarCelula(
-        valor
-    ) {
-
-        if (
-            valor === null ||
-            valor === undefined
-        ) {
-
-            return "";
-
-        }
-
-
-        return escaparHTML(
-            String(valor)
-        );
-
-    }
-
-
-    // ========================================================
-    // FORMULÁRIO
-    // ========================================================
+    // ============================================================
+    // MOSTRAR FORMULÁRIO
+    // ============================================================
 
     function mostrarFormulario() {
 
+        formContainer.style.display =
+            "";
+
+
+        tableContainer.style.display =
+            "none";
+
+
         if (
-            formulario
+            toolbar.botaoNovo
         ) {
 
-            formulario.hidden =
-                false;
+            toolbar.ocultarNovo();
 
         }
 
     }
 
+
+    // ============================================================
+    // ESCONDER FORMULÁRIO
+    // ============================================================
 
     function esconderFormulario() {
 
-        if (
-            formulario
-        ) {
-
-            formulario.hidden =
-                true;
-
-        }
-
-    }
+        formContainer.style.display =
+            "none";
 
 
-    function limparFormulario() {
+        tableContainer.style.display =
+            "";
+
 
         if (
-            !formulario
+            toolbar.botaoNovo
         ) {
 
-            return;
-
-        }
-
-
-        const form =
-            formulario.querySelector(
-                "form"
-            );
-
-
-        if (form) {
-
-            form.reset();
+            toolbar.mostrarNovo();
 
         }
 
     }
 
 
-    // ========================================================
-    // LOADING
-    // ========================================================
+    // ============================================================
+    // MENSAGEM DE ERRO
+    // ============================================================
 
-    function mostrarLoading() {
-
-        const elemento =
-            container.querySelector(
-                "[data-engine-loading]"
-            );
-
-
-        if (elemento) {
-
-            elemento.hidden =
-                false;
-
-        }
-
-    }
-
-
-    function esconderLoading() {
-
-        const elemento =
-            container.querySelector(
-                "[data-engine-loading]"
-            );
-
-
-        if (elemento) {
-
-            elemento.hidden =
-                true;
-
-        }
-
-    }
-
-
-    // ========================================================
-    // EVENTO
-    // ========================================================
-
-    function emitirEvento(
-        nome,
-        detalhe
-    ) {
-
-        container.dispatchEvent(
-
-            new CustomEvent(
-                `engine:${nome}`,
-                {
-                    detail:
-                        detalhe
-                }
-            )
-
-        );
-
-    }
-
-
-    // ========================================================
-    // ERRO
-    // ========================================================
-
-    function mostrarErro(
-        erro
-    ) {
+    function mostrarErro(erro) {
 
         const mensagem =
             erro?.message ||
@@ -2381,155 +925,198 @@ export function createEngine(config = {}) {
 
 
         console.error(
-            `ENGINE ${entity}:`,
-            erro
+            mensagem
         );
 
 
-        if (
-            typeof window.mostrarToast ===
-            "function"
-        ) {
-
-            window.mostrarToast(
-                mensagem,
-                "erro"
-            );
-
-        } else {
-
-            window.alert(
-                mensagem
-            );
-
-        }
-
-    }
-
-
-    // ========================================================
-    // SEGURANÇA HTML
-    // ========================================================
-
-    function escaparHTML(
-        valor
-    ) {
-
-        return String(
-            valor ?? ""
-        )
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
+        window.alert(
+            mensagem
         );
 
     }
 
 
-    function escaparAtributo(
-        valor
+    // ============================================================
+    // CARREGAMENTO INICIAL
+    // ============================================================
+
+    carregar();
+
+
+    // ============================================================
+    // API PÚBLICA
+    // ============================================================
+
+    return {
+
+        entity,
+
+        schema,
+
+        state,
+
+        crud,
+
+        form,
+
+        table,
+
+        toolbar,
+
+        carregar,
+
+        novo:
+            onNovo,
+
+        editar,
+
+        cancelar:
+            cancelarFormulario
+
+    };
+
+}
+
+
+/**
+ * ============================================================
+ * VALIDAR RESPOSTA DA API
+ * ============================================================
+ */
+
+function validarResposta(
+    resposta,
+    operacao
+) {
+
+    /*
+     * Resposta normal:
+     *
+     * {
+     *   sucesso: true,
+     *   status: 200,
+     *   dados: {...}
+     * }
+     */
+
+
+    if (
+        !resposta
     ) {
 
-        return escaparHTML(
+        throw new Error(
+            `A API não retornou resposta na ${operacao}.`
+        );
+
+    }
+
+
+    /*
+     * Erro no primeiro nível
+     */
+
+    if (
+        resposta.sucesso === false
+    ) {
+
+        throw new Error(
+            resposta.erro ||
+            resposta.message ||
+            `Erro na ${operacao}.`
+        );
+
+    }
+
+
+    /*
+     * Sua API possui uma segunda camada:
+     *
+     * dados:
+     * {
+     *     sucesso: false,
+     *     erro: "..."
+     * }
+     *
+     * Portanto precisamos verificar também.
+     */
+
+    const interno =
+        resposta?.dados;
+
+
+    if (
+        interno &&
+        typeof interno === "object" &&
+        interno.sucesso === false
+    ) {
+
+        throw new Error(
+            interno.erro ||
+            interno.message ||
+            `Erro na ${operacao}.`
+        );
+
+    }
+
+}
+
+
+/**
+ * ============================================================
+ * RESOLVE ELEMENTO
+ * ============================================================
+ */
+
+function resolverElemento(valor) {
+
+    if (!valor) {
+
+        return null;
+
+    }
+
+
+    if (
+        valor instanceof HTMLElement
+    ) {
+
+        return valor;
+
+    }
+
+
+    if (
+        typeof valor === "string"
+    ) {
+
+        return document.querySelector(
             valor
         );
 
     }
 
 
-    function escaparSeletor(
-        valor
-    ) {
-
-        if (
-            window.CSS &&
-            typeof window.CSS.escape ===
-            "function"
-        ) {
-
-            return window.CSS.escape(
-                String(valor)
-            );
-
-        }
-
-
-        return String(valor)
-            .replace(
-                /(["\\])/g,
-                "\\$1"
-            );
-
-    }
-
-
-    // ========================================================
-    // MÉTODOS INTERNOS DISPONÍVEIS
-    // ========================================================
-
-    engine.renderizarTabela =
-        renderizarTabela;
-
-    engine.renderizarFormulario =
-        renderizarFormulario;
-
-    engine.preencherFormulario =
-        preencherFormulario;
-
-    engine.limparFormulario =
-        limparFormulario;
-
-    engine.mostrarFormulario =
-        mostrarFormulario;
-
-    engine.esconderFormulario =
-        esconderFormulario;
-
-
-    // ========================================================
-    // INICIAR
-    // ========================================================
-
-    engine.iniciar()
-
-        .catch(
-            erro => {
-
-                console.error(
-                    `Engine ${entity}: falha na inicialização`,
-                    erro
-                );
-
-            }
-        );
-
-
-    // ========================================================
-    // RETORNAR
-    // ========================================================
-
-    return engine;
+    return null;
 
 }
-```
+
+
+/**
+ * ============================================================
+ * CRIA CONTAINER
+ * ============================================================
+ */
+
+function criarContainer(classe) {
+
+    const elemento =
+        document.createElement("div");
+
+
+    elemento.className =
+        classe;
+
+
+    return elemento;
+
+}
