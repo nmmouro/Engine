@@ -558,15 +558,13 @@ export function createEngine(config = {}) {
                  */
 
                 state.registros =
-                    state.registros.filter(
-
-                        registro =>
-
-                            String(
-                                registro?.ID
-                            ) !== id
-
-                    );
+    state.registros.filter(
+        registro =>
+            String(
+                obterIdRegistro(registro)
+            ) !==
+            String(id)
+    );
 
 
                 renderizarTabela();
@@ -1341,7 +1339,8 @@ console.log(
                                 nome
                             )}"
                             data-id="${escaparAtributo(
-                                registro?.ID
+    obterIdRegistro(registro)
+)}"
                             )}"
                         >
 
@@ -1585,6 +1584,23 @@ console.log(
     }
 
 
+
+    function obterIdRegistro(registro) {
+
+    if (!registro) {
+        return null;
+    }
+
+    return (
+        registro.id ??
+        registro.ID ??
+        registro.Id ??
+        null
+    );
+
+}
+
+
     function obterTituloColuna(
         coluna
     ) {
@@ -1685,126 +1701,75 @@ console.log(
     // NORMALIZAR RESPOSTA
     // ========================================================
 
-    function normalizarRegistroResposta(
-        resposta
-    ) {
+    function normalizarRegistroResposta(resposta) {
 
-        if (!resposta) {
-            return null;
-        }
-
-
-        if (
-            Array.isArray(
-                resposta
-            )
-        ) {
-
-            return resposta[0] || null;
-
-        }
-
-
-        if (
-            resposta.dados
-        ) {
-
-            if (
-                Array.isArray(
-                    resposta.dados
-                )
-            ) {
-
-                return resposta.dados[0] || null;
-
-            }
-
-
-            if (
-                resposta.dados.ID
-            ) {
-
-                return resposta.dados;
-
-            }
-
-        }
-
-
-        if (
-            resposta.data
-        ) {
-
-            if (
-                Array.isArray(
-                    resposta.data
-                )
-            ) {
-
-                return resposta.data[0] || null;
-
-            }
-
-
-            if (
-                resposta.data.ID
-            ) {
-
-                return resposta.data;
-
-            }
-
-        }
-
-
-        if (
-            resposta.ID
-        ) {
-
-            return resposta;
-
-        }
-
-
+    if (!resposta) {
         return null;
+    }
+
+    if (Array.isArray(resposta)) {
+        return resposta[0] || null;
+    }
+
+    if (resposta.dados) {
+
+        if (Array.isArray(resposta.dados)) {
+            return resposta.dados[0] || null;
+        }
+
+        if (obterIdRegistro(resposta.dados)) {
+            return resposta.dados;
+        }
 
     }
+
+    if (resposta.data) {
+
+        if (Array.isArray(resposta.data)) {
+            return resposta.data[0] || null;
+        }
+
+        if (obterIdRegistro(resposta.data)) {
+            return resposta.data;
+        }
+
+    }
+
+    if (obterIdRegistro(resposta)) {
+        return resposta;
+    }
+
+    return null;
+
+}
 
 
     // ========================================================
     // ATUALIZAR ESTADO LOCAL
     // ========================================================
 
-    function atualizarEstadoLocal(
-        registro
-    ) {
+    function atualizarEstadoLocal(registro) {
 
-        const indice =
-            state.registros.findIndex(
+    const id =
+        obterIdRegistro(registro);
 
-                item =>
+    const indice =
+        state.registros.findIndex(
+            item =>
+                String(
+                    obterIdRegistro(item)
+                ) ===
+                String(id)
+        );
 
-                    String(
-                        item?.ID
-                    ) ===
+    if (indice >= 0) {
 
-                    String(
-                        registro?.ID
-                    )
-
-            );
-
-
-        if (
-            indice >= 0
-        ) {
-
-            state.registros[indice] =
-                registro;
-
-        }
+        state.registros[indice] =
+            registro;
 
     }
+
+}
 
 
     // ========================================================
