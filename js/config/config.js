@@ -1,7 +1,7 @@
 const CONFIG = {
 
     api: {
-        url: "sb_publishable_SENkn1p7FX9_SZpV4iXYew_gJLUucj4"
+        url: "https://iomekawabacmuhlltket.supabase.co/rest/v1/"
     },
 
     engine: {
