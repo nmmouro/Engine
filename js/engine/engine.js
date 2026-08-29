@@ -1148,8 +1148,29 @@ export function createEngine(config = {}) {
         `;
 
 
+                                                                                            console.log(
+    `ENGINE ${entity} → REGISTROS PARA TABELA:`,
+    pagina
+);
+
+
         pagina.forEach(
             registro => {
+
+
+
+                                                                                    console.log(
+    `ENGINE ${entity} → REGISTRO:`,
+    registro
+);
+
+console.log(
+    `ENGINE ${entity} → ID:`,
+    registro?.ID,
+    "id:",
+    registro?.id
+);
+                
 
                 /*
                  * CORREÇÃO:
