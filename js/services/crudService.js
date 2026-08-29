@@ -144,7 +144,6 @@ function obterBaseUrl() {
 
 }
 
-
 // ============================================================
 // CONSTRUIR URL
 // ============================================================
@@ -158,10 +157,13 @@ function construirUrl(
         obterBaseUrl();
 
     const nome =
-        normalizarEntidade(entidade);
+        normalizarEntidade(
+            entidade
+        );
 
     let url =
         `${baseUrl}/${encodeURIComponent(nome)}`;
+
 
     if (
         id !== null &&
@@ -174,10 +176,10 @@ function construirUrl(
 
     }
 
+
     return url;
 
 }
-
 
 // ============================================================
 // VALIDAR ID
