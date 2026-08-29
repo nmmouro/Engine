@@ -904,21 +904,30 @@ export async function excluir(
 
 
 // ============================================================
+// EXPORTAÇÕES
+// ============================================================
+
+export {
+    listar,
+    obter,
+    criar,
+    salvar,
+    atualizar,
+    excluir
+};
+
+
+// ============================================================
 // EXPORTAÇÃO DEFAULT
 // ============================================================
 
 export default {
 
     listar,
-
     obter,
-
     criar,
-
     salvar,
-
     atualizar,
-
     excluir
 
 };
