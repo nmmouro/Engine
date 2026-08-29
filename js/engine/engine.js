@@ -1,3 +1,4 @@
+```javascript
 /**
  * ============================================================
  * ENGINE
@@ -30,13 +31,11 @@
  */
 
 import {
-
     listar,
     obter,
     criar,
     atualizar,
     excluir
-
 } from "../services/crudService.js";
 
 
@@ -51,20 +50,15 @@ export function createEngine(config = {}) {
     // ========================================================
 
     if (!config.entity) {
-
         throw new Error(
             "Engine: entidade não informada."
         );
-
     }
 
-
     if (!config.container) {
-
         throw new Error(
             "Engine: container não informado."
         );
-
     }
 
 
@@ -75,14 +69,11 @@ export function createEngine(config = {}) {
     const entity =
         config.entity;
 
-
     const schema =
         config.schema || null;
 
-
     const containerSelector =
         config.container;
-
 
     const options =
         config.options || {};
@@ -94,20 +85,15 @@ export function createEngine(config = {}) {
 
     const container =
         typeof containerSelector === "string"
-
             ? document.querySelector(
                 containerSelector
             )
-
             : containerSelector;
 
-
     if (!container) {
-
         throw new Error(
             `Engine ${entity}: container "${containerSelector}" não encontrado.`
         );
-
     }
 
 
@@ -175,19 +161,6 @@ export function createEngine(config = {}) {
 
             registrarEventos();
 
-            /*
-             * CORREÇÃO PRINCIPAL
-             *
-             * carregar() é método do objeto engine.
-             * Portanto precisamos chamar:
-             *
-             *     engine.carregar()
-             *
-             * e não:
-             *
-             *     carregar()
-             */
-
             await engine.carregar();
 
         },
@@ -199,25 +172,17 @@ export function createEngine(config = {}) {
 
         async carregar() {
 
-            if (
-                state.carregando
-            ) {
-
+            if (state.carregando) {
                 return state.registros;
-
             }
-
 
             state.carregando = true;
 
-
             mostrarLoading();
-
 
             emitirEvento(
                 "carregando"
             );
-
 
             try {
 
@@ -226,27 +191,19 @@ export function createEngine(config = {}) {
                         entity
                     );
 
-
                 state.registros =
                     Array.isArray(dados)
-
                         ? dados
-
                         : [];
 
-
-                state.paginaAtual =
-                    1;
-
+                state.paginaAtual = 1;
 
                 renderizarTabela();
-
 
                 emitirEvento(
                     "carregado",
                     state.registros
                 );
-
 
                 return state.registros;
 
@@ -257,22 +214,17 @@ export function createEngine(config = {}) {
                     erro
                 );
 
-
                 mostrarErro(
                     erro
                 );
-
 
                 throw erro;
 
             } finally {
 
-                state.carregando =
-                    false;
-
+                state.carregando = false;
 
                 esconderLoading();
-
 
                 emitirEvento(
                     "fim-carregamento"
@@ -287,9 +239,11 @@ export function createEngine(config = {}) {
         // RECARREGAR
         // ====================================================
 
-      async recarregar() {
-    return engine.carregar();
-},
+        async recarregar() {
+
+            return engine.carregar();
+
+        },
 
 
         // ====================================================
@@ -298,7 +252,11 @@ export function createEngine(config = {}) {
 
         async obter(id) {
 
-            if (!id) {
+            if (
+                id === undefined ||
+                id === null ||
+                String(id).trim() === ""
+            ) {
 
                 throw new Error(
                     "Engine: ID não informado."
@@ -306,10 +264,9 @@ export function createEngine(config = {}) {
 
             }
 
-
             return obter(
                 entity,
-                id
+                String(id).trim()
             );
 
         },
@@ -324,12 +281,9 @@ export function createEngine(config = {}) {
             state.registroEditando =
                 null;
 
-
             limparFormulario();
 
-
             mostrarFormulario();
-
 
             emitirEvento(
                 "novo"
@@ -344,95 +298,89 @@ export function createEngine(config = {}) {
 
         async editar(id) {
 
-    console.log(
-        "ENGINE → EDITAR → ID RECEBIDO:",
-        id
-    );
-
-
-    if (
-        id === undefined ||
-        id === null ||
-        String(id).trim() === ""
-    ) {
-
-        throw new Error(
-            "Engine: ID não informado."
-        );
-
-    }
-
-
-    id =
-        String(id).trim();
-
-
-    try {
-
-        const registro =
-            await obter(
-                entity,
+            console.log(
+                "ENGINE → EDITAR → ID RECEBIDO:",
                 id
             );
 
+            if (
+                id === undefined ||
+                id === null ||
+                String(id).trim() === ""
+            ) {
 
-        console.log(
-            "ENGINE → REGISTRO OBTIDO:",
-            registro
-        );
+                throw new Error(
+                    "Engine: ID não informado."
+                );
 
+            }
 
-        if (!registro) {
+            id =
+                String(id).trim();
 
-            throw new Error(
-                `Registro ${id} não encontrado.`
-            );
+            try {
 
-        }
+                const registro =
+                    await obter(
+                        entity,
+                        id
+                    );
 
+                console.log(
+                    "ENGINE → REGISTRO OBTIDO:",
+                    registro
+                );
 
-        state.registroEditando =
-            registro;
+                if (!registro) {
 
+                    throw new Error(
+                        `Registro ${id} não encontrado.`
+                    );
 
-        renderizarFormulario();
+                }
 
+                state.registroEditando =
+                    registro;
 
-        preencherFormulario(
-            registro
-        );
+                /*
+                 * O formulário pode ser criado
+                 * pelo próprio módulo.
+                 *
+                 * Não chamamos uma função inexistente
+                 * chamada renderizarFormulario().
+                 */
 
+                localizarElementos();
 
-        mostrarFormulario();
+                preencherFormulario(
+                    registro
+                );
 
+                mostrarFormulario();
 
-        emitirEvento(
-            "editar",
-            registro
-        );
+                emitirEvento(
+                    "editar",
+                    registro
+                );
 
+                return registro;
 
-        return registro;
+            } catch (erro) {
 
+                console.error(
+                    `Engine ${entity}: erro ao editar`,
+                    erro
+                );
 
-    } catch (erro) {
+                mostrarErro(
+                    erro
+                );
 
-        console.error(
-            `Engine ${entity}: erro ao editar`,
-            erro
-        );
+                throw erro;
 
+            }
 
-        mostrarErro(
-            erro
-        );
-
-
-        throw erro;
-
-    }
-
-}
+        },
 
 
         // ====================================================
@@ -441,26 +389,17 @@ export function createEngine(config = {}) {
 
         async salvar(dados) {
 
-            if (
-                state.salvando
-            ) {
-
+            if (state.salvando) {
                 return;
-
             }
 
-
-            state.salvando =
-                true;
-
+            state.salvando = true;
 
             mostrarLoading();
-
 
             emitirEvento(
                 "salvando"
             );
-
 
             try {
 
@@ -484,13 +423,11 @@ export function createEngine(config = {}) {
 
                     };
 
-
                     resposta =
                         await atualizar(
                             entity,
                             registro
                         );
-
 
                     atualizarEstadoLocal(
                         registro
@@ -511,16 +448,12 @@ export function createEngine(config = {}) {
                             dados
                         );
 
-
                     const novoRegistro =
                         normalizarRegistroResposta(
                             resposta
                         );
 
-
-                    if (
-                        novoRegistro
-                    ) {
+                    if (novoRegistro) {
 
                         state.registros.push(
                             novoRegistro
@@ -534,18 +467,16 @@ export function createEngine(config = {}) {
                 state.registroEditando =
                     null;
 
-
                 limparFormulario();
 
+                esconderFormulario();
 
                 renderizarTabela();
-
 
                 emitirEvento(
                     "salvo",
                     resposta
                 );
-
 
                 return resposta;
 
@@ -556,22 +487,17 @@ export function createEngine(config = {}) {
                     erro
                 );
 
-
                 mostrarErro(
                     erro
                 );
-
 
                 throw erro;
 
             } finally {
 
-                state.salvando =
-                    false;
-
+                state.salvando = false;
 
                 esconderLoading();
-
 
                 emitirEvento(
                     "fim-salvamento"
@@ -579,7 +505,7 @@ export function createEngine(config = {}) {
 
             }
 
-        }
+        },
 
 
         // ====================================================
@@ -588,93 +514,87 @@ export function createEngine(config = {}) {
 
         async excluir(id) {
 
-    console.log(
-        "ENGINE → EXCLUIR → ID RECEBIDO:",
-        id
-    );
-
-
-    if (
-        id === undefined ||
-        id === null ||
-        String(id).trim() === ""
-    ) {
-
-        throw new Error(
-            "Engine: ID não informado."
-        );
-
-    }
-
-
-    id =
-        String(id).trim();
-
-
-    const confirmar =
-        window.confirm(
-            "Deseja realmente excluir este registro?"
-        );
-
-
-    if (!confirmar) {
-
-        return false;
-
-    }
-
-
-    try {
-
-        await excluir(
-            entity,
-            id
-        );
-
-
-        state.registros =
-            state.registros.filter(
-
-                registro =>
-
-                    String(
-                        registro?.id
-                    ) !==
-                    id
-
+            console.log(
+                "ENGINE → EXCLUIR → ID RECEBIDO:",
+                id
             );
 
+            if (
+                id === undefined ||
+                id === null ||
+                String(id).trim() === ""
+            ) {
 
-        renderizarTabela();
+                throw new Error(
+                    "Engine: ID não informado."
+                );
+
+            }
+
+            id =
+                String(id).trim();
+
+            const confirmar =
+                window.confirm(
+                    "Deseja realmente excluir este registro?"
+                );
+
+            if (!confirmar) {
+                return false;
+            }
+
+            try {
+
+                await excluir(
+                    entity,
+                    id
+                );
 
 
-        emitirEvento(
-            "excluido",
-            id
-        );
+                /*
+                 * IMPORTANTE:
+                 *
+                 * O banco usa ID.
+                 * O Engine também deve usar ID.
+                 */
+
+                state.registros =
+                    state.registros.filter(
+
+                        registro =>
+
+                            String(
+                                registro?.ID
+                            ) !== id
+
+                    );
 
 
-        return true;
+                renderizarTabela();
 
+                emitirEvento(
+                    "excluido",
+                    id
+                );
 
-    } catch (erro) {
+                return true;
 
-        console.error(
-            `Engine ${entity}: erro ao excluir`,
-            erro
-        );
+            } catch (erro) {
 
+                console.error(
+                    `Engine ${entity}: erro ao excluir`,
+                    erro
+                );
 
-        mostrarErro(
-            erro
-        );
+                mostrarErro(
+                    erro
+                );
 
+                throw erro;
 
-        throw erro;
+            }
 
-    }
-
-},
+        },
 
 
         // ====================================================
@@ -690,10 +610,7 @@ export function createEngine(config = {}) {
                 .trim()
                 .toLowerCase();
 
-
-            state.paginaAtual =
-                1;
-
+            state.paginaAtual = 1;
 
             renderizarTabela();
 
@@ -710,35 +627,23 @@ export function createEngine(config = {}) {
                 obterRegistrosFiltrados()
                     .length;
 
-
             const paginas =
                 Math.max(
-
                     1,
-
                     Math.ceil(
-
                         total /
-
                         state.paginaTamanho
-
                     )
-
                 );
-
 
             state.paginaAtual =
                 Math.min(
-
                     Math.max(
                         1,
-                        numero
+                        Number(numero) || 1
                     ),
-
                     paginas
-
                 );
-
 
             renderizarTabela();
 
@@ -754,9 +659,7 @@ export function createEngine(config = {}) {
             state.registroEditando =
                 null;
 
-
             esconderFormulario();
-
 
             emitirEvento(
                 "formulario-fechado"
@@ -777,10 +680,8 @@ export function createEngine(config = {}) {
             const actions =
                 options.actions || {};
 
-
             const funcao =
                 actions[nome];
-
 
             if (
                 typeof funcao !== "function"
@@ -790,11 +691,9 @@ export function createEngine(config = {}) {
                     `Engine ${entity}: action "${nome}" não encontrada.`
                 );
 
-
                 return;
 
             }
-
 
             return funcao(
                 registro,
@@ -884,9 +783,7 @@ export function createEngine(config = {}) {
                         data-engine-loading
                         hidden
                     >
-
                         Carregando...
-
                     </div>
 
 
@@ -935,6 +832,10 @@ export function createEngine(config = {}) {
 
     function registrarEventos() {
 
+        // ----------------------------------------------------
+        // NOVO
+        // ----------------------------------------------------
+
         if (btnNovo) {
 
             btnNovo.addEventListener(
@@ -949,133 +850,207 @@ export function createEngine(config = {}) {
         }
 
 
+        // ----------------------------------------------------
+        // EVENTOS DA TABELA
+        // ----------------------------------------------------
+
         container.addEventListener(
-    "click",
-    evento => {
-
-        // ==================================================
-        // EDITAR
-        // ==================================================
-
-        const botaoEditar =
-            evento.target.closest(
-                "[data-action='editar']"
-            );
+            "click",
+            evento => {
 
 
-        if (botaoEditar) {
+                // ============================================
+                // EDITAR
+                // ============================================
 
-            const id =
-                botaoEditar.getAttribute(
-                    "data-id"
-                );
-
-
-            console.log(
-                "ENGINE → CLIQUE EDITAR → ID:",
-                id
-            );
-
-
-            if (
-                !id ||
-                String(id).trim() === ""
-            ) {
-
-                console.error(
-                    "ENGINE → EDITAR → botão sem data-id",
-                    botaoEditar
-                );
-
-
-                return;
-
-            }
-
-
-            engine.editar(
-                String(id)
-            )
-
-            .catch(
-                erro => {
-
-                    console.error(
-                        "ENGINE → EDITAR:",
-                        erro
+                const botaoEditar =
+                    evento.target.closest(
+                        "[data-action='editar']"
                     );
 
-                }
-            );
+
+                if (botaoEditar) {
+
+                    const id =
+                        botaoEditar.getAttribute(
+                            "data-id"
+                        );
 
 
-            return;
-
-        }
-
-
-        // ==================================================
-        // EXCLUIR
-        // ==================================================
-
-        const botaoExcluir =
-            evento.target.closest(
-                "[data-action='excluir']"
-            );
-
-
-        if (botaoExcluir) {
-
-            const id =
-                botaoExcluir.getAttribute(
-                    "data-id"
-                );
-
-
-            console.log(
-                "ENGINE → CLIQUE EXCLUIR → ID:",
-                id
-            );
-
-
-            if (
-                !id ||
-                String(id).trim() === ""
-            ) {
-
-                console.error(
-                    "ENGINE → EXCLUIR → botão sem data-id",
-                    botaoExcluir
-                );
-
-
-                return;
-
-            }
-
-
-            engine.excluir(
-                String(id)
-            )
-
-            .catch(
-                erro => {
-
-                    console.error(
-                        "ENGINE → EXCLUIR:",
-                        erro
+                    console.log(
+                        "ENGINE → CLIQUE EDITAR → ID:",
+                        id
                     );
 
+
+                    if (
+                        !id ||
+                        String(id).trim() === ""
+                    ) {
+
+                        console.error(
+                            "ENGINE → EDITAR → botão sem data-id",
+                            botaoEditar
+                        );
+
+                        return;
+
+                    }
+
+
+                    engine.editar(
+                        String(id)
+                    )
+                    .catch(
+                        erro => {
+
+                            console.error(
+                                "ENGINE → EDITAR:",
+                                erro
+                            );
+
+                        }
+                    );
+
+
+                    return;
+
                 }
-            );
 
 
-            return;
+                // ============================================
+                // EXCLUIR
+                // ============================================
 
-        }
+                const botaoExcluir =
+                    evento.target.closest(
+                        "[data-action='excluir']"
+                    );
+
+
+                if (botaoExcluir) {
+
+                    const id =
+                        botaoExcluir.getAttribute(
+                            "data-id"
+                        );
+
+
+                    console.log(
+                        "ENGINE → CLIQUE EXCLUIR → ID:",
+                        id
+                    );
+
+
+                    if (
+                        !id ||
+                        String(id).trim() === ""
+                    ) {
+
+                        console.error(
+                            "ENGINE → EXCLUIR → botão sem data-id",
+                            botaoExcluir
+                        );
+
+                        return;
+
+                    }
+
+
+                    engine.excluir(
+                        String(id)
+                    )
+                    .catch(
+                        erro => {
+
+                            console.error(
+                                "ENGINE → EXCLUIR:",
+                                erro
+                            );
+
+                        }
+                    );
+
+
+                    return;
+
+                }
+
+
+                // ============================================
+                // ACTION PERSONALIZADA
+                // ============================================
+
+                const botaoAction =
+                    evento.target.closest(
+                        "[data-engine-action]"
+                    );
+
+
+                if (botaoAction) {
+
+                    const nome =
+                        botaoAction.getAttribute(
+                            "data-engine-action"
+                        );
+
+                    const id =
+                        botaoAction.getAttribute(
+                            "data-id"
+                        );
+
+
+                    const registro =
+                        state.registros.find(
+
+                            item =>
+
+                                String(
+                                    item?.ID
+                                ) ===
+                                String(id)
+
+                        );
+
+
+                    if (!registro) {
+
+                        console.error(
+                            `Engine ${entity}: registro da action não encontrado.`,
+                            id
+                        );
+
+                        return;
+
+                    }
+
+
+                    try {
+
+                        engine.action(
+                            nome,
+                            registro
+                        );
+
+                    } catch (erro) {
+
+                        console.error(
+                            `Engine ${entity}: erro na action "${nome}"`,
+                            erro
+                        );
+
+                        mostrarErro(
+                            erro
+                        );
+
+                    }
+
+                }
+
+            }
+        );
 
     }
-);
 
 
     // ========================================================
@@ -1085,9 +1060,7 @@ export function createEngine(config = {}) {
     function renderizarTabela() {
 
         if (!tabela) {
-
             return;
-
         }
 
 
@@ -1096,22 +1069,17 @@ export function createEngine(config = {}) {
 
 
         const inicio =
-
             (
                 state.paginaAtual - 1
             ) *
-
             state.paginaTamanho;
 
 
         const pagina =
             registros.slice(
-
                 inicio,
-
                 inicio +
                 state.paginaTamanho
-
             );
 
 
@@ -1183,6 +1151,16 @@ export function createEngine(config = {}) {
 
         pagina.forEach(
             registro => {
+
+                /*
+                 * CORREÇÃO:
+                 *
+                 * O ID deve vir do próprio registro.
+                 */
+
+                const id =
+                    registro?.ID;
+
 
                 html += "<tr>";
 
@@ -1326,7 +1304,7 @@ export function createEngine(config = {}) {
                                 nome
                             )}"
                             data-id="${escaparAtributo(
-                                registro.ID
+                                registro?.ID
                             )}"
                         >
 
@@ -1429,7 +1407,6 @@ export function createEngine(config = {}) {
                 Object.values(
                     registro
                 )
-
                 .some(
                     valor =>
 
@@ -1455,11 +1432,8 @@ export function createEngine(config = {}) {
     function mostrarFormulario() {
 
         if (!formulario) {
-
             return;
-
         }
-
 
         formulario.hidden =
             false;
@@ -1470,11 +1444,8 @@ export function createEngine(config = {}) {
     function esconderFormulario() {
 
         if (!formulario) {
-
             return;
-
         }
-
 
         formulario.hidden =
             true;
@@ -1485,9 +1456,7 @@ export function createEngine(config = {}) {
     function limparFormulario() {
 
         if (!formulario) {
-
             return;
-
         }
 
 
@@ -1511,9 +1480,7 @@ export function createEngine(config = {}) {
     ) {
 
         if (!formulario) {
-
             return;
-
         }
 
 
@@ -1533,14 +1500,13 @@ export function createEngine(config = {}) {
 
 
                 if (!campo) {
-
                     return;
-
                 }
 
 
                 if (
-                    campo.type === "checkbox"
+                    campo.type ===
+                    "checkbox"
                 ) {
 
                     campo.checked =
@@ -1687,9 +1653,7 @@ export function createEngine(config = {}) {
     ) {
 
         if (!resposta) {
-
             return null;
-
         }
 
 
@@ -1784,11 +1748,11 @@ export function createEngine(config = {}) {
                 item =>
 
                     String(
-                        item.ID
+                        item?.ID
                     ) ===
 
                     String(
-                        registro.ID
+                        registro?.ID
                     )
 
             );
@@ -2038,6 +2002,11 @@ export function createEngine(config = {}) {
         );
 
 
+    // ========================================================
+    // RETORNAR ENGINE
+    // ========================================================
+
     return engine;
 
 }
+```
