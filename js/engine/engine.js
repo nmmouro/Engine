@@ -1052,6 +1052,23 @@ export function createEngine(config = {}) {
     }
 
 
+    function obterIdRegistro(registro) {
+
+    if (!registro) {
+        return null;
+    }
+
+    return (
+        registro.ID ??
+        registro.id ??
+        registro.Id ??
+        registro.id_registro ??
+        registro.ID_REGISTRO ??
+        null
+    );
+}
+
+
     // ========================================================
     // RENDERIZAR TABELA
     // ========================================================
@@ -1179,7 +1196,7 @@ console.log(
                  */
 
                 const id =
-                    registro?.ID;
+    obterIdRegistro(registro);
 
 
                 html += "<tr>";
