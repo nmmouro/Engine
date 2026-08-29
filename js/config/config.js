@@ -3,7 +3,7 @@ const CONFIG = {
     api: {
         url: "https://iomekawabacmuhlltket.supabase.co/rest/v1/",
 
-       key: "sb_publishable_SENkn1p7FX9_SZpV4iXYew_gJLUucj4"
+       key: "sb_publishable_KWT8pnUIjfTWVK1hLnP0_w_ljRm2o4-"
     },
 
     engine: {
