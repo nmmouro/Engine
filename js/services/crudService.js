@@ -825,12 +825,28 @@ export async function obter(
         );
 
 
-    return extrairDados(
-        resposta
-    );
+    const dados =
+        extrairDados(
+            resposta
+        );
+
+
+    if (
+        Array.isArray(
+            dados
+        )
+    ) {
+
+        return dados.length > 0
+            ? dados[0]
+            : null;
+
+    }
+
+
+    return dados;
 
 }
-
 
 // ============================================================
 // CRIAR
