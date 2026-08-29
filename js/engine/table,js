@@ -1,8 +1,8 @@
 /**
  * ============================================================
- * TABLE
+ * TABLE ENGINE
  * Painel Frota
- * Arquivo: table.js
+ * Arquivo: js/engine/table.js
  *
  * Responsabilidade:
  *
@@ -10,21 +10,13 @@
  * - Renderizar cabeçalho
  * - Renderizar registros
  * - Renderizar ações
- * - Editar registro
- * - Excluir registro
- * - Filtrar registros
- * - Paginar registros
+ * - Gerar data-id corretamente
  *
- * Este arquivo NÃO conhece:
+ * Não conhece:
  *
- * - PostgreSQL
  * - Supabase
- * - Google Sheets
- *
- * Comunicação com backend:
- *
- *     engine.editar()
- *     engine.excluir()
+ * - PostgreSQL
+ * - crudService
  *
  * ============================================================
  */
@@ -34,39 +26,38 @@
 // CREATE TABLE
 // ============================================================
 
-export function createTable(config = {}) {
-
-    // ========================================================
-    // CONFIGURAÇÃO
-    // ========================================================
-
-    const entity =
-        config.entity || "";
-
-    const schema =
-        config.schema || null;
+export function createTable(
+    config = {}
+) {
 
     const container =
-        config.container || null;
+        config.container;
+
+
+    const schema =
+        config.schema || {};
+
 
     const state =
-        config.state || null;
+        config.state;
+
 
     const engine =
-        config.engine || null;
+        config.engine;
+
 
     const options =
         config.options || {};
 
 
     // ========================================================
-    // VALIDAR
+    // VALIDAÇÃO
     // ========================================================
 
     if (!container) {
 
         throw new Error(
-            `Table ${entity}: container não informado.`
+            "TABLE: container não informado."
         );
 
     }
@@ -75,397 +66,55 @@ export function createTable(config = {}) {
     if (!state) {
 
         throw new Error(
-            `Table ${entity}: state não informado.`
-        );
-
-    }
-
-
-    if (!engine) {
-
-        throw new Error(
-            `Table ${entity}: engine não informado.`
+            "TABLE: state não informado."
         );
 
     }
 
 
     // ========================================================
-    // ELEMENTOS
+    // API
     // ========================================================
 
-    let tableContainer = null;
+    const table = {
 
+        render,
 
-    // ========================================================
-    // API PÚBLICA
-    // ========================================================
+        limpar,
 
-    const api = {
-
-        entity,
-
-        schema,
-
-        container,
-
-        state,
-
-        engine,
-
-        options,
-
-        iniciar,
-
-        destruir,
-
-        renderizar,
-
-        filtrar,
-
-        pagina,
-
-        editar,
-
-        excluir
+        atualizar:
+            render
 
     };
-
-
-    // ========================================================
-    // INICIAR
-    // ========================================================
-
-    function iniciar() {
-
-        localizarContainer();
-
-        registrarEventos();
-
-        renderizar();
-
-        return api;
-
-    }
-
-
-    // ========================================================
-    // LOCALIZAR CONTAINER
-    // ========================================================
-
-    function localizarContainer() {
-
-        tableContainer =
-            container.querySelector(
-                "[data-engine-table]"
-            );
-
-
-        if (!tableContainer) {
-
-            throw new Error(
-                `Table ${entity}: elemento [data-engine-table] não encontrado.`
-            );
-
-        }
-
-    }
-
-
-    // ========================================================
-    // EVENTOS
-    // ========================================================
-
-    function registrarEventos() {
-
-        if (!tableContainer) {
-            return;
-        }
-
-
-        tableContainer.addEventListener(
-            "click",
-            tratarClique
-        );
-
-
-        tableContainer.addEventListener(
-            "input",
-            tratarInput
-        );
-
-    }
-
-
-    // ========================================================
-    // TRATAR CLIQUE
-    // ========================================================
-
-    function tratarClique(evento) {
-
-        // ====================================================
-        // EDITAR
-        // ====================================================
-
-        const botaoEditar =
-            evento.target.closest(
-                "[data-action='editar']"
-            );
-
-
-        if (botaoEditar) {
-
-            const id =
-                obterIdBotao(
-                    botaoEditar
-                );
-
-
-            console.log(
-                `TABLE ${entity} → CLIQUE EDITAR → ID:`,
-                id
-            );
-
-
-            if (!id) {
-
-                console.error(
-                    `TABLE ${entity} → EDITAR → botão sem data-id`,
-                    botaoEditar
-                );
-
-                return;
-
-            }
-
-
-            editar(id);
-
-            return;
-
-        }
-
-
-        // ====================================================
-        // EXCLUIR
-        // ====================================================
-
-        const botaoExcluir =
-            evento.target.closest(
-                "[data-action='excluir']"
-            );
-
-
-        if (botaoExcluir) {
-
-            const id =
-                obterIdBotao(
-                    botaoExcluir
-                );
-
-
-            console.log(
-                `TABLE ${entity} → CLIQUE EXCLUIR → ID:`,
-                id
-            );
-
-
-            if (!id) {
-
-                console.error(
-                    `TABLE ${entity} → EXCLUIR → botão sem data-id`,
-                    botaoExcluir
-                );
-
-                return;
-
-            }
-
-
-            excluir(id);
-
-            return;
-
-        }
-
-
-        // ====================================================
-        // ACTION PERSONALIZADA
-        // ====================================================
-
-        const botaoAction =
-            evento.target.closest(
-                "[data-engine-action]"
-            );
-
-
-        if (botaoAction) {
-
-            const nome =
-                botaoAction.getAttribute(
-                    "data-engine-action"
-                );
-
-
-            const id =
-                obterIdBotao(
-                    botaoAction
-                );
-
-
-            if (!nome) {
-                return;
-            }
-
-
-            const registro =
-                localizarRegistro(
-                    id
-                );
-
-
-            if (!registro) {
-
-                console.warn(
-                    `TABLE ${entity}: registro da action "${nome}" não encontrado.`
-                );
-
-                return;
-
-            }
-
-
-            engine.action(
-                nome,
-                registro
-            );
-
-        }
-
-
-        // ====================================================
-        // PAGINAÇÃO
-        // ====================================================
-
-        const botaoPagina =
-            evento.target.closest(
-                "[data-page]"
-            );
-
-
-        if (botaoPagina) {
-
-            const paginaNumero =
-                Number(
-                    botaoPagina.getAttribute(
-                        "data-page"
-                    )
-                );
-
-
-            pagina(
-                paginaNumero
-            );
-
-        }
-
-    }
-
-
-    // ========================================================
-    // TRATAR INPUT
-    // ========================================================
-
-    function tratarInput(evento) {
-
-        const campo =
-            evento.target.closest(
-                "[data-table-filtro]"
-            );
-
-
-        if (!campo) {
-            return;
-        }
-
-
-        filtrar(
-            campo.value
-        );
-
-    }
 
 
     // ========================================================
     // RENDERIZAR
     // ========================================================
 
-    function renderizar() {
-
-        if (!tableContainer) {
-
-            localizarContainer();
-
-        }
-
+    function render() {
 
         const registros =
-            obterRegistrosFiltrados();
-
-
-        const paginaAtual =
-            obterPaginaAtual(
-                registros
-            );
+            Array.isArray(
+                state.registros
+            )
+                ? state.registros
+                : [];
 
 
         const colunas =
             obterColunas();
 
 
-        const totalPaginas =
-            Math.max(
-                1,
-                Math.ceil(
-                    registros.length /
-                    state.paginaTamanho
-                )
-            );
+        // ----------------------------------------------------
+        // VAZIO
+        // ----------------------------------------------------
 
+        if (
+            registros.length === 0
+        ) {
 
-        // ====================================================
-        // CABEÇALHO DA TABELA
-        // ====================================================
-
-        let html = `
-
-            <div class="engine-table-toolbar">
-
-                <div class="engine-table-search">
-
-                    <input
-                        type="search"
-                        placeholder="Pesquisar..."
-                        data-table-filtro
-                        value="${escaparAtributo(
-                            state.filtro
-                        )}"
-                    >
-
-                </div>
-
-            </div>
-
-        `;
-
-
-        // ====================================================
-        // SEM REGISTROS
-        // ====================================================
-
-        if (!paginaAtual.length) {
-
-            html += `
+            container.innerHTML = `
 
                 <div class="engine-empty">
 
@@ -475,30 +124,31 @@ export function createTable(config = {}) {
 
             `;
 
-
-            tableContainer.innerHTML =
-                html;
-
-
             return;
 
         }
 
 
-        // ====================================================
+        // ----------------------------------------------------
         // TABELA
-        // ====================================================
+        // ----------------------------------------------------
 
-        html += `
+        let html = `
 
-            <table class="engine-table">
+            <div class="engine-table-wrapper">
 
-                <thead>
+                <table class="engine-table">
 
-                    <tr>
+                    <thead>
+
+                        <tr>
 
         `;
 
+
+        // ----------------------------------------------------
+        // CABEÇALHO
+        // ----------------------------------------------------
 
         colunas.forEach(
             coluna => {
@@ -506,11 +156,13 @@ export function createTable(config = {}) {
                 html += `
 
                     <th>
+
                         ${escaparHTML(
-                            obterTituloColuna(
+                            obterLabel(
                                 coluna
                             )
                         )}
+
                     </th>
 
                 `;
@@ -519,18 +171,21 @@ export function createTable(config = {}) {
         );
 
 
-        // ====================================================
+        // ----------------------------------------------------
         // AÇÕES
-        // ====================================================
+        // ----------------------------------------------------
 
         if (
-            permitirAcoes()
+            options.permitirEditar !== false ||
+            options.permitirExcluir !== false
         ) {
 
             html += `
 
                 <th class="engine-actions-header">
+
                     Ações
+
                 </th>
 
             `;
@@ -540,167 +195,26 @@ export function createTable(config = {}) {
 
         html += `
 
-                    </tr>
+                        </tr>
 
-                </thead>
+                    </thead>
 
-                <tbody>
+                    <tbody>
 
         `;
 
 
-        // ====================================================
-        // LINHAS
-        // ====================================================
+        // ----------------------------------------------------
+        // REGISTROS
+        // ----------------------------------------------------
 
-        paginaAtual.forEach(
+        registros.forEach(
             registro => {
 
-                /*
-                 * =================================================
-                 * IMPORTANTE
-                 *
-                 * O Supabase retorna:
-                 *
-                 *     registro.id
-                 *
-                 * Exemplo:
-                 *
-                 *     VEI000002
-                 *
-                 * Nunca usamos uma variável "id"
-                 * que não tenha sido criada.
-                 * =================================================
-                 */
-
-                const id =
-                    obterIdRegistro(
-                        registro
-                    );
-
-
-                html += `
-
-                    <tr
-                        data-row-id="${escaparAtributo(
-                            id
-                        )}"
-                    >
-
-                `;
-
-
-                // =================================================
-                // CÉLULAS
-                // =================================================
-
-                colunas.forEach(
-                    coluna => {
-
-                        const nome =
-                            obterNomeColuna(
-                                coluna
-                            );
-
-
-                        const valor =
-                            registro?.[nome];
-
-
-                        html += `
-
-                            <td>
-
-                                ${formatarCelula(
-                                    valor,
-                                    coluna
-                                )}
-
-                            </td>
-
-                        `;
-
-                    }
+                html += criarLinha(
+                    registro,
+                    colunas
                 );
-
-
-                // =================================================
-                // AÇÕES
-                // =================================================
-
-                if (
-                    permitirAcoes()
-                ) {
-
-                    html += `
-
-                        <td class="engine-actions">
-
-                    `;
-
-
-                    if (
-                        options.permitirEditar !== false
-                    ) {
-
-                        html += `
-
-                            <button
-                                type="button"
-                                data-action="editar"
-                                data-id="${escaparAtributo(
-                                    id
-                                )}"
-                            >
-                                Editar
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    if (
-                        options.permitirExcluir !== false
-                    ) {
-
-                        html += `
-
-                            <button
-                                type="button"
-                                data-action="excluir"
-                                data-id="${escaparAtributo(
-                                    id
-                                )}"
-                            >
-                                Excluir
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    html +=
-                        renderizarActions(
-                            registro
-                        );
-
-
-                    html += `
-
-                        </td>
-
-                    `;
-
-                }
-
-
-                html += `
-
-                    </tr>
-
-                `;
 
             }
         );
@@ -708,255 +222,261 @@ export function createTable(config = {}) {
 
         html += `
 
-                </tbody>
+                    </tbody>
 
-            </table>
+                </table>
+
+            </div>
 
         `;
 
 
-        // ====================================================
-        // PAGINAÇÃO
-        // ====================================================
-
-        html +=
-            renderizarPaginacao(
-                totalPaginas
-            );
-
-
-        tableContainer.innerHTML =
+        container.innerHTML =
             html;
 
     }
 
 
     // ========================================================
-    // EDITAR
+    // CRIAR LINHA
     // ========================================================
 
-    async function editar(
-        id
+    function criarLinha(
+        registro,
+        colunas
     ) {
 
-        if (!id) {
-            return;
-        }
+        let html =
+            "<tr>";
 
 
-        try {
+        // ----------------------------------------------------
+        // COLUNAS
+        // ----------------------------------------------------
 
-            await engine.editar(
-                String(id).trim()
-            );
+        colunas.forEach(
+            coluna => {
 
-        } catch (erro) {
-
-            console.error(
-                `Table ${entity}: erro ao editar`,
-                erro
-            );
-
-        }
-
-    }
+                const nome =
+                    obterNome(
+                        coluna
+                    );
 
 
-    // ========================================================
-    // EXCLUIR
-    // ========================================================
-
-    async function excluir(
-        id
-    ) {
-
-        if (!id) {
-            return;
-        }
+                const valor =
+                    registro?.[
+                        nome
+                    ];
 
 
-        try {
+                html += `
 
-            const resultado =
-                await engine.excluir(
-                    String(id).trim()
-                );
+                    <td>
 
+                        ${formatarValor(
+                            valor,
+                            coluna
+                        )}
 
-            if (
-                resultado
-            ) {
+                    </td>
 
-                renderizar();
+                `;
 
             }
-
-        } catch (erro) {
-
-            console.error(
-                `Table ${entity}: erro ao excluir`,
-                erro
-            );
-
-        }
-
-    }
-
-
-    // ========================================================
-    // FILTRAR
-    // ========================================================
-
-    function filtrar(
-        valor
-    ) {
-
-        if (
-            typeof engine.filtrar ===
-            "function"
-        ) {
-
-            engine.filtrar(
-                valor
-            );
-
-            return;
-
-        }
-
-
-        state.filtro =
-            String(
-                valor ?? ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        state.paginaAtual =
-            1;
-
-
-        renderizar();
-
-    }
-
-
-    // ========================================================
-    // PAGINAÇÃO
-    // ========================================================
-
-    function pagina(
-        numero
-    ) {
-
-        if (
-            typeof engine.pagina ===
-            "function"
-        ) {
-
-            engine.pagina(
-                numero
-            );
-
-            return;
-
-        }
-
-
-        state.paginaAtual =
-            Math.max(
-                1,
-                Number(numero) || 1
-            );
-
-
-        renderizar();
-
-    }
-
-
-    // ========================================================
-    // OBTER REGISTROS FILTRADOS
-    // ========================================================
-
-    function obterRegistrosFiltrados() {
-
-        if (
-            typeof engine.obterRegistrosFiltrados ===
-            "function"
-        ) {
-
-            return engine.obterRegistrosFiltrados();
-
-        }
-
-
-        if (!state.filtro) {
-
-            return state.registros;
-
-        }
-
-
-        return state.registros.filter(
-            registro =>
-
-                Object.values(
-                    registro || {}
-                )
-                .some(
-                    valor =>
-
-                        String(
-                            valor ?? ""
-                        )
-                        .toLowerCase()
-                        .includes(
-                            state.filtro
-                        )
-
-                )
-
         );
 
+
+        // ----------------------------------------------------
+        // AÇÕES
+        // ----------------------------------------------------
+
+        if (
+            options.permitirEditar !== false ||
+            options.permitirExcluir !== false
+        ) {
+
+            html += criarAcoes(
+                registro
+            );
+
+        }
+
+
+        html +=
+            "</tr>";
+
+
+        return html;
+
     }
 
 
     // ========================================================
-    // OBTER PÁGINA ATUAL
+    // AÇÕES
     // ========================================================
 
-    function obterPaginaAtual(
-        registros
+    function criarAcoes(
+        registro
     ) {
 
-        const tamanho =
-            Number(
-                state.paginaTamanho
-            ) || 10;
+        /*
+         * IMPORTANTE:
+         *
+         * Seu Supabase retorna:
+         *
+         * {
+         *     id: "VEI000002"
+         * }
+         *
+         * Portanto o ID principal é:
+         *
+         * registro.id
+         *
+         * Mantemos fallback para ID
+         * por compatibilidade.
+         */
+
+        const id =
+            registro?.id ??
+            registro?.ID ??
+            "";
 
 
-        const pagina =
-            Math.max(
-                1,
-                Number(
-                    state.paginaAtual
-                ) || 1
+        const idSeguro =
+            escaparAtributo(
+                id
             );
 
 
-        const inicio =
-            (
-                pagina - 1
-            ) *
-            tamanho;
+        let html = `
+
+            <td class="engine-actions">
+
+        `;
 
 
-        return registros.slice(
-            inicio,
-            inicio + tamanho
-        );
+        // ----------------------------------------------------
+        // EDITAR
+        // ----------------------------------------------------
+
+        if (
+            options.permitirEditar !== false
+        ) {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="btn-editar"
+                    data-action="editar"
+                    data-id="${idSeguro}"
+                >
+                    Editar
+                </button>
+
+            `;
+
+        }
+
+
+        // ----------------------------------------------------
+        // EXCLUIR
+        // ----------------------------------------------------
+
+        if (
+            options.permitirExcluir !== false
+        ) {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="btn-excluir"
+                    data-action="excluir"
+                    data-id="${idSeguro}"
+                >
+                    Excluir
+                </button>
+
+            `;
+
+        }
+
+
+        // ----------------------------------------------------
+        // ACTIONS PERSONALIZADAS
+        // ----------------------------------------------------
+
+        html +=
+            criarActionsPersonalizadas(
+                registro
+            );
+
+
+        html += `
+
+            </td>
+
+        `;
+
+
+        return html;
+
+    }
+
+
+    // ========================================================
+    // ACTIONS PERSONALIZADAS
+    // ========================================================
+
+    function criarActionsPersonalizadas(
+        registro
+    ) {
+
+        const actions =
+            options.actions || {};
+
+
+        return Object.entries(
+            actions
+        )
+        .filter(
+            ([, funcao]) =>
+                typeof funcao ===
+                "function"
+        )
+        .map(
+            ([nome]) => {
+
+                const id =
+                    registro?.id ??
+                    registro?.ID ??
+                    "";
+
+
+                return `
+
+                    <button
+                        type="button"
+                        data-engine-action="${escaparAtributo(
+                            nome
+                        )}"
+                        data-id="${escaparAtributo(
+                            id
+                        )}"
+                    >
+                        ${escaparHTML(
+                            obterTituloAction(
+                                nome
+                            )
+                        )}
+                    </button>
+
+                `;
+
+            }
+        )
+        .join("");
 
     }
 
@@ -967,24 +487,26 @@ export function createTable(config = {}) {
 
     function obterColunas() {
 
+        // ----------------------------------------------------
+        // COLUNAS PERSONALIZADAS
+        // ----------------------------------------------------
+
         if (
             Array.isArray(
                 options.colunas
             )
         ) {
 
-            return options.colunas.filter(
-                coluna =>
-                    obterNomeColuna(
-                        coluna
-                    ) !== "id"
-            );
+            return options.colunas;
 
         }
 
 
+        // ----------------------------------------------------
+        // SCHEMA
+        // ----------------------------------------------------
+
         if (
-            schema &&
             Array.isArray(
                 schema.fields
             )
@@ -998,8 +520,6 @@ export function createTable(config = {}) {
 
                     campo.hidden !== true &&
 
-                    campo.table !== false &&
-
                     campo.name !== "id" &&
 
                     campo.name !== "ID"
@@ -1009,12 +529,18 @@ export function createTable(config = {}) {
         }
 
 
+        // ----------------------------------------------------
+        // AUTOMÁTICO
+        // ----------------------------------------------------
+
         const primeiro =
-            state.registros[0];
+            state.registros?.[0];
 
 
         if (!primeiro) {
+
             return [];
+
         }
 
 
@@ -1022,16 +548,21 @@ export function createTable(config = {}) {
             primeiro
         )
         .filter(
-            nome =>
-                nome !== "id" &&
-                nome !== "ID"
+            campo =>
+
+                campo !== "id" &&
+
+                campo !== "ID"
+
         )
         .map(
-            nome => ({
+            campo => ({
 
-                name: nome,
+                name:
+                    campo,
 
-                label: nome
+                label:
+                    campo
 
             })
         );
@@ -1043,9 +574,19 @@ export function createTable(config = {}) {
     // NOME DA COLUNA
     // ========================================================
 
-    function obterNomeColuna(
+    function obterNome(
         coluna
     ) {
+
+        if (
+            typeof coluna ===
+            "string"
+        ) {
+
+            return coluna;
+
+        }
+
 
         return (
 
@@ -1053,7 +594,9 @@ export function createTable(config = {}) {
 
             coluna?.campo ||
 
-            coluna
+            coluna?.field ||
+
+            ""
 
         );
 
@@ -1061,12 +604,22 @@ export function createTable(config = {}) {
 
 
     // ========================================================
-    // TÍTULO DA COLUNA
+    // LABEL
     // ========================================================
 
-    function obterTituloColuna(
+    function obterLabel(
         coluna
     ) {
+
+        if (
+            typeof coluna ===
+            "string"
+        ) {
+
+            return coluna;
+
+        }
+
 
         return (
 
@@ -1078,48 +631,6 @@ export function createTable(config = {}) {
 
             coluna?.campo ||
 
-            coluna
-
-        );
-
-    }
-
-
-    // ========================================================
-    // OBTER ID
-    // ========================================================
-
-    function obterIdRegistro(
-        registro
-    ) {
-
-        if (!registro) {
-            return "";
-        }
-
-
-        /*
-         * PostgreSQL / Supabase:
-         *
-         *     id
-         *
-         * Compatibilidade com versões antigas:
-         *
-         *     ID
-         */
-
-        return (
-
-            registro.id ??
-
-            registro.ID ??
-
-            registro.Id ??
-
-            registro.id_registro ??
-
-            registro.ID_REGISTRO ??
-
             ""
 
         );
@@ -1128,27 +639,18 @@ export function createTable(config = {}) {
 
 
     // ========================================================
-    // OBTER ID DO BOTÃO
+    // FORMATAR VALOR
     // ========================================================
 
-    function obterIdBotao(
-        botao
+    function formatarValor(
+        valor,
+        coluna
     ) {
 
-        if (!botao) {
-            return "";
-        }
-
-
-        const id =
-            botao.getAttribute(
-                "data-id"
-            );
-
-
         if (
-            id === null ||
-            id === undefined
+            valor === null ||
+            valor === undefined ||
+            valor === ""
         ) {
 
             return "";
@@ -1156,118 +658,149 @@ export function createTable(config = {}) {
         }
 
 
-        return String(
-            id
-        ).trim();
+        // ----------------------------------------------------
+        // BOOLEAN
+        // ----------------------------------------------------
 
-    }
+        if (
+            coluna?.type ===
+            "boolean"
+        ) {
 
+            return valor
+                ? "SIM"
+                : "NÃO";
 
-    // ========================================================
-    // LOCALIZAR REGISTRO
-    // ========================================================
-
-    function localizarRegistro(
-        id
-    ) {
-
-        if (!id) {
-            return null;
         }
 
 
-        return state.registros.find(
+        // ----------------------------------------------------
+        // DATA
+        // ----------------------------------------------------
 
-            registro =>
+        if (
+            coluna?.type ===
+            "date"
+        ) {
 
-                String(
-                    obterIdRegistro(
-                        registro
-                    )
-                ) ===
-                String(id)
+            return escaparHTML(
+                formatarData(
+                    valor
+                )
+            );
 
-        ) || null;
-
-    }
+        }
 
 
-    // ========================================================
-    // PERMITIR AÇÕES
-    // ========================================================
+        // ----------------------------------------------------
+        // DATETIME
+        // ----------------------------------------------------
 
-    function permitirAcoes() {
+        if (
+            coluna?.type ===
+            "datetime-local"
+        ) {
 
-        return (
+            return escaparHTML(
+                formatarDataHora(
+                    valor
+                )
+            );
 
-            options.permitirEditar !== false ||
+        }
 
-            options.permitirExcluir !== false ||
 
-            Object.keys(
-                options.actions || {}
-            ).length > 0
-
+        return escaparHTML(
+            String(
+                valor
+            )
         );
 
     }
 
 
     // ========================================================
-    // ACTIONS PERSONALIZADAS
+    // DATA
     // ========================================================
 
-    function renderizarActions(
-        registro
+    function formatarData(
+        valor
     ) {
 
-        const actions =
-            options.actions || {};
+        const texto =
+            String(
+                valor
+            );
 
 
-        return Object.keys(
-            actions
-        )
-        .map(
-            nome => {
+        if (
+            /^\d{4}-\d{2}-\d{2}$/.test(
+                texto
+            )
+        ) {
 
-                if (
-                    typeof actions[nome] !==
-                    "function"
-                ) {
+            const [
+                ano,
+                mes,
+                dia
+            ] =
+                texto.split(
+                    "-"
+                );
 
-                    return "";
 
-                }
+            return `${dia}/${mes}/${ano}`;
+
+        }
 
 
-                return `
+        return texto;
 
-                    <button
-                        type="button"
-                        data-engine-action="${escaparAtributo(
-                            nome
-                        )}"
-                        data-id="${escaparAtributo(
-                            obterIdRegistro(
-                                registro
-                            )
-                        )}"
-                    >
+    }
 
-                        ${escaparHTML(
-                            obterTituloAction(
-                                nome
-                            )
-                        )}
 
-                    </button>
+    // ========================================================
+    // DATA + HORA
+    // ========================================================
 
-                `;
+    function formatarDataHora(
+        valor
+    ) {
 
-            }
-        )
-        .join("");
+        const texto =
+            String(
+                valor
+            );
+
+
+        if (
+            texto.includes("T")
+        ) {
+
+            const partes =
+                texto.split("T");
+
+
+            const data =
+                formatarData(
+                    partes[0]
+                );
+
+
+            const hora =
+                (partes[1] || "")
+                .substring(
+                    0,
+                    5
+                );
+
+
+            return `${data} ${hora}`;
+
+        }
+
+
+        return texto;
 
     }
 
@@ -1306,191 +839,13 @@ export function createTable(config = {}) {
 
 
     // ========================================================
-    // FORMATAR CÉLULA
+    // LIMPAR
     // ========================================================
 
-    function formatarCelula(
-        valor,
-        coluna
-    ) {
+    function limpar() {
 
-        if (
-            valor === null ||
-            valor === undefined ||
-            valor === ""
-        ) {
-
-            return "";
-
-        }
-
-
-        const tipo =
-            coluna?.type ||
-            coluna?.tipo;
-
-
-        if (
-            tipo === "boolean"
-        ) {
-
-            return valor
-                ? "SIM"
-                : "NÃO";
-
-        }
-
-
-        if (
-            tipo === "date"
-        ) {
-
-            return escaparHTML(
-                formatarData(
-                    valor
-                )
-            );
-
-        }
-
-
-        return escaparHTML(
-            String(
-                valor
-            )
-        );
-
-    }
-
-
-    // ========================================================
-    // FORMATAR DATA
-    // ========================================================
-
-    function formatarData(
-        valor
-    ) {
-
-        if (!valor) {
-            return "";
-        }
-
-
-        /*
-         * Evita conversões de timezone
-         * desnecessárias para datas YYYY-MM-DD.
-         */
-
-        const texto =
-            String(
-                valor
-            );
-
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                texto
-            )
-        ) {
-
-            const partes =
-                texto.split("-");
-
-
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-
-        }
-
-
-        return texto;
-
-    }
-
-
-    // ========================================================
-    // PAGINAÇÃO HTML
-    // ========================================================
-
-    function renderizarPaginacao(
-        totalPaginas
-    ) {
-
-        if (
-            totalPaginas <= 1
-        ) {
-
-            return "";
-
-        }
-
-
-        let html = `
-
-            <div class="engine-pagination">
-
-                <button
-                    type="button"
-                    data-page="${Math.max(
-                        1,
-                        state.paginaAtual - 1
-                    )}"
-                    ${state.paginaAtual <= 1
-                        ? "disabled"
-                        : ""
-                    }
-                >
-                    Anterior
-                </button>
-
-        `;
-
-
-        for (
-            let numero = 1;
-            numero <= totalPaginas;
-            numero++
-        ) {
-
-            html += `
-
-                <button
-                    type="button"
-                    data-page="${numero}"
-                    ${numero === state.paginaAtual
-                        ? "disabled"
-                        : ""
-                    }
-                >
-                    ${numero}
-                </button>
-
-            `;
-
-        }
-
-
-        html += `
-
-                <button
-                    type="button"
-                    data-page="${Math.min(
-                        totalPaginas,
-                        state.paginaAtual + 1
-                    )}"
-                    ${state.paginaAtual >= totalPaginas
-                        ? "disabled"
-                        : ""
-                    }
-                >
-                    Próxima
-                </button>
-
-            </div>
-
-        `;
-
-
-        return html;
+        container.innerHTML =
+            "";
 
     }
 
@@ -1551,37 +906,9 @@ export function createTable(config = {}) {
 
 
     // ========================================================
-    // DESTRUIR
+    // RETORNO
     // ========================================================
 
-    function destruir() {
-
-        if (tableContainer) {
-
-            tableContainer.removeEventListener(
-                "click",
-                tratarClique
-            );
-
-
-            tableContainer.removeEventListener(
-                "input",
-                tratarInput
-            );
-
-        }
-
-
-        tableContainer =
-            null;
-
-    }
-
-
-    // ========================================================
-    // RETORNAR API
-    // ========================================================
-
-    return api;
+    return table;
 
 }
