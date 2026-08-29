@@ -1061,60 +1061,7 @@ export function createEngine(config = {}) {
     // RENDERIZAR FORMULÁRIO
     // ========================================================
 
-    function renderizarFormulario() {
-
-        if (
-            !formulario
-        ) {
-
-            return;
-
-        }
-
-
-        const form =
-            document.createElement(
-                "form"
-            );
-
-
-        form.className =
-            "engine-form";
-
-
-        form.noValidate =
-            true;
-
-
-        const campos =
-            Array.isArray(
-                schema.fields
-            )
-                ? schema.fields
-                : [];
-
-
-        campos.forEach(
-            campo => {
-
-                const grupo =
-                    criarCampo(
-                        campo
-                    );
-
-
-                if (
-                    grupo
-                ) {
-
-                    form.appendChild(
-                        grupo
-                    );
-
-                }
-
-            }
-        );
+   
 
 
         // ----------------------------------------------------
