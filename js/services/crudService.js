@@ -94,14 +94,12 @@ function obterBaseUrl() {
 
 }
 
-
 // ============================================================
 // CONSTRUIR URL
 // ============================================================
 
 function construirUrl(
-    entidade,
-    id = null
+    entidade
 ) {
 
     const baseUrl =
@@ -113,30 +111,13 @@ function construirUrl(
         );
 
 
-    let url =
+    return (
         baseUrl +
         "/" +
         encodeURIComponent(
             nome
-        );
-
-
-    if (
-        id !== null &&
-        id !== undefined &&
-        id !== ""
-    ) {
-
-        url +=
-            "/" +
-            encodeURIComponent(
-                id
-            );
-
-    }
-
-
-    return url;
+        )
+    );
 
 }
 
@@ -599,11 +580,29 @@ async function get(
     id = null
 ) {
 
-    const url =
+    let url =
         construirUrl(
-            entidade,
-            id
+            entidade
         );
+
+
+    // ========================================================
+    // CONSULTA POR ID
+    // ========================================================
+
+    if (
+        id !== null &&
+        id !== undefined &&
+        id !== ""
+    ) {
+
+        url +=
+            "?id=eq." +
+            encodeURIComponent(
+                id
+            );
+
+    }
 
 
     return requisicao(
@@ -614,7 +613,6 @@ async function get(
     );
 
 }
-
 
 // ============================================================
 // POST
