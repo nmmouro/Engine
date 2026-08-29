@@ -846,6 +846,48 @@ export function createEngine(config = {}) {
 
         }
 
+        // ====================================================
+// SUBMIT DO FORMULÁRIO
+// ====================================================
+
+container.addEventListener(
+    "submit",
+    evento => {
+
+        const form =
+            evento.target.closest(
+                "[data-engine-form] form"
+            );
+
+        if (!form) {
+            return;
+        }
+
+        evento.preventDefault();
+
+        const dados =
+            obterDadosFormulario(form);
+
+        console.log(
+            `ENGINE ${entity} → FORMULÁRIO → DADOS:`,
+            dados
+        );
+
+        engine.salvar(dados)
+            .catch(
+                erro => {
+
+                    console.error(
+                        `ENGINE ${entity} → SALVAR:`,
+                        erro
+                    );
+
+                }
+            );
+
+    }
+);
+
 
         // ----------------------------------------------------
         // EVENTOS DA TABELA
@@ -1064,6 +1106,59 @@ export function createEngine(config = {}) {
         registro.ID_REGISTRO ??
         null
     );
+}
+
+
+    function obterDadosFormulario(form) {
+
+    const dados = {};
+
+    const elementos =
+        form.querySelectorAll(
+            "input, select, textarea"
+        );
+
+    elementos.forEach(
+        campo => {
+
+            if (!campo.name) {
+                return;
+            }
+
+            if (
+                campo.type === "checkbox"
+            ) {
+
+                dados[campo.name] =
+                    campo.checked;
+
+                return;
+
+            }
+
+            if (
+                campo.type === "radio"
+            ) {
+
+                if (campo.checked) {
+
+                    dados[campo.name] =
+                        campo.value;
+
+                }
+
+                return;
+
+            }
+
+            dados[campo.name] =
+                campo.value;
+
+        }
+    );
+
+    return dados;
+
 }
 
 
