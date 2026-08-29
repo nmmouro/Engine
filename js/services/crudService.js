@@ -446,12 +446,109 @@ async function requisicao(
     opcoes = {}
 ) {
 
+    const apiKey =
+        CONFIG?.api?.key;
+
+
+    if (!apiKey) {
+
+        throw new Error(
+            "CRUD Service: CONFIG.api.key não configurada."
+        );
+
+    }
+
+
+    // ========================================================
+    // HEADERS
+    // ========================================================
+
+    const headers = new Headers();
+
+
+    headers.set(
+        "Accept",
+        "application/json"
+    );
+
+
+    headers.set(
+        "apikey",
+        apiKey
+    );
+
+
+    if (opcoes.body) {
+
+        headers.set(
+            "Content-Type",
+            "application/json"
+        );
+
+    }
+
+
+    // ========================================================
+    // HEADERS EXTRAS
+    // ========================================================
+
+    if (opcoes.headers) {
+
+        const extras =
+            new Headers(
+                opcoes.headers
+            );
+
+
+        extras.forEach(
+            (valor, nome) => {
+
+                headers.set(
+                    nome,
+                    valor
+                );
+
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // DIAGNÓSTICO
+    // ========================================================
+
     console.log(
-        "CRUD SERVICE: ",
-        opcoes.method || "GET",
+        "CRUD SERVICE → MÉTODO:",
+        opcoes.method || "GET"
+    );
+
+
+    console.log(
+        "CRUD SERVICE → URL:",
         url
     );
 
+
+    console.log(
+        "CRUD SERVICE → API KEY:",
+        apiKey
+            ? "ENVIADA"
+            : "AUSENTE"
+    );
+
+
+    console.log(
+        "CRUD SERVICE → HEADER APIKEY:",
+        headers.has("apikey")
+            ? "PRESENTE"
+            : "AUSENTE"
+    );
+
+
+    // ========================================================
+    // FETCH
+    // ========================================================
 
     let resposta;
 
@@ -464,38 +561,23 @@ async function requisicao(
                 {
                     ...opcoes,
 
-                    headers: {
-
-                        "Accept":
-                            "application/json",
-
-                        ...(opcoes.body
-                            ? {
-                                "Content-Type":
-                                    "application/json"
-                            }
-                            : {}),
-
-                        ...(opcoes.headers || {})
-
-                    },
+                    headers,
 
                     cache:
                         "no-store"
-
                 }
             );
 
     } catch (erro) {
 
         console.error(
-            "CRUD SERVICE: erro de conexão.",
+            "CRUD SERVICE → ERRO DE CONEXÃO:",
             erro
         );
 
 
         throw new Error(
-            "Não foi possível conectar à API Node.js."
+            "Não foi possível conectar ao Supabase."
         );
 
     }
