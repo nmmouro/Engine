@@ -1,191 +1,68 @@
-// ============================================================
-// ENGINE - SCHEMA
-// js/engine/schema.js
-// ============================================================
+export const SCHEMA_VEICULOS = {
+    entity: "veiculos",
 
-/**
- * Cria e normaliza um Schema da aplicação.
- *
- * Uso:
- *
- * import { createSchema } from "../engine/schema.js";
- *
- * const SCHEMA_VEICULOS = createSchema({
- *     entity: "VEICULOS",
- *     fields: {
- *         ...
- *     }
- * });
- */
-
-// ============================================================
-// CREATE SCHEMA
-// ============================================================
-
-export function createSchema(definition = {}) {
-
-    if (!definition || typeof definition !== "object") {
-        throw new TypeError(
-            "createSchema: a definição do schema deve ser um objeto."
-        );
-    }
-
-    const entity = definition.entity;
-
-    if (!entity || typeof entity !== "string") {
-        throw new Error(
-            "createSchema: o campo 'entity' é obrigatório."
-        );
-    }
-
-    const fields = definition.fields;
-
-    if (!fields || typeof fields !== "object") {
-        throw new Error(
-            `createSchema: o campo 'fields' é obrigatório para ${entity}.`
-        );
-    }
-
-    // --------------------------------------------------------
-    // Normalização dos campos
-    // --------------------------------------------------------
-
-    const normalizedFields = Object.entries(fields).map(
-        ([name, config = {}]) => {
-
-            if (!config || typeof config !== "object") {
-                config = {};
-            }
-
-            return {
-                name,
-
-                label:
-                    config.label ??
-                    name,
-
-                type:
-                    config.type ??
-                    "text",
-
-                required:
-                    config.required === true,
-
-                hidden:
-                    config.hidden === true,
-
-                readonly:
-                    config.readonly === true,
-
-                placeholder:
-                    config.placeholder ??
-                    "",
-
-                default:
-                    config.default ?? null,
-
-                options:
-                    Array.isArray(config.options)
-                        ? config.options
-                        : [],
-
-                ...config
-            };
-        }
-    );
-
-    // --------------------------------------------------------
-    // Retorno do Schema
-    // --------------------------------------------------------
-
-    return Object.freeze({
-
-        entity,
-
-        fields: normalizedFields,
-
-        // Campos visíveis
-        visibleFields:
-            normalizedFields.filter(
-                campo => !campo.hidden
-            ),
-
-        // Campos ocultos
-        hiddenFields:
-            normalizedFields.filter(
-                campo => campo.hidden
-            ),
-
-        // Campos obrigatórios
-        requiredFields:
-            normalizedFields.filter(
-                campo => campo.required
-            ),
-
-        // Busca campo pelo nome
-        getField(nome) {
-            return normalizedFields.find(
-                campo => campo.name === nome
-            );
+    fields: [
+        {
+            name: "id",
+            label: "ID",
+            type: "text",
+            hidden: true
         },
 
-        // Retorna somente nomes dos campos
-        getFieldNames() {
-            return normalizedFields.map(
-                campo => campo.name
-            );
+        {
+            name: "placa",
+            label: "Placa",
+            type: "text",
+            required: true
         },
 
-        // Retorna valores padrão
-        getDefaults() {
+        {
+            name: "modelo",
+            label: "Modelo",
+            type: "text",
+            required: true
+        },
 
-            const defaults = {};
+        {
+            name: "marca",
+            label: "Marca",
+            type: "text"
+        },
 
-            normalizedFields.forEach(campo => {
+        {
+            name: "ano",
+            label: "Ano",
+            type: "number"
+        },
 
-                if (campo.default !== null) {
-                    defaults[campo.name] = campo.default;
-                }
+        {
+            name: "combustivel",
+            label: "Combustível",
+            type: "select",
+            options: [
+                "gasolina",
+                "etanol",
+                "flex",
+                "diesel",
+                "elétrico"
+            ]
+        },
 
-            });
+        {
+            name: "cor",
+            label: "Cor",
+            type: "text"
+        },
 
-            return defaults;
+        {
+            name: "status",
+            label: "Status",
+            type: "select",
+            options: [
+                "ativo",
+                "manutenção",
+                "inativo"
+            ]
         }
-
-    });
-}
-
-
-// ============================================================
-// VALIDAÇÃO DE SCHEMA
-// ============================================================
-
-export function validateSchema(schema) {
-
-    if (!schema || typeof schema !== "object") {
-        return false;
-    }
-
-    if (
-        typeof schema.entity !== "string" ||
-        !schema.entity.trim()
-    ) {
-        return false;
-    }
-
-    if (!Array.isArray(schema.fields)) {
-        return false;
-    }
-
-    return true;
-}
-
-
-// ============================================================
-// EXPORT DEFAULT
-// ============================================================
-
-export default {
-    createSchema,
-    validateSchema
+    ]
 };
