@@ -64,7 +64,7 @@ export const SCHEMA_VEICULOS = createSchema({
 
         {
             name:
-                "data",
+                "data_cadastro",
 
             label:
                 "Data",
