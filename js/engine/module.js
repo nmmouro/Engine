@@ -1,76 +1,48 @@
+```javascript
 /**
  * ============================================================
  * MODULE
  * Painel Frota
- *
- * Arquivo:
- * js/engine/module.js
+ * Arquivo: module.js
  *
  * Responsabilidade:
  *
- * Criar e inicializar um módulo da aplicação.
+ * - Criar módulos da aplicação
+ * - Integrar Engine
+ * - Integrar Schema
+ * - Integrar State
+ * - Integrar Form
+ * - Integrar Table
+ * - Integrar Toolbar
  *
- * Exemplo:
+ * Este arquivo NÃO conhece:
  *
- * createModule({
- *
- *     entity: "VEICULOS",
- *
- *     schema: SCHEMA_VEICULOS,
- *
- *     container: "#app",
- *
- *     stateName: "veiculos",
- *
- *     options: {
- *
- *         titulo: "Cadastro de Veículos",
- *
- *         tabela: "Veículos Cadastrados",
- *
- *         permitirNovo: true,
- *
- *         permitirEditar: true,
- *
- *         permitirExcluir: true
- *
- *     }
- *
- * });
+ * - PostgreSQL
+ * - Supabase
+ * - Google Sheets
+ * - URLs da API
  *
  * ============================================================
  */
 
 import { createEngine } from "./engine.js";
+import { createState } from "./state.js";
+import { createForm } from "./form.js";
+import { createTable } from "./table.js";
+import { createToolbar } from "./toolbar.js";
 
 
 // ============================================================
-// CRIAR MÓDULO
+// CREATE MODULE
 // ============================================================
 
 export function createModule(config = {}) {
 
-    // ----------------------------------------------------------
-    // VALIDAÇÃO
-    // ----------------------------------------------------------
+    // ========================================================
+    // VALIDAR CONFIGURAÇÃO
+    // ========================================================
 
-    if (!config || typeof config !== "object") {
-
-        throw new Error(
-            "Module: configuração inválida."
-        );
-
-    }
-
-
-    // ----------------------------------------------------------
-    // ENTIDADE
-    // ----------------------------------------------------------
-
-    const entity =
-        config.entity;
-
-    if (!entity) {
+    if (!config.entity) {
 
         throw new Error(
             "Module: entidade não informada."
@@ -79,336 +51,353 @@ export function createModule(config = {}) {
     }
 
 
-    // ----------------------------------------------------------
-    // SCHEMA
-    // ----------------------------------------------------------
-
-    const schema =
-        config.schema;
-
-    if (!schema) {
+    if (!config.container) {
 
         throw new Error(
-            `Module ${entity}: schema não informado.`
+            "Module: container não informado."
         );
 
     }
 
 
-    // ----------------------------------------------------------
+    // ========================================================
+    // CONFIGURAÇÃO
+    // ========================================================
+
+    const entity =
+        config.entity;
+
+    const schema =
+        config.schema || null;
+
+    const containerSelector =
+        config.container;
+
+    const options =
+        config.options || {};
+
+
+    // ========================================================
     // CONTAINER
-    // ----------------------------------------------------------
+    // ========================================================
 
     const container =
-        config.container || "#app";
+        typeof containerSelector === "string"
+
+            ? document.querySelector(
+                containerSelector
+            )
+
+            : containerSelector;
 
 
-    // ----------------------------------------------------------
-    // NOME DO ESTADO
-    // ----------------------------------------------------------
+    if (!container) {
 
-    const stateName =
-        config.stateName ||
-        entity.toLowerCase();
-
-
-    // ----------------------------------------------------------
-    // OPÇÕES
-    // ----------------------------------------------------------
-
-    const options = {
-
-        titulo:
-            config.options?.titulo ||
-            entity,
-
-        tabela:
-            config.options?.tabela ||
-            `${entity} cadastrados`,
-
-        permitirNovo:
-            config.options?.permitirNovo !== false,
-
-        permitirEditar:
-            config.options?.permitirEditar !== false,
-
-        permitirExcluir:
-            config.options?.permitirExcluir !== false,
-
-        permitirPesquisar:
-            config.options?.permitirPesquisar !== false,
-
-        permitirPaginacao:
-            config.options?.permitirPaginacao !== false,
-
-        pageSize:
-            config.options?.pageSize || 20,
-
-        actions:
-            config.options?.actions || {},
-
-        autoRefresh:
-            config.options?.autoRefresh === true
-
-    };
-
-
-    // ----------------------------------------------------------
-    // CONFIGURAÇÃO FINAL
-    // ----------------------------------------------------------
-
-    const moduleConfig = {
-
-        entity,
-
-        schema,
-
-        container,
-
-        stateName,
-
-        options
-
-    };
-
-
-    // ----------------------------------------------------------
-    // CRIAR ENGINE
-    // ----------------------------------------------------------
-
-    const engine =
-        createEngine(
-            moduleConfig
+        throw new Error(
+            `Module ${entity}: container "${containerSelector}" não encontrado.`
         );
 
+    }
 
-    // ----------------------------------------------------------
-    // API DO MÓDULO
-    // ----------------------------------------------------------
 
-    const modulo = {
+    // ========================================================
+    // STATE
+    // ========================================================
+
+    const state =
+        createState({
+            pageSize:
+                options.pageSize
+        });
+
+
+    // ========================================================
+    // MÓDULO
+    // ========================================================
+
+    const module = {
 
         entity,
 
         schema,
-
-        container,
-
-        stateName,
 
         options,
 
-        engine,
+        container,
 
+        state,
 
-        // ------------------------------------------------------
-        // CARREGAR
-        // ------------------------------------------------------
+        engine: null,
 
-        carregar() {
+        form: null,
 
-            if (
-                typeof engine.carregar ===
-                "function"
-            ) {
+        table: null,
 
-                return engine.carregar();
+        toolbar: null,
 
-            }
+        iniciar,
 
-            return Promise.resolve([]);
-
-        },
-
-
-        // ------------------------------------------------------
-        // RECARREGAR
-        // ------------------------------------------------------
-
-        recarregar() {
-
-            if (
-                typeof engine.recarregar ===
-                "function"
-            ) {
-
-                return engine.recarregar();
-
-            }
-
-            if (
-                typeof engine.carregar ===
-                "function"
-            ) {
-
-                return engine.carregar();
-
-            }
-
-            return Promise.resolve([]);
-
-        },
-
-
-        // ------------------------------------------------------
-        // NOVO
-        // ------------------------------------------------------
-
-        novo() {
-
-            if (
-                typeof engine.novo ===
-                "function"
-            ) {
-
-                return engine.novo();
-
-            }
-
-        },
-
-
-        // ------------------------------------------------------
-        // EDITAR
-        // ------------------------------------------------------
-
-        editar(id) {
-
-            if (
-                typeof engine.editar ===
-                "function"
-            ) {
-
-                return engine.editar(id);
-
-            }
-
-        },
-
-
-        // ------------------------------------------------------
-        // EXCLUIR
-        // ------------------------------------------------------
-
-        excluir(id) {
-
-            if (
-                typeof engine.excluir ===
-                "function"
-            ) {
-
-                return engine.excluir(id);
-
-            }
-
-        },
-
-
-        // ------------------------------------------------------
-        // SALVAR
-        // ------------------------------------------------------
-
-        salvar(dados) {
-
-            if (
-                typeof engine.salvar ===
-                "function"
-            ) {
-
-                return engine.salvar(dados);
-
-            }
-
-        },
-
-
-        // ------------------------------------------------------
-        // ATUALIZAR
-        // ------------------------------------------------------
-
-        atualizar(dados) {
-
-            if (
-                typeof engine.atualizar ===
-                "function"
-            ) {
-
-                return engine.atualizar(dados);
-
-            }
-
-        },
-
-
-        // ------------------------------------------------------
-        // ESTADO
-        // ------------------------------------------------------
-
-        getState() {
-
-            if (
-                typeof engine.getState ===
-                "function"
-            ) {
-
-                return engine.getState();
-
-            }
-
-            return null;
-
-        },
-
-
-        // ------------------------------------------------------
-        // DESTRUIR
-        // ------------------------------------------------------
-
-        destroy() {
-
-            if (
-                typeof engine.destroy ===
-                "function"
-            ) {
-
-                return engine.destroy();
-
-            }
-
-        }
+        destruir
 
     };
 
 
-    // ----------------------------------------------------------
-    // DISPONIBILIZAR GLOBALMENTE
-    //
-    // Útil para ações personalizadas.
-    // ----------------------------------------------------------
+    // ========================================================
+    // ENGINE
+    // ========================================================
 
-    if (!window.PainelFrota) {
+    const engine =
+        createEngine({
 
-        window.PainelFrota = {};
+            entity,
+
+            schema,
+
+            container,
+
+            options,
+
+            state,
+
+            autoStart: false
+
+        });
+
+
+    module.engine =
+        engine;
+
+
+    // ========================================================
+    // FORM
+    // ========================================================
+
+    module.form =
+        createForm({
+
+            entity,
+
+            schema,
+
+            container,
+
+            state,
+
+            engine,
+
+            options
+
+        });
+
+
+    // ========================================================
+    // TABLE
+    // ========================================================
+
+    module.table =
+        createTable({
+
+            entity,
+
+            schema,
+
+            container,
+
+            state,
+
+            engine,
+
+            options
+
+        });
+
+
+    // ========================================================
+    // TOOLBAR
+    // ========================================================
+
+    module.toolbar =
+        createToolbar({
+
+            entity,
+
+            schema,
+
+            container,
+
+            state,
+
+            engine,
+
+            options
+
+        });
+
+
+    // ========================================================
+    // INICIAR
+    // ========================================================
+
+    async function iniciar() {
+
+        /*
+         * A ordem é importante:
+         *
+         * 1. Engine
+         * 2. Form
+         * 3. Table
+         * 4. Toolbar
+         * 5. Carregar dados
+         */
+
+        if (
+            module.form &&
+            typeof module.form.iniciar === "function"
+        ) {
+
+            module.form.iniciar();
+
+        }
+
+
+        if (
+            module.table &&
+            typeof module.table.iniciar === "function"
+        ) {
+
+            module.table.iniciar();
+
+        }
+
+
+        if (
+            module.toolbar &&
+            typeof module.toolbar.iniciar === "function"
+        ) {
+
+            module.toolbar.iniciar();
+
+        }
+
+
+        if (
+            module.engine &&
+            typeof module.engine.iniciar === "function"
+        ) {
+
+            await module.engine.iniciar();
+
+        }
+
+
+        return module;
 
     }
 
 
-    if (!window.PainelFrota.modules) {
+    // ========================================================
+    // DESTRUIR
+    // ========================================================
 
-        window.PainelFrota.modules = {};
+    function destruir() {
+
+        /*
+         * Remove eventos e referências
+         * quando o módulo for descartado.
+         */
+
+
+        if (
+            module.form &&
+            typeof module.form.destruir === "function"
+        ) {
+
+            module.form.destruir();
+
+        }
+
+
+        if (
+            module.table &&
+            typeof module.table.destruir === "function"
+        ) {
+
+            module.table.destruir();
+
+        }
+
+
+        if (
+            module.toolbar &&
+            typeof module.toolbar.destruir === "function"
+        ) {
+
+            module.toolbar.destruir();
+
+        }
+
+
+        if (
+            module.engine &&
+            typeof module.engine.destruir === "function"
+        ) {
+
+            module.engine.destruir();
+
+        }
+
+
+        module.form =
+            null;
+
+        module.table =
+            null;
+
+        module.toolbar =
+            null;
+
+        module.engine =
+            null;
 
     }
 
 
-    window.PainelFrota.modules[
-        entity
-    ] = modulo;
+    // ========================================================
+    // INICIALIZAÇÃO
+    // ========================================================
+
+    /*
+     * Mantemos a inicialização automática para
+     * preservar o comportamento atual dos módulos.
+     *
+     * Se options.autoStart === false,
+     * o módulo poderá ser iniciado manualmente.
+     */
+
+    if (
+        options.autoStart !== false
+    ) {
+
+        iniciar()
+            .catch(
+                erro => {
+
+                    console.error(
+                        `Module ${entity}: erro ao iniciar módulo`,
+                        erro
+                    );
+
+                }
+            );
+
+    }
 
 
-    // ----------------------------------------------------------
+    // ========================================================
     // RETORNAR MÓDULO
-    // ----------------------------------------------------------
+    // ========================================================
 
-    return modulo;
+    return module;
 
 }
+```
