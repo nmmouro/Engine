@@ -362,6 +362,12 @@ export function createEngine(config = {}) {
                     );
 
 
+                                                                                console.log(
+    "ENGINE → REGISTRO OBTIDO:",
+    registro
+);
+
+
                 state.registroEditando =
                     registro;
 
