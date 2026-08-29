@@ -327,20 +327,17 @@ export function createEngine(config = {}) {
         // EDITAR
         // ====================================================
 
-        async editar(id) {
+                async editar(id) {
 
-            validarId(
-                id
-            );
+            if (!id) {
 
-
-            try {
-
-                console.log(
-                    `Engine ${entity}: obtendo registro`,
-                    id
+                throw new Error(
+                    "Engine: ID não informado."
                 );
 
+            }
+
+            try {
 
                 const registro =
                     await obter(
@@ -348,16 +345,12 @@ export function createEngine(config = {}) {
                         id
                     );
 
-
                 console.log(
                     "ENGINE → REGISTRO OBTIDO:",
                     registro
                 );
 
-
-                if (
-                    !registro
-                ) {
+                if (!registro) {
 
                     throw new Error(
                         `Registro ${id} não encontrado.`
@@ -365,31 +358,21 @@ export function createEngine(config = {}) {
 
                 }
 
-
                 state.registroEditando =
                     registro;
 
-
-                // ------------------------------------------------
-                // O formulário precisa existir antes do preenchimento
-                // ------------------------------------------------
-
                 renderizarFormulario();
-
 
                 preencherFormulario(
                     registro
                 );
 
-
                 mostrarFormulario();
-
 
                 emitirEvento(
                     "editar",
                     registro
                 );
-
 
                 return registro;
 
@@ -400,11 +383,9 @@ export function createEngine(config = {}) {
                     erro
                 );
 
-
                 mostrarErro(
                     erro
                 );
-
 
                 throw erro;
 
