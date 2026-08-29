@@ -26,6 +26,19 @@ const API_URL =
     CONFIG?.api?.url || "";
 
 
+console.log(
+    "CRUD SERVICE → API URL:",
+    API_URL
+);
+
+console.log(
+    "CRUD SERVICE → API KEY:",
+    CONFIG?.api?.key
+        ? "CONFIGURADA"
+        : "NÃO CONFIGURADA"
+);
+
+
 // ============================================================
 // CONFIGURAÇÃO DA API
 // ============================================================
