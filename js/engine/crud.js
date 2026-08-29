@@ -1,5 +1,4 @@
-```javascript
-/**
+***
  * ============================================================
  * CRUD ENGINE
  * Painel Frota
@@ -803,4 +802,3 @@ function normalizarRegistro(
     return null;
 
 }
-```
