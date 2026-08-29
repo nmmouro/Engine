@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * FORM
@@ -1512,4 +1511,3 @@ export function createForm(config = {}) {
     return api;
 
 }
-```
