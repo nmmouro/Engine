@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * TOOLBAR
@@ -539,4 +538,3 @@ export function createToolbar(config = {}) {
     return api;
 
 }
-```
