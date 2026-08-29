@@ -902,93 +902,132 @@ export function createEngine(config = {}) {
 
 
         container.addEventListener(
-            "click",
-            evento => {
+    "click",
+    evento => {
 
-                const editar =
-                    evento.target.closest(
-                        "[data-action='editar']"
-                    );
+        // ==================================================
+        // EDITAR
+        // ==================================================
 
-
-                if (editar) {
-
-                    const id =
-                        editar.dataset.id;
+        const botaoEditar =
+            evento.target.closest(
+                "[data-action='editar']"
+            );
 
 
-                    engine.editar(
-                        id
-                    );
+        if (botaoEditar) {
+
+            const id =
+                botaoEditar.getAttribute(
+                    "data-id"
+                );
 
 
-                    return;
-
-                }
-
-
-                const excluirBotao =
-                    evento.target.closest(
-                        "[data-action='excluir']"
-                    );
+            console.log(
+                "ENGINE → CLIQUE EDITAR → ID:",
+                id
+            );
 
 
-                if (excluirBotao) {
+            if (
+                !id ||
+                String(id).trim() === ""
+            ) {
 
-                    const id =
-                        excluirBotao.dataset.id;
-
-
-                    engine.excluir(
-                        id
-                    );
-
-
-                    return;
-
-                }
+                console.error(
+                    "ENGINE → EDITAR → botão sem data-id",
+                    botaoEditar
+                );
 
 
-                const action =
-                    evento.target.closest(
-                        "[data-engine-action]"
-                    );
-
-
-                if (action) {
-
-                    const nome =
-                        action.dataset.engineAction;
-
-
-                    const id =
-                        action.dataset.id;
-
-
-                    const registro =
-                        state.registros.find(
-
-                            item =>
-
-                                String(
-                                    item.ID
-                                ) ===
-                                String(id)
-
-                        );
-
-
-                    engine.action(
-                        nome,
-                        registro
-                    );
-
-                }
+                return;
 
             }
-        );
+
+
+            engine.editar(
+                String(id)
+            )
+
+            .catch(
+                erro => {
+
+                    console.error(
+                        "ENGINE → EDITAR:",
+                        erro
+                    );
+
+                }
+            );
+
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // EXCLUIR
+        // ==================================================
+
+        const botaoExcluir =
+            evento.target.closest(
+                "[data-action='excluir']"
+            );
+
+
+        if (botaoExcluir) {
+
+            const id =
+                botaoExcluir.getAttribute(
+                    "data-id"
+                );
+
+
+            console.log(
+                "ENGINE → CLIQUE EXCLUIR → ID:",
+                id
+            );
+
+
+            if (
+                !id ||
+                String(id).trim() === ""
+            ) {
+
+                console.error(
+                    "ENGINE → EXCLUIR → botão sem data-id",
+                    botaoExcluir
+                );
+
+
+                return;
+
+            }
+
+
+            engine.excluir(
+                String(id)
+            )
+
+            .catch(
+                erro => {
+
+                    console.error(
+                        "ENGINE → EXCLUIR:",
+                        erro
+                    );
+
+                }
+            );
+
+
+            return;
+
+        }
 
     }
+);
 
 
     // ========================================================
@@ -1139,7 +1178,7 @@ export function createEngine(config = {}) {
                                         type="button"
                                         data-action="editar"
                                         data-id="${escaparAtributo(
-                                            registro.ID
+                                            id
                                         )}"
                                     >
                                         Editar
@@ -1161,7 +1200,7 @@ export function createEngine(config = {}) {
                                         type="button"
                                         data-action="excluir"
                                         data-id="${escaparAtributo(
-                                            registro.ID
+                                            id
                                         )}"
                                     >
                                         Excluir
