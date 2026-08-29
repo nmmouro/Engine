@@ -2,140 +2,205 @@
  * ============================================================
  * CRUD SERVICE
  * Painel Frota
- * ============================================================
+ * Arquivo: crudService.js
  *
- * Frontend
- *    ↓
- * CRUD Service
- *    ↓
- * API Node.js
- *    ↓
- * PostgreSQL
+ * Camada de comunicação com o backend.
+ *
+ * Backend atual:
+ *
+ *     PostgreSQL
+ *     Supabase REST API
+ *
+ * Responsabilidade:
+ *
+ * - Montar URL
+ * - Enviar API Key
+ * - Executar GET
+ * - Executar POST
+ * - Executar PATCH
+ * - Executar DELETE
+ * - Tratar respostas HTTP
+ *
+ * NÃO conhece:
+ *
+ * - Engine
+ * - Form
+ * - Table
+ * - Toolbar
+ * - HTML
  *
  * ============================================================
  */
-
-import { CONFIG } from "../config/config.js";
 
 
 // ============================================================
 // CONFIGURAÇÃO
 // ============================================================
 
-const API_URL =
-    CONFIG?.api?.url || "";
-
-
-console.log(
-    "CRUD SERVICE → API URL:",
-    API_URL
-);
-
-console.log(
-    "CRUD SERVICE → API KEY:",
-    CONFIG?.api?.key
-        ? "CONFIGURADA"
-        : "NÃO CONFIGURADA"
-);
+import { CONFIG } from "../config/config.js";
 
 
 // ============================================================
 // CONFIGURAÇÃO DA API
 // ============================================================
 
-function validarConfiguracao() {
+const API_URL =
+    String(
+        CONFIG?.api?.url || ""
+    )
+    .trim()
+    .replace(
+        /\/+$/,
+        ""
+    );
+
+
+const API_KEY =
+    String(
+        CONFIG?.api?.key || ""
+    )
+    .trim();
+
+
+const TOKEN =
+    String(
+        CONFIG?.api?.token ||
+        API_KEY
+    )
+    .trim();
+
+
+// ============================================================
+// VALIDAÇÃO
+// ============================================================
+
+if (!API_URL) {
+
+    console.error(
+        "CRUD SERVICE → URL DA API NÃO CONFIGURADA."
+    );
+
+}
+
+
+if (!API_KEY) {
+
+    console.warn(
+        "CRUD SERVICE → API KEY NÃO CONFIGURADA."
+    );
+
+}
+
+
+// ============================================================
+// HEADERS
+// ============================================================
+
+function obterHeaders(
+    incluirJSON = false
+) {
+
+    const headers = {
+
+        "apikey":
+            API_KEY,
+
+        "Authorization":
+            `Bearer ${TOKEN}`
+
+    };
+
+
+    if (
+        incluirJSON
+    ) {
+
+        headers[
+            "Content-Type"
+        ] =
+            "application/json";
+
+
+        headers[
+            "Prefer"
+        ] =
+            "return=representation";
+
+    }
+
+
+    return headers;
+
+}
+
+
+// ============================================================
+// VALIDAR ENTIDADE
+// ============================================================
+
+function validarEntidade(
+    entity
+) {
+
+    const nome =
+        String(
+            entity || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if (!nome) {
+
+        throw new Error(
+            "CRUD SERVICE: entidade não informada."
+        );
+
+    }
+
+
+    /*
+     * Evita que caracteres inválidos
+     * sejam inseridos na URL.
+     */
+
+    if (
+        !/^[a-zA-Z0-9_]+$/.test(
+            nome
+        )
+    ) {
+
+        throw new Error(
+            `CRUD SERVICE: entidade inválida: ${nome}`
+        );
+
+    }
+
+
+    return nome;
+
+}
+
+
+// ============================================================
+// VALIDAR API
+// ============================================================
+
+function validarAPI() {
 
     if (!API_URL) {
 
         throw new Error(
-            "CRUD Service: CONFIG.api.url não foi configurada."
+            "CRUD SERVICE: CONFIG.api.url não configurada."
         );
 
     }
 
-}
 
-
-// ============================================================
-// NORMALIZAR ENTIDADE
-// ============================================================
-
-function normalizarEntidade(entidade) {
-
-    if (
-        !entidade ||
-        typeof entidade !== "string"
-    ) {
+    if (!API_KEY) {
 
         throw new Error(
-            "CRUD Service: entidade não informada."
-        );
-
-    }
-
-    return entidade
-        .trim()
-        .toLowerCase();
-
-}
-
-
-// ============================================================
-// URL BASE
-// ============================================================
-
-function obterBaseUrl() {
-
-    validarConfiguracao();
-
-    return API_URL
-        .trim()
-        .replace(/\/+$/, "");
-
-}
-
-// ============================================================
-// CONSTRUIR URL
-// ============================================================
-
-function construirUrl(
-    entidade
-) {
-
-    const baseUrl =
-        obterBaseUrl();
-
-    const nome =
-        normalizarEntidade(
-            entidade
-        );
-
-
-    return (
-        baseUrl +
-        "/" +
-        encodeURIComponent(
-            nome
-        )
-    );
-
-}
-
-
-// ============================================================
-// VALIDAR ID
-// ============================================================
-
-function validarId(id) {
-
-    if (
-        id === undefined ||
-        id === null ||
-        id === ""
-    ) {
-
-        throw new Error(
-            "CRUD Service: ID não informado."
+            "CRUD SERVICE: CONFIG.api.key não configurada."
         );
 
     }
@@ -144,364 +209,107 @@ function validarId(id) {
 
 
 // ============================================================
-// VALIDAR DADOS
+// ERRO HTTP
 // ============================================================
 
-function validarDados(dados) {
-
-    if (
-        !dados ||
-        typeof dados !== "object" ||
-        Array.isArray(dados)
-    ) {
-
-        throw new Error(
-            "CRUD Service: dados inválidos."
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// EXTRAIR MENSAGEM DE ERRO
-// ============================================================
-
-function extrairMensagemErro(
-    resposta,
-    status
-) {
-
-    if (
-        resposta &&
-        typeof resposta === "object"
-    ) {
-
-        return (
-            resposta.erro ||
-            resposta.error ||
-            resposta.message ||
-            resposta.mensagem ||
-            "Erro HTTP " + status + "."
-        );
-
-    }
-
-
-    if (
-        typeof resposta === "string" &&
-        resposta.trim()
-    ) {
-
-        return resposta;
-
-    }
-
-
-    return (
-        "Erro HTTP " +
-        status +
-        "."
-    );
-
-}
-
-
-// ============================================================
-// PROCESSAR RESPOSTA
-// ============================================================
-
-async function processarResposta(
+async function criarErroHTTP(
     resposta
 ) {
 
-    if (!resposta) {
-
-        throw new Error(
-            "CRUD Service: resposta vazia da API."
-        );
-
-    }
-
-
-    let corpo = null;
-
-
-    const contentType =
-        resposta.headers?.get(
-            "content-type"
-        ) || "";
+    let detalhe =
+        "";
 
 
     try {
 
+        const texto =
+            await resposta.text();
+
+
         if (
-            contentType
-                .toLowerCase()
-                .includes(
-                    "application/json"
-                )
+            texto
         ) {
 
-            corpo =
-                await resposta.json();
+            try {
 
-        } else {
+                const json =
+                    JSON.parse(
+                        texto
+                    );
 
-            const texto =
-                await resposta.text();
 
+                detalhe =
+                    json?.message ||
+                    json?.error ||
+                    json?.hint ||
+                    json?.details ||
+                    texto;
 
-            if (texto) {
+            }
 
-                try {
+            catch {
 
-                    corpo =
-                        JSON.parse(
-                            texto
-                        );
-
-                } catch {
-
-                    corpo =
-                        texto;
-
-                }
+                detalhe =
+                    texto;
 
             }
 
         }
 
-    } catch (erro) {
+    }
 
-        console.error(
-            "CRUD SERVICE: erro ao interpretar resposta.",
-            erro
-        );
+    catch {
 
-
-        throw new Error(
-            "Resposta inválida da API. HTTP " +
-            resposta.status +
-            "."
-        );
+        detalhe =
+            "";
 
     }
 
 
-    console.log(
-        "CRUD SERVICE: resposta HTTP",
-        resposta.status,
-        corpo
-    );
+    const mensagem =
+        detalhe ||
+
+        `Erro HTTP ${resposta.status}.`;
 
 
-    if (!resposta.ok) {
-
-        throw new Error(
-            extrairMensagemErro(
-                corpo,
-                resposta.status
-            )
+    const erro =
+        new Error(
+            mensagem
         );
 
-    }
+
+    erro.status =
+        resposta.status;
 
 
-    return corpo;
+    erro.statusText =
+        resposta.statusText;
+
+
+    erro.url =
+        resposta.url;
+
+
+    return erro;
 
 }
 
 
 // ============================================================
-// VERIFICAR RESPOSTA DA API
+// EXECUTAR REQUEST
 // ============================================================
 
-function verificarResposta(
-    resposta
-) {
-
-    if (
-        resposta &&
-        typeof resposta === "object"
-    ) {
-
-        if (
-            resposta.sucesso === false
-        ) {
-
-            throw new Error(
-                extrairMensagemErro(
-                    resposta,
-                    400
-                )
-            );
-
-        }
-
-
-        if (
-            resposta.success === false
-        ) {
-
-            throw new Error(
-                extrairMensagemErro(
-                    resposta,
-                    400
-                )
-            );
-
-        }
-
-    }
-
-
-    return resposta;
-
-}
-
-
-// ============================================================
-// EXTRAIR DADOS
-// ============================================================
-
-function extrairDados(
-    resposta
-) {
-
-    if (
-        resposta === null ||
-        resposta === undefined
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        resposta &&
-        typeof resposta === "object" &&
-        resposta.dados !== undefined
-    ) {
-
-        return resposta.dados;
-
-    }
-
-
-    if (
-        resposta &&
-        typeof resposta === "object" &&
-        resposta.data !== undefined
-    ) {
-
-        return resposta.data;
-
-    }
-
-
-    if (
-        resposta &&
-        typeof resposta === "object" &&
-        resposta.result !== undefined
-    ) {
-
-        return resposta.result;
-
-    }
-
-
-    return resposta;
-
-}
-
-
-// ============================================================
-// REQUISIÇÃO HTTP
-// ============================================================
-
-async function requisicao(
+async function request(
     url,
-    opcoes = {}
+    options = {}
 ) {
 
-    const apiKey =
-        CONFIG?.api?.key;
+    validarAPI();
 
-
-    if (!apiKey) {
-
-        throw new Error(
-            "CRUD Service: CONFIG.api.key não configurada."
-        );
-
-    }
-
-
-    // ========================================================
-    // HEADERS
-    // ========================================================
-
-    const headers = new Headers();
-
-
-    headers.set(
-        "Accept",
-        "application/json"
-    );
-
-
-    headers.set(
-        "apikey",
-        apiKey
-    );
-
-
-    if (opcoes.body) {
-
-        headers.set(
-            "Content-Type",
-            "application/json"
-        );
-
-    }
-
-
-    // ========================================================
-    // HEADERS EXTRAS
-    // ========================================================
-
-    if (opcoes.headers) {
-
-        const extras =
-            new Headers(
-                opcoes.headers
-            );
-
-
-        extras.forEach(
-            (valor, nome) => {
-
-                headers.set(
-                    nome,
-                    valor
-                );
-
-            }
-        );
-
-    }
-
-
-    // ========================================================
-    // DIAGNÓSTICO
-    // ========================================================
 
     console.log(
         "CRUD SERVICE → MÉTODO:",
-        opcoes.method || "GET"
+        options.method || "GET"
     );
 
 
@@ -513,214 +321,137 @@ async function requisicao(
 
     console.log(
         "CRUD SERVICE → API KEY:",
-        apiKey
+        API_KEY
             ? "ENVIADA"
-            : "AUSENTE"
+            : "NÃO ENVIADA"
     );
+
+
+    const resposta =
+        await fetch(
+            url,
+            {
+
+                ...options,
+
+                headers: {
+
+                    ...obterHeaders(
+                        Boolean(
+                            options.body
+                        )
+                    ),
+
+                    ...(options.headers || {})
+
+                }
+
+            }
+        );
 
 
     console.log(
-        "CRUD SERVICE → HEADER APIKEY:",
-        headers.has("apikey")
-            ? "PRESENTE"
-            : "AUSENTE"
+        "CRUD SERVICE → RESPOSTA HTTP:",
+        resposta.status
     );
 
 
-    // ========================================================
-    // FETCH
-    // ========================================================
+    if (
+        !resposta.ok
+    ) {
 
-    let resposta;
-
-
-    try {
-
-        resposta =
-            await fetch(
-                url,
-                {
-                    ...opcoes,
-
-                    headers,
-
-                    cache:
-                        "no-store"
-                }
+        const erro =
+            await criarErroHTTP(
+                resposta
             );
 
-    } catch (erro) {
 
         console.error(
-            "CRUD SERVICE → ERRO DE CONEXÃO:",
+            "CRUD SERVICE → ERRO HTTP:",
             erro
         );
 
 
-        throw new Error(
-            "Não foi possível conectar ao Supabase."
-        );
+        throw erro;
 
     }
 
 
-    return processarResposta(
-        resposta
-    );
-
-}
-
-
-// ============================================================
-// GET
-// ============================================================
-
-async function get(
-    entidade,
-    id = null
-) {
-
-    let url =
-        construirUrl(
-            entidade
-        );
-
-
-    // ========================================================
-    // CONSULTA POR ID
-    // ========================================================
+    /*
+     * DELETE pode retornar
+     * resposta vazia.
+     */
 
     if (
-        id !== null &&
-        id !== undefined &&
-        id !== ""
+        resposta.status === 204
     ) {
 
-        url +=
-            "?id=eq." +
-            encodeURIComponent(
-                id
-            );
+        return null;
 
     }
 
 
-    return requisicao(
-        url,
-        {
-            method: "GET"
-        }
-    );
-
-}
-
-// ============================================================
-// POST
-// ============================================================
-
-async function post(
-    entidade,
-    dados
-) {
-
-    validarDados(
-        dados
-    );
+    const texto =
+        await resposta.text();
 
 
-    const url =
-        construirUrl(
-            entidade
+    if (
+        !texto
+    ) {
+
+        return null;
+
+    }
+
+
+    try {
+
+        return JSON.parse(
+            texto
         );
 
+    }
 
-    return requisicao(
-        url,
-        {
+    catch {
 
-            method: "POST",
+        return texto;
 
-            body:
-                JSON.stringify(
-                    dados
-                )
-
-        }
-    );
+    }
 
 }
 
 
 // ============================================================
-// PUT
+// URL DA TABELA
 // ============================================================
 
-async function put(
-    entidade,
-    id,
-    dados
+function tabelaURL(
+    entity
 ) {
 
-    validarId(
-        id
-    );
-
-
-    validarDados(
-        dados
-    );
-
-
-    const url =
-        construirUrl(
-            entidade,
-            id
+    const tabela =
+        validarEntidade(
+            entity
         );
 
 
-    return requisicao(
-        url,
-        {
-
-            method: "PUT",
-
-            body:
-                JSON.stringify(
-                    dados
-                )
-
-        }
-    );
+    return `${API_URL}/${tabela}`;
 
 }
 
 
 // ============================================================
-// DELETE
+// ESCAPAR VALOR PARA QUERY
 // ============================================================
 
-async function del(
-    entidade,
-    id
+function queryValue(
+    valor
 ) {
 
-    validarId(
-        id
-    );
-
-
-    const url =
-        construirUrl(
-            entidade,
-            id
-        );
-
-
-    return requisicao(
-        url,
-        {
-            method: "DELETE"
-        }
+    return encodeURIComponent(
+        String(
+            valor
+        )
     );
 
 }
@@ -731,55 +462,124 @@ async function del(
 // ============================================================
 
 export async function listar(
-    entidade
+    entity,
+    filtros = {}
 ) {
 
-    const nome =
-        normalizarEntidade(
-            entidade
+    const tabela =
+        tabelaURL(
+            entity
         );
 
 
+    const parametros =
+        new URLSearchParams();
+
+
+    /*
+     * Filtros simples:
+     *
+     * {
+     *     status: "ativo",
+     *     placa: "ABC1234"
+     * }
+     */
+
+    Object.entries(
+        filtros || {}
+    )
+    .forEach(
+
+        ([campo, valor]) => {
+
+            if (
+                valor === undefined ||
+                valor === null ||
+                valor === ""
+            ) {
+
+                return;
+
+            }
+
+
+            parametros.set(
+                campo,
+                `eq.${valor}`
+            );
+
+        }
+
+    );
+
+
+    const url =
+        parametros.toString()
+
+            ? `${tabela}?${parametros.toString()}`
+
+            : tabela;
+
+
     console.log(
-        "CRUD SERVICE: LISTAR",
-        nome
+        `CRUD SERVICE: LISTAR ${entity}`
     );
 
 
     const resposta =
-        verificarResposta(
-            await get(
-                nome
-            )
+        await request(
+            url,
+            {
+                method: "GET"
+            }
         );
 
 
-    const dados =
-        extrairDados(
-            resposta
-        );
-
+    /*
+     * Supabase normalmente retorna:
+     *
+     * [
+     *     {...},
+     *     {...}
+     * ]
+     */
 
     if (
         Array.isArray(
-            dados
+            resposta
         )
     ) {
 
-        return dados;
+        return resposta;
+
+    }
+
+
+    /*
+     * Compatibilidade com
+     * possíveis wrappers.
+     */
+
+    if (
+        resposta &&
+        Array.isArray(
+            resposta.data
+        )
+    ) {
+
+        return resposta.data;
 
     }
 
 
     if (
-        dados &&
-        typeof dados === "object" &&
+        resposta &&
         Array.isArray(
-            dados.registros
+            resposta.dados
         )
     ) {
 
-        return dados.registros;
+        return resposta.dados;
 
     }
 
@@ -794,122 +594,186 @@ export async function listar(
 // ============================================================
 
 export async function obter(
-    entidade,
+    entity,
     id
 ) {
 
-    validarId(
-        id
-    );
-
-
-    const nome =
-        normalizarEntidade(
-            entidade
-        );
-
-
-    console.log(
-        "CRUD SERVICE: OBTER",
-        nome,
-        id
-    );
-
-
-    const resposta =
-        verificarResposta(
-            await get(
-                nome,
-                id
-            )
-        );
-
-
-    const dados =
-        extrairDados(
-            resposta
-        );
-
-
-    if (
-        Array.isArray(
-            dados
+    const identificador =
+        String(
+            id ?? ""
         )
-    ) {
+        .trim();
 
-        return dados.length > 0
-            ? dados[0]
-            : null;
+
+    if (!identificador) {
+
+        throw new Error(
+            "CRUD SERVICE: ID não informado."
+        );
 
     }
 
 
-    return dados;
+    const tabela =
+        tabelaURL(
+            entity
+        );
+
+
+    /*
+     * O banco utiliza:
+     *
+     * id = VEI000002
+     *
+     * Portanto:
+     *
+     * ?id=eq.VEI000002
+     */
+
+    const url =
+        `${tabela}?id=eq.${queryValue(
+            identificador
+        )}`;
+
+
+    console.log(
+        `CRUD SERVICE: OBTER ${entity} ${identificador}`
+    );
+
+
+    const resposta =
+        await request(
+            url,
+            {
+                method: "GET"
+            }
+        );
+
+
+    /*
+     * Supabase retorna array.
+     */
+
+    if (
+        Array.isArray(
+            resposta
+        )
+    ) {
+
+        return (
+            resposta[0] ||
+            null
+        );
+
+    }
+
+
+    if (
+        resposta?.data &&
+        Array.isArray(
+            resposta.data
+        )
+    ) {
+
+        return (
+            resposta.data[0] ||
+            null
+        );
+
+    }
+
+
+    if (
+        resposta?.dados &&
+        Array.isArray(
+            resposta.dados
+        )
+    ) {
+
+        return (
+            resposta.dados[0] ||
+            null
+        );
+
+    }
+
+
+    return (
+        resposta || null
+    );
 
 }
+
 
 // ============================================================
 // CRIAR
 // ============================================================
 
 export async function criar(
-    entidade,
+    entity,
     dados
 ) {
 
-    const nome =
-        normalizarEntidade(
-            entidade
+    if (
+        !dados ||
+        typeof dados !== "object" ||
+        Array.isArray(dados)
+    ) {
+
+        throw new Error(
+            "CRUD SERVICE: dados inválidos para criação."
         );
 
+    }
 
-    validarDados(
-        dados
-    );
+
+    const tabela =
+        tabelaURL(
+            entity
+        );
 
 
     console.log(
-        "CRUD SERVICE: CRIAR",
-        nome,
+        `CRUD SERVICE: CRIAR ${entity}`,
         dados
     );
 
 
-    const resposta =
-        verificarResposta(
-            await post(
-                nome,
-                dados
-            )
+    /*
+     * IMPORTANTE:
+     *
+     * Não enviamos ID automaticamente.
+     *
+     * O banco pode possuir DEFAULT
+     * ou trigger para gerar o ID.
+     */
+
+    const payload =
+        prepararDados(
+            dados
         );
 
 
-    return extrairDados(
-        resposta
-    );
-
-}
+    delete payload.ID;
 
 
-// ============================================================
-// SALVAR
-// ============================================================
-//
-// Compatibilidade.
-//
-// salvar() continua funcionando como alias de criar().
-//
-// ============================================================
+    const resposta =
+        await request(
+            tabela,
+            {
 
-export async function salvar(
-    entidade,
-    dados
-) {
+                method: "POST",
 
-    return criar(
-        entidade,
-        dados
-    );
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+
+            }
+        );
+
+
+    return resposta;
 
 }
 
@@ -919,52 +783,94 @@ export async function salvar(
 // ============================================================
 
 export async function atualizar(
-    entidade,
+    entity,
     dados
 ) {
 
-    const nome =
-        normalizarEntidade(
-            entidade
+    if (
+        !dados ||
+        typeof dados !== "object" ||
+        Array.isArray(dados)
+    ) {
+
+        throw new Error(
+            "CRUD SERVICE: dados inválidos para atualização."
         );
 
-
-    validarDados(
-        dados
-    );
+    }
 
 
     const id =
-        dados.ID ??
-        dados.id;
+        String(
+            dados.id ??
+            dados.ID ??
+            ""
+        )
+        .trim();
 
 
-    validarId(
-        id
-    );
+    if (!id) {
+
+        throw new Error(
+            "CRUD SERVICE: ID não informado para atualização."
+        );
+
+    }
+
+
+    const tabela =
+        tabelaURL(
+            entity
+        );
+
+
+    const url =
+        `${tabela}?id=eq.${queryValue(
+            id
+        )}`;
 
 
     console.log(
-        "CRUD SERVICE: ATUALIZAR",
-        nome,
-        id,
+        `CRUD SERVICE: ATUALIZAR ${entity} ${id}`,
         dados
     );
 
 
-    const resposta =
-        verificarResposta(
-            await put(
-                nome,
-                id,
-                dados
-            )
+    const payload =
+        prepararDados(
+            dados
         );
 
 
-    return extrairDados(
-        resposta
-    );
+    /*
+     * O ID identifica o registro.
+     *
+     * Não precisa ser enviado
+     * no corpo do PATCH.
+     */
+
+    delete payload.id;
+
+    delete payload.ID;
+
+
+    const resposta =
+        await request(
+            url,
+            {
+
+                method: "PATCH",
+
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+
+            }
+        );
+
+
+    return resposta;
 
 }
 
@@ -974,55 +880,138 @@ export async function atualizar(
 // ============================================================
 
 export async function excluir(
-    entidade,
+    entity,
     id
 ) {
 
-    const nome =
-        normalizarEntidade(
-            entidade
+    const identificador =
+        String(
+            id ?? ""
+        )
+        .trim();
+
+
+    if (!identificador) {
+
+        throw new Error(
+            "CRUD SERVICE: ID não informado para exclusão."
+        );
+
+    }
+
+
+    const tabela =
+        tabelaURL(
+            entity
         );
 
 
-    validarId(
-        id
-    );
+    const url =
+        `${tabela}?id=eq.${queryValue(
+            identificador
+        )}`;
 
 
     console.log(
-        "CRUD SERVICE: EXCLUIR",
-        nome,
-        id
+        `CRUD SERVICE: EXCLUIR ${entity} ${identificador}`
     );
 
 
     const resposta =
-        verificarResposta(
-            await del(
-                nome,
-                id
-            )
+        await request(
+            url,
+            {
+
+                method: "DELETE"
+
+            }
         );
 
 
-    return extrairDados(
-        resposta
-    );
+    return resposta;
 
 }
 
 
 // ============================================================
-// EXPORTAÇÃO DEFAULT
+// PREPARAR DADOS
+// ============================================================
+
+function prepararDados(
+    dados
+) {
+
+    const resultado =
+        {};
+
+
+    Object.entries(
+        dados || {}
+    )
+    .forEach(
+
+        ([campo, valor]) => {
+
+            /*
+             * Ignorar undefined.
+             */
+
+            if (
+                valor === undefined
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * Converter strings vazias
+             * para null.
+             *
+             * Isso é importante para
+             * campos PostgreSQL opcionais.
+             */
+
+            if (
+                valor === ""
+            ) {
+
+                resultado[campo] =
+                    null;
+
+                return;
+
+            }
+
+
+            resultado[campo] =
+                valor;
+
+        }
+
+    );
+
+
+    return resultado;
+
+}
+
+
+// ============================================================
+// EXPORTAR API
 // ============================================================
 
 export default {
 
     listar,
+
     obter,
+
     criar,
-    salvar,
+
     atualizar,
+
     excluir
 
 };
