@@ -971,7 +971,7 @@ export function createEngine(config = {}) {
                             item =>
 
                                 String(
-                                    item.ID
+                                    item.id
                                 ) ===
                                 String(id)
 
@@ -1139,7 +1139,7 @@ export function createEngine(config = {}) {
                                         type="button"
                                         data-action="editar"
                                         data-id="${escaparAtributo(
-                                            registro.ID
+                                            registro.id
                                         )}"
                                     >
                                         Editar
@@ -1161,7 +1161,7 @@ export function createEngine(config = {}) {
                                         type="button"
                                         data-action="excluir"
                                         data-id="${escaparAtributo(
-                                            registro.ID
+                                            registro.id
                                         )}"
                                     >
                                         Excluir
@@ -1239,7 +1239,7 @@ export function createEngine(config = {}) {
                                 nome
                             )}"
                             data-id="${escaparAtributo(
-                                registro.ID
+                                registro.id
                             )}"
                         >
 
@@ -1292,7 +1292,7 @@ export function createEngine(config = {}) {
 
                     campo.hidden !== true &&
 
-                    campo.name !== "ID"
+                    campo.name !== "id"
 
             );
 
@@ -1305,7 +1305,7 @@ export function createEngine(config = {}) {
 
         .filter(
             campo =>
-                campo !== "ID"
+                campo !== "id"
         )
 
         .map(
@@ -1659,7 +1659,7 @@ export function createEngine(config = {}) {
 
 
             if (
-                resposta.data.ID
+                resposta.data.id
             ) {
 
                 return resposta.data;
@@ -1670,7 +1670,7 @@ export function createEngine(config = {}) {
 
 
         if (
-            resposta.ID
+            resposta.id
         ) {
 
             return resposta;
@@ -1697,11 +1697,11 @@ export function createEngine(config = {}) {
                 item =>
 
                     String(
-                        item.ID
+                        item.id
                     ) ===
 
                     String(
-                        registro.ID
+                        registro.id
                     )
 
             );
