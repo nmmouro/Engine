@@ -5,64 +5,13 @@
  * Painel Frota
  * ============================================================
  *
- * Arquivo:
- *
- *     js/services/crudService.js
- *
- * Arquitetura:
- *
- *     Página
- *        ↓
- *     Engine
- *        ↓
- *     CRUD Service
- *        ↓
- *     API Node.js
- *        ↓
- *     PostgreSQL
- *
- * ============================================================
- *
- * RESPONSABILIDADE
- * ============================================================
- *
- * Este arquivo é responsável SOMENTE pela comunicação HTTP
- * entre o frontend e a API Node.js.
- *
- * O Service NÃO conhece:
- *
- * - HTML
- * - formulários
- * - tabelas
- * - componentes visuais
- * - Engine
- * - PostgreSQL diretamente
- *
- * O Service trabalha somente com:
- *
- *     entidade
- *     id
- *     dados
- *     respostas HTTP
- *
- * ============================================================
- *
- * MÉTODOS PÚBLICOS
- * ============================================================
- *
- *     listar("VEICULOS")
- *     obter("VEICULOS", id)
- *     criar("VEICULOS", dados)
- *     atualizar("VEICULOS", dados)
- *     excluir("VEICULOS", id)
- *
- * Compatibilidade:
- *
- *     salvar("VEICULOS", dados)
- *
- * é um alias de:
- *
- *     criar("VEICULOS", dados)
+ * Frontend
+ *    ↓
+ * CRUD Service
+ *    ↓
+ * API Node.js
+ *    ↓
+ * PostgreSQL
  *
  * ============================================================
  */
@@ -79,7 +28,7 @@ const API_URL =
 
 
 // ============================================================
-// VALIDAR CONFIGURAÇÃO
+// CONFIGURAÇÃO DA API
 // ============================================================
 
 function validarConfiguracao() {
@@ -120,19 +69,6 @@ function normalizarEntidade(entidade) {
 
 
 // ============================================================
-// NORMALIZAR URL
-// ============================================================
-
-function normalizarBaseUrl(url) {
-
-    return url
-        .trim()
-        .replace(/\/+$/, "");
-
-}
-
-
-// ============================================================
 // URL BASE
 // ============================================================
 
@@ -140,9 +76,12 @@ function obterBaseUrl() {
 
     validarConfiguracao();
 
-    return normalizarBaseUrl(API_URL);
+    return API_URL
+        .trim()
+        .replace(/\/+$/, "");
 
 }
+
 
 // ============================================================
 // CONSTRUIR URL
@@ -161,8 +100,13 @@ function construirUrl(
             entidade
         );
 
+
     let url =
-        `${baseUrl}/${encodeURIComponent(nome)}`;
+        baseUrl +
+        "/" +
+        encodeURIComponent(
+            nome
+        );
 
 
     if (
@@ -172,7 +116,10 @@ function construirUrl(
     ) {
 
         url +=
-            `/${encodeURIComponent(id)}`;
+            "/" +
+            encodeURIComponent(
+                id
+            );
 
     }
 
@@ -180,6 +127,7 @@ function construirUrl(
     return url;
 
 }
+
 
 // ============================================================
 // VALIDAR ID
@@ -224,74 +172,51 @@ function validarDados(dados) {
 
 
 // ============================================================
-// REQUISIÇÃO HTTP
+// EXTRAIR MENSAGEM DE ERRO
 // ============================================================
 
-async function requisicao(
-    url,
-    opcoes = {}
+function extrairMensagemErro(
+    resposta,
+    status
 ) {
 
-    console.log(
-        "CRUD SERVICE → REQUEST:",
-        opcoes.method || "GET",
-        url
-    );
+    if (
+        resposta &&
+        typeof resposta === "object"
+    ) {
 
-
-    let resposta;
-
-
-    try {
-
-        resposta =
-            await fetch(
-                url,
-                {
-                    ...opcoes,
-
-                    headers: {
-                        "Accept":
-                            "application/json",
-
-                        ...(opcoes.body
-                            ? {
-                                "Content-Type":
-                                    "application/json"
-                            }
-                            : {}),
-
-                        ...(opcoes.headers || {})
-                    },
-
-                    cache:
-                        "no-store"
-                }
-            );
-
-    } catch (erro) {
-
-        console.error(
-            "CRUD SERVICE → erro de conexão:",
-            erro
-        );
-
-        throw new Error(
-            "Não foi possível conectar à API Node.js."
+        return (
+            resposta.erro ||
+            resposta.error ||
+            resposta.message ||
+            resposta.mensagem ||
+            "Erro HTTP " + status + "."
         );
 
     }
 
 
-    return processarResposta(
-        resposta
+    if (
+        typeof resposta === "string" &&
+        resposta.trim()
+    ) {
+
+        return resposta;
+
+    }
+
+
+    return (
+        "Erro HTTP " +
+        status +
+        "."
     );
 
 }
 
 
 // ============================================================
-// PROCESSAR RESPOSTA HTTP
+// PROCESSAR RESPOSTA
 // ============================================================
 
 async function processarResposta(
@@ -310,14 +235,10 @@ async function processarResposta(
     let corpo = null;
 
 
-    /*
-     * Algumas respostas da API podem não possuir conteúdo,
-     * principalmente DELETE.
-     */
-
     const contentType =
-        resposta.headers
-            ?.get("content-type") || "";
+        resposta.headers?.get(
+            "content-type"
+        ) || "";
 
 
     try {
@@ -325,7 +246,9 @@ async function processarResposta(
         if (
             contentType
                 .toLowerCase()
-                .includes("application/json")
+                .includes(
+                    "application/json"
+                )
         ) {
 
             corpo =
@@ -342,7 +265,9 @@ async function processarResposta(
                 try {
 
                     corpo =
-                        JSON.parse(texto);
+                        JSON.parse(
+                            texto
+                        );
 
                 } catch {
 
@@ -358,27 +283,26 @@ async function processarResposta(
     } catch (erro) {
 
         console.error(
-            "CRUD SERVICE → erro ao interpretar resposta:",
+            "CRUD SERVICE: erro ao interpretar resposta.",
             erro
         );
 
+
         throw new Error(
-            `Resposta inválida da API. HTTP ${resposta.status}.`
+            "Resposta inválida da API. HTTP " +
+            resposta.status +
+            "."
         );
 
     }
 
 
     console.log(
-        "CRUD SERVICE → RESPONSE:",
+        "CRUD SERVICE: resposta HTTP",
         resposta.status,
         corpo
     );
 
-
-    // --------------------------------------------------------
-    // ERRO HTTP
-    // --------------------------------------------------------
 
     if (!resposta.ok) {
 
@@ -398,12 +322,11 @@ async function processarResposta(
 
 
 // ============================================================
-// EXTRAIR MENSAGEM DE ERRO
+// VERIFICAR RESPOSTA DA API
 // ============================================================
 
-function extrairMensagemErro(
-    resposta,
-    status
+function verificarResposta(
+    resposta
 ) {
 
     if (
@@ -411,34 +334,43 @@ function extrairMensagemErro(
         typeof resposta === "object"
     ) {
 
-        return (
-            resposta.erro ||
-            resposta.error ||
-            resposta.message ||
-            resposta.mensagem ||
-            `Erro HTTP ${status}.`
-        );
+        if (
+            resposta.sucesso === false
+        ) {
+
+            throw new Error(
+                extrairMensagemErro(
+                    resposta,
+                    400
+                )
+            );
+
+        }
+
+
+        if (
+            resposta.success === false
+        ) {
+
+            throw new Error(
+                extrairMensagemErro(
+                    resposta,
+                    400
+                )
+            );
+
+        }
 
     }
 
 
-    if (
-        typeof resposta === "string" &&
-        resposta.trim()
-    ) {
-
-        return resposta;
-
-    }
-
-
-    return `Erro HTTP ${status}.`;
+    return resposta;
 
 }
 
 
 // ============================================================
-// EXTRAIR DADOS DA RESPOSTA
+// EXTRAIR DADOS
 // ============================================================
 
 function extrairDados(
@@ -455,15 +387,6 @@ function extrairDados(
     }
 
 
-    /*
-     * API:
-     *
-     * {
-     *     sucesso: true,
-     *     dados: [...]
-     * }
-     */
-
     if (
         resposta &&
         typeof resposta === "object" &&
@@ -474,15 +397,6 @@ function extrairDados(
 
     }
 
-
-    /*
-     * API:
-     *
-     * {
-     *     success: true,
-     *     data: [...]
-     * }
-     */
 
     if (
         resposta &&
@@ -495,14 +409,6 @@ function extrairDados(
     }
 
 
-    /*
-     * API:
-     *
-     * {
-     *     result: [...]
-     * }
-     */
-
     if (
         resposta &&
         typeof resposta === "object" &&
@@ -514,62 +420,78 @@ function extrairDados(
     }
 
 
-    /*
-     * API pode retornar diretamente:
-     *
-     * [...]
-     *
-     * ou:
-     *
-     * {...}
-     */
-
     return resposta;
 
 }
 
 
 // ============================================================
-// VERIFICAR RESPOSTA DA API
+// REQUISIÇÃO HTTP
 // ============================================================
 
-function verificarResposta(
-    resposta
+async function requisicao(
+    url,
+    opcoes = {}
 ) {
 
-    if (
-        resposta &&
-        typeof resposta === "object" &&
-        resposta.sucesso === false
-    ) {
+    console.log(
+        "CRUD SERVICE: ",
+        opcoes.method || "GET",
+        url
+    );
+
+
+    let resposta;
+
+
+    try {
+
+        resposta =
+            await fetch(
+                url,
+                {
+                    ...opcoes,
+
+                    headers: {
+
+                        "Accept":
+                            "application/json",
+
+                        ...(opcoes.body
+                            ? {
+                                "Content-Type":
+                                    "application/json"
+                            }
+                            : {}),
+
+                        ...(opcoes.headers || {})
+
+                    },
+
+                    cache:
+                        "no-store"
+
+                }
+            );
+
+    } catch (erro) {
+
+        console.error(
+            "CRUD SERVICE: erro de conexão.",
+            erro
+        );
+
 
         throw new Error(
-            extrairMensagemErro(
-                resposta,
-                400
-            )
+            "Não foi possível conectar à API Node.js."
         );
 
     }
 
 
-    if (
-        resposta &&
-        typeof resposta === "object" &&
-        resposta.success === false
-    ) {
-
-        throw new Error(
-            extrairMensagemErro(
-                resposta,
-                400
-            )
-        );
-
-    }
-
-
-    return resposta;
+    return processarResposta(
+        resposta
+    );
 
 }
 
@@ -623,12 +545,14 @@ async function post(
     return requisicao(
         url,
         {
+
             method: "POST",
 
             body:
                 JSON.stringify(
                     dados
                 )
+
         }
     );
 
@@ -665,12 +589,14 @@ async function put(
     return requisicao(
         url,
         {
+
             method: "PUT",
 
             body:
                 JSON.stringify(
                     dados
                 )
+
         }
     );
 
@@ -723,13 +649,16 @@ export async function listar(
 
 
     console.log(
-        `CRUD SERVICE → LISTAR ${nome}`
+        "CRUD SERVICE: LISTAR",
+        nome
     );
 
 
     const resposta =
         verificarResposta(
-            await get(nome)
+            await get(
+                nome
+            )
         );
 
 
@@ -739,28 +668,16 @@ export async function listar(
         );
 
 
-    /*
-     * listar() sempre devolve Array.
-     */
-
     if (
-        Array.isArray(dados)
+        Array.isArray(
+            dados
+        )
     ) {
 
         return dados;
 
     }
 
-
-    /*
-     * Algumas APIs retornam:
-     *
-     * {
-     *     data: {
-     *         registros: [...]
-     *     }
-     * }
-     */
 
     if (
         dados &&
@@ -801,7 +718,8 @@ export async function obter(
 
 
     console.log(
-        `CRUD SERVICE → OBTER ${nome}:`,
+        "CRUD SERVICE: OBTER",
+        nome,
         id
     );
 
@@ -843,7 +761,8 @@ export async function criar(
 
 
     console.log(
-        `CRUD SERVICE → CRIAR ${nome}:`,
+        "CRUD SERVICE: CRIAR",
+        nome,
         dados
     );
 
@@ -868,14 +787,9 @@ export async function criar(
 // SALVAR
 // ============================================================
 //
-// Compatibilidade com versões anteriores.
+// Compatibilidade.
 //
-// salvar() continua existindo para que páginas antigas
-// do Painel Frota não quebrem.
-//
-// Neste padrão:
-//
-//     salvar() = criar()
+// salvar() continua funcionando como alias de criar().
 //
 // ============================================================
 
@@ -923,18 +837,12 @@ export async function atualizar(
 
 
     console.log(
-        `CRUD SERVICE → ATUALIZAR ${nome}:`,
+        "CRUD SERVICE: ATUALIZAR",
+        nome,
         id,
         dados
     );
 
-
-    /*
-     * O ID é utilizado na URL.
-     *
-     * O objeto completo continua sendo enviado
-     * no corpo da requisição.
-     */
 
     const resposta =
         verificarResposta(
@@ -974,7 +882,8 @@ export async function excluir(
 
 
     console.log(
-        `CRUD SERVICE → EXCLUIR ${nome}:`,
+        "CRUD SERVICE: EXCLUIR",
+        nome,
         id
     );
 
