@@ -289,7 +289,7 @@ export function createEngine(config = {}) {
 
       async recarregar() {
     return engine.carregar();
-}
+},
 
 
         // ====================================================
