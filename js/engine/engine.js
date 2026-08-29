@@ -344,62 +344,95 @@ export function createEngine(config = {}) {
 
         async editar(id) {
 
-            if (!id) {
-
-                throw new Error(
-                    "Engine: ID não informado."
-                );
-
-            }
+    console.log(
+        "ENGINE → EDITAR → ID RECEBIDO:",
+        id
+    );
 
 
-            try {
+    if (
+        id === undefined ||
+        id === null ||
+        String(id).trim() === ""
+    ) {
 
-                const registro =
-                    await obter(
-                        entity,
-                        id
-                    );
+        throw new Error(
+            "Engine: ID não informado."
+        );
 
-
-                state.registroEditando =
-                    registro;
-
-
-                preencherFormulario(
-                    registro
-                );
+    }
 
 
-                mostrarFormulario();
+    id =
+        String(id).trim();
 
 
-                emitirEvento(
-                    "editar",
-                    registro
-                );
+    try {
+
+        const registro =
+            await obter(
+                entity,
+                id
+            );
 
 
-                return registro;
-
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao obter registro`,
-                    erro
-                );
+        console.log(
+            "ENGINE → REGISTRO OBTIDO:",
+            registro
+        );
 
 
-                mostrarErro(
-                    erro
-                );
+        if (!registro) {
+
+            throw new Error(
+                `Registro ${id} não encontrado.`
+            );
+
+        }
 
 
-                throw erro;
+        state.registroEditando =
+            registro;
 
-            }
 
-        },
+        renderizarFormulario();
+
+
+        preencherFormulario(
+            registro
+        );
+
+
+        mostrarFormulario();
+
+
+        emitirEvento(
+            "editar",
+            registro
+        );
+
+
+        return registro;
+
+
+    } catch (erro) {
+
+        console.error(
+            `Engine ${entity}: erro ao editar`,
+            erro
+        );
+
+
+        mostrarErro(
+            erro
+        );
+
+
+        throw erro;
+
+    }
+
+},
 
 
         // ====================================================
@@ -555,78 +588,93 @@ export function createEngine(config = {}) {
 
         async excluir(id) {
 
-            if (!id) {
-
-                throw new Error(
-                    "Engine: ID não informado."
-                );
-
-            }
+    console.log(
+        "ENGINE → EXCLUIR → ID RECEBIDO:",
+        id
+    );
 
 
-            const confirmar =
-                window.confirm(
-                    "Deseja realmente excluir este registro?"
-                );
+    if (
+        id === undefined ||
+        id === null ||
+        String(id).trim() === ""
+    ) {
+
+        throw new Error(
+            "Engine: ID não informado."
+        );
+
+    }
 
 
-            if (!confirmar) {
-
-                return false;
-
-            }
+    id =
+        String(id).trim();
 
 
-            try {
+    const confirmar =
+        window.confirm(
+            "Deseja realmente excluir este registro?"
+        );
 
-                await excluir(
-                    entity,
+
+    if (!confirmar) {
+
+        return false;
+
+    }
+
+
+    try {
+
+        await excluir(
+            entity,
+            id
+        );
+
+
+        state.registros =
+            state.registros.filter(
+
+                registro =>
+
+                    String(
+                        registro?.id
+                    ) !==
                     id
-                );
+
+            );
 
 
-                state.registros =
-                    state.registros.filter(
-
-                        registro =>
-
-                            String(
-                                registro.ID
-                            ) !==
-                            String(id)
-
-                    );
+        renderizarTabela();
 
 
-                renderizarTabela();
+        emitirEvento(
+            "excluido",
+            id
+        );
 
 
-                emitirEvento(
-                    "excluido",
-                    id
-                );
+        return true;
 
 
-                return true;
+    } catch (erro) {
 
-            } catch (erro) {
-
-                console.error(
-                    `Engine ${entity}: erro ao excluir`,
-                    erro
-                );
+        console.error(
+            `Engine ${entity}: erro ao excluir`,
+            erro
+        );
 
 
-                mostrarErro(
-                    erro
-                );
+        mostrarErro(
+            erro
+        );
 
 
-                throw erro;
+        throw erro;
 
-            }
+    }
 
-        },
+},
 
 
         // ====================================================
