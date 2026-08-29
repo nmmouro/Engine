@@ -425,6 +425,25 @@ console.log(
         },
 
 
+        function renderizarFormulario() {
+
+    if (!formulario) {
+        return;
+    }
+
+    const campos =
+        schema?.fields || [];
+
+    formulario.innerHTML = `
+        <form data-engine-formulario>
+            ${campos.map(campo => {
+                // gerar campo
+            }).join("")}
+        </form>
+    `;
+},
+
+
         // ====================================================
         // SALVAR
         // ====================================================
