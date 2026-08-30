@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * TABLE
@@ -946,4 +945,3 @@ export function createTable(
     return table;
 
 }
-```
