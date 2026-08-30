@@ -107,6 +107,18 @@ async function criar(entidade, dados) {
 
 async function atualizar(entidade, dados) {
 
+
+
+                                                                            console.log(
+        "DEBUG CRUD → ATUALIZAR RECEBEU:",
+        {
+            entidade,
+            dados,
+            tipoDados: typeof dados
+        }
+    );
+    
+
     if (
         !dados ||
         typeof dados !== "object"
