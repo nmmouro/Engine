@@ -674,57 +674,71 @@ console.log(
                 }
 
 
-                // ==================================================
-                // CRIAR
-                // ==================================================
+               
+// ==================================================
+// CRIAR
+// ==================================================
 
-                else {
+else {
 
-                    console.log(
-                        `ENGINE ${entity} → CRIAR`
-                    );
-
-
-                    /*
-                     * Não enviamos ID vazio.
-                     *
-                     * O backend/crud.js é responsável por
-                     * gerar o ID.
-                     */
-
-                    const dadosCriar =
-                        {
-                            ...dados
-                        };
+    console.log(
+        `ENGINE ${entity} → CRIAR`
+    );
 
 
-                    delete dadosCriar.id;
+    /*
+     * O ID precisa ser gerado antes
+     * de enviar o registro para o CRUD.
+     */
 
-                    delete dadosCriar.ID;
+    const dadosCriar = {
 
+        ...dados
 
-                    resposta =
-                        await criar(
-                            entity,
-                            dadosCriar
-                        );
-
-
-                    const novoRegistro =
-                        normalizarRegistroResposta(
-                            resposta
-                        );
+    };
 
 
-                    if (novoRegistro) {
+    /*
+     * Gerar ID para o novo registro.
+     */
 
-                        state.registros.push(
-                            novoRegistro
-                        );
+    const id =
+        gerarId();
 
-                    }
 
-                }
+    dadosCriar.id =
+        id;
+
+
+    console.log(
+        `ENGINE ${entity} → NOVO ID:`,
+        id
+    );
+
+
+    resposta =
+        await criar(
+            entity,
+            dadosCriar
+        );
+
+
+    const novoRegistro =
+        normalizarRegistroResposta(
+            resposta
+        );
+
+
+    if (novoRegistro) {
+
+        state.registros.push(
+            novoRegistro
+        );
+
+    }
+
+}
+
 
 
                 // ==================================================
