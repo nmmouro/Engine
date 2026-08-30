@@ -1,22 +1,24 @@
+```javascript
 /**
  * ============================================================
- * TABLE ENGINE
+ * TABLE
  * Painel Frota
  * Arquivo: js/engine/table.js
  *
  * Responsabilidade:
  *
- * - Renderizar tabela
- * - Renderizar cabeçalho
+ * - Criar tabela
+ * - Inicializar tabela
  * - Renderizar registros
  * - Renderizar ações
- * - Gerar data-id corretamente
+ * - Gerar data-id
  *
- * Não conhece:
+ * Não possui:
  *
+ * - CRUD
  * - Supabase
  * - PostgreSQL
- * - crudService
+ * - Formulário
  *
  * ============================================================
  */
@@ -33,18 +35,14 @@ export function createTable(
     const container =
         config.container;
 
-
     const schema =
         config.schema || {};
-
 
     const state =
         config.state;
 
-
     const engine =
         config.engine;
-
 
     const options =
         config.options || {};
@@ -73,17 +71,52 @@ export function createTable(
 
 
     // ========================================================
-    // API
+    // OBJETO TABLE
     // ========================================================
 
     const table = {
 
-        render,
+        // ----------------------------------------------------
+        // INICIAR
+        // ----------------------------------------------------
 
-        limpar,
+        iniciar() {
+
+            renderizar();
+
+        },
+
+
+        // ----------------------------------------------------
+        // RENDERIZAR
+        // ----------------------------------------------------
+
+        renderizar,
+
+
+        // Compatibilidade
+        render:
+            renderizar,
+
+
+        // ----------------------------------------------------
+        // ATUALIZAR
+        // ----------------------------------------------------
 
         atualizar:
-            render
+            renderizar,
+
+
+        // ----------------------------------------------------
+        // LIMPAR
+        // ----------------------------------------------------
+
+        limpar() {
+
+            container.innerHTML =
+                "";
+
+        }
 
     };
 
@@ -92,7 +125,7 @@ export function createTable(
     // RENDERIZAR
     // ========================================================
 
-    function render() {
+    function renderizar() {
 
         const registros =
             Array.isArray(
@@ -106,9 +139,9 @@ export function createTable(
             obterColunas();
 
 
-        // ----------------------------------------------------
-        // VAZIO
-        // ----------------------------------------------------
+        // ====================================================
+        // NENHUM REGISTRO
+        // ====================================================
 
         if (
             registros.length === 0
@@ -129,9 +162,9 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // TABELA
-        // ----------------------------------------------------
+        // ====================================================
 
         let html = `
 
@@ -146,9 +179,9 @@ export function createTable(
         `;
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // CABEÇALHO
-        // ----------------------------------------------------
+        // ====================================================
 
         colunas.forEach(
             coluna => {
@@ -171,9 +204,9 @@ export function createTable(
         );
 
 
-        // ----------------------------------------------------
-        // AÇÕES
-        // ----------------------------------------------------
+        // ====================================================
+        // COLUNA AÇÕES
+        // ====================================================
 
         if (
             options.permitirEditar !== false ||
@@ -204,17 +237,18 @@ export function createTable(
         `;
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // REGISTROS
-        // ----------------------------------------------------
+        // ====================================================
 
         registros.forEach(
             registro => {
 
-                html += criarLinha(
-                    registro,
-                    colunas
-                );
+                html +=
+                    criarLinha(
+                        registro,
+                        colunas
+                    );
 
             }
         );
@@ -250,9 +284,9 @@ export function createTable(
             "<tr>";
 
 
-        // ----------------------------------------------------
-        // COLUNAS
-        // ----------------------------------------------------
+        // ====================================================
+        // CAMPOS
+        // ====================================================
 
         colunas.forEach(
             coluna => {
@@ -286,18 +320,19 @@ export function createTable(
         );
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // AÇÕES
-        // ----------------------------------------------------
+        // ====================================================
 
         if (
             options.permitirEditar !== false ||
             options.permitirExcluir !== false
         ) {
 
-            html += criarAcoes(
-                registro
-            );
+            html +=
+                criarAcoes(
+                    registro
+                );
 
         }
 
@@ -312,7 +347,7 @@ export function createTable(
 
 
     // ========================================================
-    // AÇÕES
+    // CRIAR AÇÕES
     // ========================================================
 
     function criarAcoes(
@@ -320,20 +355,18 @@ export function createTable(
     ) {
 
         /*
-         * IMPORTANTE:
+         * IMPORTANTE
          *
-         * Seu Supabase retorna:
+         * O Supabase retorna:
          *
          * {
          *     id: "VEI000002"
          * }
          *
-         * Portanto o ID principal é:
+         * Portanto usamos registro.id.
          *
-         * registro.id
-         *
-         * Mantemos fallback para ID
-         * por compatibilidade.
+         * O fallback para ID mantém
+         * compatibilidade.
          */
 
         const id =
@@ -355,9 +388,9 @@ export function createTable(
         `;
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // EDITAR
-        // ----------------------------------------------------
+        // ====================================================
 
         if (
             options.permitirEditar !== false
@@ -379,9 +412,9 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // EXCLUIR
-        // ----------------------------------------------------
+        // ====================================================
 
         if (
             options.permitirExcluir !== false
@@ -403,9 +436,9 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // ACTIONS PERSONALIZADAS
-        // ----------------------------------------------------
+        // ====================================================
 
         html +=
             criarActionsPersonalizadas(
@@ -437,22 +470,24 @@ export function createTable(
             options.actions || {};
 
 
+        const id =
+            registro?.id ??
+            registro?.ID ??
+            "";
+
+
         return Object.entries(
             actions
         )
+
         .filter(
             ([, funcao]) =>
                 typeof funcao ===
                 "function"
         )
+
         .map(
             ([nome]) => {
-
-                const id =
-                    registro?.id ??
-                    registro?.ID ??
-                    "";
-
 
                 return `
 
@@ -476,6 +511,7 @@ export function createTable(
 
             }
         )
+
         .join("");
 
     }
@@ -488,7 +524,7 @@ export function createTable(
     function obterColunas() {
 
         // ----------------------------------------------------
-        // COLUNAS PERSONALIZADAS
+        // COLUNAS DEFINIDAS PELO MÓDULO
         // ----------------------------------------------------
 
         if (
@@ -547,6 +583,7 @@ export function createTable(
         return Object.keys(
             primeiro
         )
+
         .filter(
             campo =>
 
@@ -555,6 +592,7 @@ export function createTable(
                 campo !== "ID"
 
         )
+
         .map(
             campo => ({
 
@@ -571,7 +609,7 @@ export function createTable(
 
 
     // ========================================================
-    // NOME DA COLUNA
+    // NOME DO CAMPO
     // ========================================================
 
     function obterNome(
@@ -693,7 +731,7 @@ export function createTable(
 
 
         // ----------------------------------------------------
-        // DATETIME
+        // DATA/HORA
         // ----------------------------------------------------
 
         if (
@@ -710,17 +748,31 @@ export function createTable(
         }
 
 
+        // ----------------------------------------------------
+        // STATUS
+        // ----------------------------------------------------
+
+        if (
+            coluna?.name ===
+            "status"
+        ) {
+
+            return escaparHTML(
+                String(valor)
+            );
+
+        }
+
+
         return escaparHTML(
-            String(
-                valor
-            )
+            String(valor)
         );
 
     }
 
 
     // ========================================================
-    // DATA
+    // FORMATAR DATA
     // ========================================================
 
     function formatarData(
@@ -739,17 +791,11 @@ export function createTable(
             )
         ) {
 
-            const [
-                ano,
-                mes,
-                dia
-            ] =
-                texto.split(
-                    "-"
-                );
+            const partes =
+                texto.split("-");
 
 
-            return `${dia}/${mes}/${ano}`;
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
 
         }
 
@@ -760,7 +806,7 @@ export function createTable(
 
 
     // ========================================================
-    // DATA + HORA
+    // FORMATAR DATA/HORA
     // ========================================================
 
     function formatarDataHora(
@@ -839,18 +885,6 @@ export function createTable(
 
 
     // ========================================================
-    // LIMPAR
-    // ========================================================
-
-    function limpar() {
-
-        container.innerHTML =
-            "";
-
-    }
-
-
-    // ========================================================
     // ESCAPAR HTML
     // ========================================================
 
@@ -912,3 +946,4 @@ export function createTable(
     return table;
 
 }
+```
