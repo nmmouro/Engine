@@ -3,62 +3,24 @@
  * MODULE
  * Painel Frota
  * Arquivo: js/engine/module.js
- *
- * Responsabilidade:
- *
- * - Criar um módulo
- * - Criar State
- * - Criar Engine
- * - Criar Form
- * - Criar Table
- * - Criar Toolbar
- * - Conectar os componentes
- * - Inicializar o módulo
- *
- * O Module NÃO executa CRUD diretamente.
- *
- * Arquitetura:
- *
- * PAGE
- *   ↓
- * MODULE
- *   ├── STATE
- *   ├── ENGINE
- *   ├── FORM
- *   ├── TABLE
- *   └── TOOLBAR
- *          ↓
- *      CRUD SERVICE
- *          ↓
- *       SUPABASE
- *
  * ============================================================
  */
-
-
-// ============================================================
-// IMPORTS
-// ============================================================
 
 import {
     createEngine
 } from "./engine.js";
 
-
 import {
     createState
 } from "./state.js";
-
 
 import {
     createForm
 } from "./form.js";
 
-
 import {
     createTable
 } from "./table.js";
-
 
 import {
     createToolbar
@@ -73,18 +35,10 @@ export function createModule(
     config = {}
 ) {
 
-    // ========================================================
-    // VALIDAR CONFIGURAÇÃO
-    // ========================================================
-
     validarConfiguracao(
         config
     );
 
-
-    // ========================================================
-    // CONFIGURAÇÃO
-    // ========================================================
 
     const entity =
         config.entity;
@@ -98,22 +52,14 @@ export function createModule(
         config.options || {};
 
 
-    const containerSelector =
-        config.container;
-
-
-    // ========================================================
-    // CONTAINER
-    // ========================================================
-
     const container =
-        typeof containerSelector === "string"
+        typeof config.container === "string"
 
             ? document.querySelector(
-                containerSelector
+                config.container
             )
 
-            : containerSelector;
+            : config.container;
 
 
     if (!container) {
@@ -121,8 +67,7 @@ export function createModule(
         throw new Error(
 
             `Module ${entity}: ` +
-
-            `container "${containerSelector}" não encontrado.`
+            `container "${config.container}" não encontrado.`
 
         );
 
@@ -130,7 +75,18 @@ export function createModule(
 
 
     // ========================================================
-    // ESTADO
+    // PREPARAR ESTRUTURA
+    // ========================================================
+
+    prepararEstrutura();
+
+
+    const areas =
+        localizarAreas();
+
+
+    // ========================================================
+    // STATE
     // ========================================================
 
     const state =
@@ -148,54 +104,19 @@ export function createModule(
 
 
     // ========================================================
-    // COMPONENTES
+    // ENGINE
     // ========================================================
 
-    let engine =
-        null;
-
-
-    let form =
-        null;
-
-
-    let table =
-        null;
-
-
-    let toolbar =
-        null;
-
-
-    // ========================================================
-    // ESTRUTURA HTML
-    // ========================================================
-
-    prepararContainer();
-
-
-    // ========================================================
-    // LOCALIZAR ÁREAS
-    // ========================================================
-
-    const areas =
-        localizarAreas();
-
-
-    // ========================================================
-    // CRIAR ENGINE
-    // ========================================================
-
-    engine =
+    const engine =
         createEngine({
 
             entity,
 
             schema,
 
-            container,
-
             options,
+
+            container,
 
             state,
 
@@ -206,10 +127,10 @@ export function createModule(
 
 
     // ========================================================
-    // CRIAR TABLE
+    // TABLE
     // ========================================================
 
-    table =
+    const table =
         createTable({
 
             container:
@@ -227,10 +148,10 @@ export function createModule(
 
 
     // ========================================================
-    // CRIAR FORM
+    // FORM
     // ========================================================
 
-    form =
+    const form =
         createForm({
 
             container:
@@ -248,10 +169,10 @@ export function createModule(
 
 
     // ========================================================
-    // CRIAR TOOLBAR
+    // TOOLBAR
     // ========================================================
 
-    toolbar =
+    const toolbar =
         createToolbar({
 
             container:
@@ -273,21 +194,10 @@ export function createModule(
 
 
     // ========================================================
-    // CONECTAR ENGINE
-    // ========================================================
-
-    conectarEngine();
-
-
-    // ========================================================
-    // OBJETO MODULE
+    // MODULE
     // ========================================================
 
     const module = {
-
-        // ----------------------------------------------------
-        // IDENTIFICAÇÃO
-        // ----------------------------------------------------
 
         entity,
 
@@ -296,11 +206,6 @@ export function createModule(
         options,
 
         container,
-
-
-        // ----------------------------------------------------
-        // COMPONENTES
-        // ----------------------------------------------------
 
         state,
 
@@ -313,9 +218,9 @@ export function createModule(
         toolbar,
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // INICIAR
-        // ----------------------------------------------------
+        // ====================================================
 
         async iniciar() {
 
@@ -326,13 +231,8 @@ export function createModule(
 
             try {
 
-                // --------------------------------------------
-                // TOOLBAR
-                // --------------------------------------------
-
                 if (
-                    toolbar &&
-                    typeof toolbar.iniciar ===
+                    typeof toolbar?.iniciar ===
                     "function"
                 ) {
 
@@ -341,13 +241,8 @@ export function createModule(
                 }
 
 
-                // --------------------------------------------
-                // FORM
-                // --------------------------------------------
-
                 if (
-                    form &&
-                    typeof form.iniciar ===
+                    typeof form?.iniciar ===
                     "function"
                 ) {
 
@@ -356,13 +251,8 @@ export function createModule(
                 }
 
 
-                // --------------------------------------------
-                // TABLE
-                // --------------------------------------------
-
                 if (
-                    table &&
-                    typeof table.iniciar ===
+                    typeof table?.iniciar ===
                     "function"
                 ) {
 
@@ -371,13 +261,8 @@ export function createModule(
                 }
 
 
-                // --------------------------------------------
-                // ENGINE
-                // --------------------------------------------
-
                 if (
-                    engine &&
-                    typeof engine.iniciar ===
+                    typeof engine?.iniciar ===
                     "function"
                 ) {
 
@@ -386,14 +271,16 @@ export function createModule(
                 }
 
 
-                // --------------------------------------------
-                // EVENTO
-                // --------------------------------------------
+                container.dispatchEvent(
 
-                emitirEvento(
-                    container,
-                    "modulo-iniciado",
-                    module
+                    new CustomEvent(
+                        "module:iniciado",
+                        {
+                            detail:
+                                module
+                        }
+                    )
+
                 );
 
 
@@ -409,7 +296,7 @@ export function createModule(
                 console.error(
 
                     `Module ${entity}: ` +
-                    `falha na inicialização`,
+                    "falha na inicialização",
 
                     erro
 
@@ -423,151 +310,71 @@ export function createModule(
         },
 
 
-        // ----------------------------------------------------
-        // RECARREGAR
-        // ----------------------------------------------------
+        // ====================================================
+        // MÉTODOS DELEGADOS
+        // ====================================================
 
-        async recarregar() {
+        recarregar() {
 
-            if (
-                engine &&
-                typeof engine.recarregar ===
-                "function"
-            ) {
-
-                return engine.recarregar();
-
-            }
+            return engine.recarregar();
 
         },
 
-
-        // ----------------------------------------------------
-        // NOVO
-        // ----------------------------------------------------
 
         novo() {
 
-            if (
-                engine &&
-                typeof engine.novo ===
-                "function"
-            ) {
-
-                return engine.novo();
-
-            }
+            return engine.novo();
 
         },
 
 
-        // ----------------------------------------------------
-        // EDITAR
-        // ----------------------------------------------------
-
-        async editar(
+        editar(
             id
         ) {
 
-            if (
-                engine &&
-                typeof engine.editar ===
-                "function"
-            ) {
-
-                return engine.editar(
-                    id
-                );
-
-            }
+            return engine.editar(
+                id
+            );
 
         },
 
 
-        // ----------------------------------------------------
-        // SALVAR
-        // ----------------------------------------------------
-
-        async salvar(
+        salvar(
             dados
         ) {
 
-            if (
-                engine &&
-                typeof engine.salvar ===
-                "function"
-            ) {
-
-                return engine.salvar(
-                    dados
-                );
-
-            }
+            return engine.salvar(
+                dados
+            );
 
         },
 
 
-        // ----------------------------------------------------
-        // EXCLUIR
-        // ----------------------------------------------------
-
-        async excluir(
+        excluir(
             id
         ) {
 
-            if (
-                engine &&
-                typeof engine.excluir ===
-                "function"
-            ) {
-
-                return engine.excluir(
-                    id
-                );
-
-            }
+            return engine.excluir(
+                id
+            );
 
         },
 
-
-        // ----------------------------------------------------
-        // FILTRAR
-        // ----------------------------------------------------
 
         filtrar(
             valor
         ) {
 
-            if (
-                engine &&
-                typeof engine.filtrar ===
-                "function"
-            ) {
-
-                return engine.filtrar(
-                    valor
-                );
-
-            }
+            return engine.filtrar(
+                valor
+            );
 
         },
 
 
-        // ----------------------------------------------------
-        // FECHAR FORMULÁRIO
-        // ----------------------------------------------------
-
         fecharFormulario() {
 
-            if (
-                engine &&
-                typeof engine.fecharFormulario ===
-                "function"
-            ) {
-
-                return engine.fecharFormulario();
-
-            }
+            return engine.fecharFormulario();
 
         }
 
@@ -575,165 +382,8 @@ export function createModule(
 
 
     // ========================================================
-    // DISPONIBILIZAR MODULE
+    // EVENTOS ENGINE → TABLE
     // ========================================================
-
-    return module;
-
-}
-
-
-// ============================================================
-// PREPARAR CONTAINER
-// ============================================================
-
-function prepararContainer() {
-
-    /*
-     * Se o container já possui estrutura criada
-     * pelo HTML, preservamos.
-     */
-
-    let estrutura =
-        containerEstruturaExistente();
-
-
-    if (estrutura) {
-
-        return;
-
-    }
-
-
-    /*
-     * O module cria somente a estrutura
-     * das áreas.
-     */
-
-    const titulo =
-        optionsTitulo();
-
-
-    container.innerHTML = `
-
-        <section
-            class="engine-module"
-            data-module="${escaparHTML(entity)}"
-        >
-
-            <header
-                class="engine-header"
-            >
-
-                <div
-                    class="engine-title"
-                >
-
-                    <h1>
-
-                        ${escaparHTML(titulo)}
-
-                    </h1>
-
-                </div>
-
-
-                <div
-                    class="engine-toolbar"
-                    data-module-toolbar
-                >
-
-                </div>
-
-            </header>
-
-
-            <section
-                class="engine-form-container"
-                data-module-form
-                hidden
-            >
-
-            </section>
-
-
-            <section
-                class="engine-table-container"
-            >
-
-                <div
-                    class="engine-loading"
-                    data-engine-loading
-                    hidden
-                >
-
-                    Carregando...
-
-                </div>
-
-
-                <div
-                    class="engine-table-area"
-                    data-module-table
-                >
-
-                </div>
-
-            </section>
-
-        </section>
-
-    `;
-
-}
-
-
-// ============================================================
-// LOCALIZAR ÁREAS
-// ============================================================
-
-function localizarAreas() {
-
-    const toolbar =
-        container.querySelector(
-            "[data-module-toolbar]"
-        );
-
-
-    const formulario =
-        container.querySelector(
-            "[data-module-form]"
-        );
-
-
-    const tabela =
-        container.querySelector(
-            "[data-module-table]"
-        );
-
-
-    return {
-
-        toolbar,
-
-        formulario,
-
-        tabela
-
-    };
-
-}
-
-
-// ============================================================
-// CONECTAR ENGINE
-// ============================================================
-
-function conectarEngine() {
-
-    // --------------------------------------------------------
-    // ENGINE → TABLE
-    // --------------------------------------------------------
 
     container.addEventListener(
 
@@ -742,8 +392,7 @@ function conectarEngine() {
         () => {
 
             if (
-                table &&
-                typeof table.renderizar ===
+                typeof table?.renderizar ===
                 "function"
             ) {
 
@@ -755,10 +404,6 @@ function conectarEngine() {
 
     );
 
-
-    // --------------------------------------------------------
-    // ENGINE → SALVO
-    // --------------------------------------------------------
 
     container.addEventListener(
 
@@ -767,8 +412,7 @@ function conectarEngine() {
         () => {
 
             if (
-                table &&
-                typeof table.renderizar ===
+                typeof table?.renderizar ===
                 "function"
             ) {
 
@@ -776,25 +420,10 @@ function conectarEngine() {
 
             }
 
-
-            if (
-                form &&
-                typeof form.limpar ===
-                "function"
-            ) {
-
-                form.limpar();
-
-            }
-
         }
 
     );
 
-
-    // --------------------------------------------------------
-    // ENGINE → EXCLUÍDO
-    // --------------------------------------------------------
 
     container.addEventListener(
 
@@ -803,8 +432,7 @@ function conectarEngine() {
         () => {
 
             if (
-                table &&
-                typeof table.renderizar ===
+                typeof table?.renderizar ===
                 "function"
             ) {
 
@@ -817,127 +445,158 @@ function conectarEngine() {
     );
 
 
-    // --------------------------------------------------------
-    // ENGINE → NOVO
-    // --------------------------------------------------------
+    // ========================================================
+    // INICIALIZAÇÃO AUTOMÁTICA
+    // ========================================================
 
-    container.addEventListener(
+    module.iniciar()
+        .catch(
+            erro => {
 
-        "engine:novo",
+                console.error(
 
-        () => {
+                    `Module ${entity}: ` +
+                    "erro fatal",
 
-            if (
-                form &&
-                typeof form.novo ===
-                "function"
-            ) {
+                    erro
 
-                form.novo();
-
-            }
-
-        }
-
-    );
-
-
-    // --------------------------------------------------------
-    // ENGINE → EDITAR
-    // --------------------------------------------------------
-
-    container.addEventListener(
-
-        "engine:editar",
-
-        evento => {
-
-            if (
-                form &&
-                typeof form.editar ===
-                "function"
-            ) {
-
-                form.editar(
-                    evento.detail
                 );
 
             }
+        );
+
+
+    return module;
+
+
+    // ========================================================
+    // PREPARAR ESTRUTURA
+    // ========================================================
+
+    function prepararEstrutura() {
+
+        /*
+         * Se a estrutura já existe,
+         * não sobrescrevemos.
+         */
+
+        if (
+            container.querySelector(
+                "[data-module-table]"
+            )
+        ) {
+
+            return;
 
         }
 
-    );
+
+        const titulo =
+            options.titulo ||
+            schema.title ||
+            schema.titulo ||
+            entity;
 
 
-    // --------------------------------------------------------
-    // ENGINE → FORMULÁRIO FECHADO
-    // --------------------------------------------------------
+        container.innerHTML = `
 
-    container.addEventListener(
+            <section
+                class="engine-module"
+                data-module="${escaparHTML(entity)}"
+            >
 
-        "engine:formulario-fechado",
+                <header
+                    class="engine-header"
+                >
 
-        () => {
+                    <div
+                        class="engine-title"
+                    >
 
-            if (
-                form &&
-                typeof form.fechar ===
-                "function"
-            ) {
+                        <h1>
 
-                form.fechar();
+                            ${escaparHTML(
+                                titulo
+                            )}
 
-            }
+                        </h1>
 
-        }
-
-    );
-
-}
-
-
-// ============================================================
-// ESTRUTURA EXISTENTE
-// ============================================================
-
-function containerEstruturaExistente() {
-
-    return (
-
-        container.querySelector(
-            "[data-module-toolbar]"
-        ) &&
-
-        container.querySelector(
-            "[data-module-form]"
-        ) &&
-
-        container.querySelector(
-            "[data-module-table]"
-        )
-
-    );
-
-}
+                    </div>
 
 
-// ============================================================
-// TÍTULO
-// ============================================================
+                    <div
+                        class="engine-toolbar"
+                        data-module-toolbar
+                    >
+                    </div>
 
-function optionsTitulo() {
+                </header>
 
-    return (
 
-        options.titulo ||
+                <section
+                    class="engine-form-container"
+                    data-module-form
+                    hidden
+                >
+                </section>
 
-        schema.title ||
 
-        schema.titulo ||
+                <section
+                    class="engine-table-container"
+                >
 
-        entity
+                    <div
+                        class="engine-loading"
+                        data-engine-loading
+                        hidden
+                    >
 
-    );
+                        Carregando...
+
+                    </div>
+
+
+                    <div
+                        class="engine-table-area"
+                        data-module-table
+                    >
+                    </div>
+
+                </section>
+
+            </section>
+
+        `;
+
+    }
+
+
+    // ========================================================
+    // LOCALIZAR ÁREAS
+    // ========================================================
+
+    function localizarAreas() {
+
+        return {
+
+            toolbar:
+                container.querySelector(
+                    "[data-module-toolbar]"
+                ),
+
+            formulario:
+                container.querySelector(
+                    "[data-module-form]"
+                ),
+
+            tabela:
+                container.querySelector(
+                    "[data-module-table]"
+                )
+
+        };
+
+    }
 
 }
 
@@ -952,8 +611,7 @@ function validarConfiguracao(
 
     if (
         !config ||
-        typeof config !==
-        "object"
+        typeof config !== "object"
     ) {
 
         throw new Error(
@@ -983,50 +641,6 @@ function validarConfiguracao(
         );
 
     }
-
-
-    if (
-        !config.schema
-    ) {
-
-        console.warn(
-
-            `Module ${config.entity}: ` +
-            "schema não informado."
-
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// EMITIR EVENTO
-// ============================================================
-
-function emitirEvento(
-    elemento,
-    nome,
-    detalhe
-) {
-
-    elemento.dispatchEvent(
-
-        new CustomEvent(
-
-            `module:${nome}`,
-
-            {
-
-                detail:
-                    detalhe
-
-            }
-
-        )
-
-    );
 
 }
 
