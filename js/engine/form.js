@@ -215,8 +215,7 @@ export function createForm(config = {}) {
             );
 
 
-            preencher(registro);
-
+            form.preencher(registro);
 
             mostrar();
 
