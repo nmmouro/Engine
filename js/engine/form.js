@@ -428,10 +428,10 @@ export function createForm(config = {}) {
                     );
 
 
-                limpar();
+                form.limpar();
 
 
-                esconder();
+                form.esconder();
 
 
                 emitir(
@@ -483,10 +483,10 @@ export function createForm(config = {}) {
             );
 
 
-            limpar();
+            form.limpar();
 
 
-            esconder();
+            form.esconder();
 
 
             /*
