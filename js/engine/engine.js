@@ -38,6 +38,10 @@
  */
 
 import {
+    gerarId
+} from "./idService.js";
+
+import {
     listar,
     obter,
     criar,
@@ -691,25 +695,17 @@ else {
      * de enviar o registro para o CRUD.
      */
 
+    const id = await gerarId( entity );
+    
     const dadosCriar = {
 
         ...dados
 
+        id
+
     };
 
-
-    /*
-     * Gerar ID para o novo registro.
-     */
-
-    const id =
-        gerarId();
-
-
-    dadosCriar.id =
-        id;
-
-
+  
     console.log(
         `ENGINE ${entity} → NOVO ID:`,
         id
