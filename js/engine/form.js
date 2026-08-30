@@ -668,68 +668,103 @@ export function createForm(config = {}) {
 
     }
 
+  
+// ============================================================
+// REGISTRAR EVENTOS
+// ============================================================
 
-    // ========================================================
-    // EVENTOS
-    // ========================================================
+function registrarEventos() {
 
-    function registrarEventos() {
+    if (!formulario) {
 
-        if (!formContainer) {
-            return;
-        }
-
-
-        /*
-         * Delegação de eventos.
-         */
-
-        formContainer.addEventListener(
-            "submit",
-            evento => {
-
-                const formulario =
-                    evento.target.closest(
-                        "form"
-                    );
-
-
-                if (!formulario) {
-                    return;
-                }
-
-
-                evento.preventDefault();
-
-
-                salvar();
-
-            }
-        );
-
-
-        formContainer.addEventListener(
-            "click",
-            evento => {
-
-                const cancelarBotao =
-                    evento.target.closest(
-                        "[data-form-cancelar]"
-                    );
-
-
-                if (cancelarBotao) {
-
-                    evento.preventDefault();
-
-                    cancelar();
-
-                }
-
-            }
-        );
+        return;
 
     }
+
+
+    /*
+     * Impede que os eventos sejam registrados
+     * mais de uma vez.
+     */
+
+    if (
+        formulario.dataset.engineEventos ===
+        "true"
+    ) {
+
+        return;
+
+    }
+
+
+    formulario.dataset.engineEventos =
+        "true";
+
+
+    // ========================================================
+    // SUBMIT
+    // ========================================================
+
+    formulario.addEventListener(
+        "submit",
+        async evento => {
+
+            evento.preventDefault();
+
+            evento.stopPropagation();
+
+
+            /*
+             * Se já estiver salvando,
+             * não executar novamente.
+             */
+
+            if (
+                engine.state?.salvando
+            ) {
+
+                console.warn(
+                    `FORM ${engine.entity} → ` +
+                    "SALVAMENTO JÁ EM ANDAMENTO"
+                );
+
+                return;
+
+            }
+
+
+            try {
+
+                const dados =
+                    obterDadosFormulario();
+
+
+                console.log(
+                    `FORM ${engine.entity} → ` +
+                    "DADOS PARA SALVAR:",
+                    dados
+                );
+
+
+                await engine.salvar(
+                    dados
+                );
+
+
+            } catch (erro) {
+
+                console.error(
+                    `FORM ${engine.entity} → ` +
+                    "ERRO AO SALVAR:",
+                    erro
+                );
+
+            }
+
+        }
+    );
+
+}
 
 
     // ========================================================
