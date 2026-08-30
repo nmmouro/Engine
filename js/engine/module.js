@@ -2,25 +2,64 @@
  * ============================================================
  * MODULE
  * Painel Frota
- * Arquivo: js/engine/module.js
+ *
+ * Arquivo:
+ * js/engine/module.js
+ *
+ * Responsabilidade:
+ *
+ * - Montar a estrutura do módulo
+ * - Criar State
+ * - Criar Engine
+ * - Criar Form
+ * - Criar Table
+ * - Criar Toolbar
+ * - Conectar os componentes
+ *
+ * O Module NÃO executa CRUD diretamente.
+ *
+ * Arquitetura:
+ *
+ * PAGE
+ *   ↓
+ * MODULE
+ *   ├── STATE
+ *   ├── ENGINE
+ *   ├── FORM
+ *   ├── TABLE
+ *   └── TOOLBAR
+ *          ↓
+ *     CRUD SERVICE
+ *          ↓
+ *       SUPABASE
+ *
  * ============================================================
  */
+
+
+// ============================================================
+// IMPORTS
+// ============================================================
 
 import {
     createEngine
 } from "./engine.js";
 
+
 import {
     createState
 } from "./state.js";
+
 
 import {
     createForm
 } from "./form.js";
 
+
 import {
     createTable
 } from "./table.js";
+
 
 import {
     createToolbar
@@ -35,10 +74,18 @@ export function createModule(
     config = {}
 ) {
 
+    // ========================================================
+    // VALIDAR
+    // ========================================================
+
     validarConfiguracao(
         config
     );
 
+
+    // ========================================================
+    // CONFIGURAÇÃO
+    // ========================================================
 
     const entity =
         config.entity;
@@ -51,6 +98,10 @@ export function createModule(
     const options =
         config.options || {};
 
+
+    // ========================================================
+    // CONTAINER
+    // ========================================================
 
     const container =
         typeof config.container === "string"
@@ -75,11 +126,41 @@ export function createModule(
 
 
     // ========================================================
-    // PREPARAR ESTRUTURA
+    // EVITAR DUPLICAÇÃO
+    // ========================================================
+
+    /*
+     * Se este módulo já foi criado neste container,
+     * retornamos a instância existente.
+     */
+
+    if (
+        container.__engineModule
+    ) {
+
+        console.warn(
+
+            `Module ${entity}: ` +
+            "módulo já inicializado."
+
+        );
+
+
+        return container.__engineModule;
+
+    }
+
+
+    // ========================================================
+    // ESTRUTURA
     // ========================================================
 
     prepararEstrutura();
 
+
+    // ========================================================
+    // ÁREAS
+    // ========================================================
 
     const areas =
         localizarAreas();
@@ -224,6 +305,23 @@ export function createModule(
 
         async iniciar() {
 
+            if (
+                state.iniciado
+            ) {
+
+                console.warn(
+
+                    `Module ${entity}: ` +
+                    "já foi iniciado."
+
+                );
+
+
+                return module;
+
+            }
+
+
             console.log(
                 `MODULE → INICIAR → ${entity}`
             );
@@ -231,18 +329,13 @@ export function createModule(
 
             try {
 
-                if (
-                    typeof toolbar?.iniciar ===
-                    "function"
-                ) {
-
-                    toolbar.iniciar();
-
-                }
-
+                // --------------------------------------------
+                // FORM
+                // --------------------------------------------
 
                 if (
-                    typeof form?.iniciar ===
+                    form &&
+                    typeof form.iniciar ===
                     "function"
                 ) {
 
@@ -251,8 +344,13 @@ export function createModule(
                 }
 
 
+                // --------------------------------------------
+                // TABLE
+                // --------------------------------------------
+
                 if (
-                    typeof table?.iniciar ===
+                    table &&
+                    typeof table.iniciar ===
                     "function"
                 ) {
 
@@ -261,8 +359,28 @@ export function createModule(
                 }
 
 
+                // --------------------------------------------
+                // TOOLBAR
+                // --------------------------------------------
+
                 if (
-                    typeof engine?.iniciar ===
+                    toolbar &&
+                    typeof toolbar.iniciar ===
+                    "function"
+                ) {
+
+                    toolbar.iniciar();
+
+                }
+
+
+                // --------------------------------------------
+                // ENGINE
+                // --------------------------------------------
+
+                if (
+                    engine &&
+                    typeof engine.iniciar ===
                     "function"
                 ) {
 
@@ -270,6 +388,14 @@ export function createModule(
 
                 }
 
+
+                state.iniciado =
+                    true;
+
+
+                // --------------------------------------------
+                // EVENTO
+                // --------------------------------------------
 
                 container.dispatchEvent(
 
@@ -311,15 +437,19 @@ export function createModule(
 
 
         // ====================================================
-        // MÉTODOS DELEGADOS
+        // RECARREGAR
         // ====================================================
 
-        recarregar() {
+        async recarregar() {
 
             return engine.recarregar();
 
         },
 
+
+        // ====================================================
+        // NOVO
+        // ====================================================
 
         novo() {
 
@@ -328,7 +458,11 @@ export function createModule(
         },
 
 
-        editar(
+        // ====================================================
+        // EDITAR
+        // ====================================================
+
+        async editar(
             id
         ) {
 
@@ -339,7 +473,11 @@ export function createModule(
         },
 
 
-        salvar(
+        // ====================================================
+        // SALVAR
+        // ====================================================
+
+        async salvar(
             dados
         ) {
 
@@ -350,7 +488,11 @@ export function createModule(
         },
 
 
-        excluir(
+        // ====================================================
+        // EXCLUIR
+        // ====================================================
+
+        async excluir(
             id
         ) {
 
@@ -360,6 +502,10 @@ export function createModule(
 
         },
 
+
+        // ====================================================
+        // FILTRAR
+        // ====================================================
 
         filtrar(
             valor
@@ -372,6 +518,10 @@ export function createModule(
         },
 
 
+        // ====================================================
+        // FECHAR FORM
+        // ====================================================
+
         fecharFormulario() {
 
             return engine.fecharFormulario();
@@ -382,72 +532,30 @@ export function createModule(
 
 
     // ========================================================
-    // EVENTOS ENGINE → TABLE
+    // EVENTOS
     // ========================================================
 
-    container.addEventListener(
-
-        "engine:carregado",
-
-        () => {
-
-            if (
-                typeof table?.renderizar ===
-                "function"
-            ) {
-
-                table.renderizar();
-
-            }
-
-        }
-
-    );
-
-
-    container.addEventListener(
-
-        "engine:salvo",
-
-        () => {
-
-            if (
-                typeof table?.renderizar ===
-                "function"
-            ) {
-
-                table.renderizar();
-
-            }
-
-        }
-
-    );
-
-
-    container.addEventListener(
-
-        "engine:excluido",
-
-        () => {
-
-            if (
-                typeof table?.renderizar ===
-                "function"
-            ) {
-
-                table.renderizar();
-
-            }
-
-        }
-
-    );
+    conectarEventos();
 
 
     // ========================================================
-    // INICIALIZAÇÃO AUTOMÁTICA
+    // GUARDAR INSTÂNCIA
     // ========================================================
+
+    container.__engineModule =
+        module;
+
+
+    // ========================================================
+    // INICIALIZAÇÃO
+    // ========================================================
+
+    /*
+     * IMPORTANTE:
+     *
+     * O createModule retorna imediatamente.
+     * A inicialização ocorre uma única vez.
+     */
 
     module.iniciar()
         .catch(
@@ -476,15 +584,40 @@ export function createModule(
     function prepararEstrutura() {
 
         /*
-         * Se a estrutura já existe,
-         * não sobrescrevemos.
+         * Não sobrescrever HTML se a estrutura
+         * já estiver pronta.
          */
 
-        if (
+        const estruturaExistente =
+
             container.querySelector(
-                "[data-module-table]"
-            )
+                "[data-engine-form]"
+            ) &&
+
+            container.querySelector(
+                "[data-engine-table]"
+            );
+
+
+        if (
+            estruturaExistente
         ) {
+
+            /*
+             * Mesmo que exista HTML próprio,
+             * precisamos garantir a toolbar.
+             */
+
+            if (
+                !container.querySelector(
+                    "[data-engine-toolbar]"
+                )
+            ) {
+
+                criarToolbarHTML();
+
+            }
+
 
             return;
 
@@ -502,8 +635,12 @@ export function createModule(
 
             <section
                 class="engine-module"
-                data-module="${escaparHTML(entity)}"
+                data-engine-module="${escaparHTML(entity)}"
             >
+
+                <!-- ========================================
+                     CABEÇALHO
+                ========================================= -->
 
                 <header
                     class="engine-header"
@@ -526,20 +663,30 @@ export function createModule(
 
                     <div
                         class="engine-toolbar"
-                        data-module-toolbar
+                        data-engine-toolbar
                     >
+
                     </div>
 
                 </header>
 
 
+                <!-- ========================================
+                     FORMULÁRIO
+                ========================================= -->
+
                 <section
                     class="engine-form-container"
-                    data-module-form
+                    data-engine-form
                     hidden
                 >
+
                 </section>
 
+
+                <!-- ========================================
+                     TABELA
+                ========================================= -->
 
                 <section
                     class="engine-table-container"
@@ -558,8 +705,9 @@ export function createModule(
 
                     <div
                         class="engine-table-area"
-                        data-module-table
+                        data-engine-table
                     >
+
                     </div>
 
                 </section>
@@ -572,29 +720,293 @@ export function createModule(
 
 
     // ========================================================
+    // TOOLBAR HTML
+    // ========================================================
+
+    function criarToolbarHTML() {
+
+        const header =
+            container.querySelector(
+                ".engine-header"
+            );
+
+
+        if (!header) {
+
+            return;
+
+        }
+
+
+        const toolbarExistente =
+            header.querySelector(
+                "[data-engine-toolbar]"
+            );
+
+
+        if (
+            toolbarExistente
+        ) {
+
+            return;
+
+        }
+
+
+        const toolbar =
+            document.createElement(
+                "div"
+            );
+
+
+        toolbar.className =
+            "engine-toolbar";
+
+
+        toolbar.setAttribute(
+            "data-engine-toolbar",
+            ""
+        );
+
+
+        header.appendChild(
+            toolbar
+        );
+
+    }
+
+
+    // ========================================================
     // LOCALIZAR ÁREAS
     // ========================================================
 
     function localizarAreas() {
 
+        const toolbar =
+            container.querySelector(
+                "[data-engine-toolbar]"
+            );
+
+
+        const formulario =
+            container.querySelector(
+                "[data-engine-form]"
+            );
+
+
+        const tabela =
+            container.querySelector(
+                "[data-engine-table]"
+            );
+
+
+        /*
+         * IMPORTANTE:
+         *
+         * Esses nomes precisam corresponder
+         * exatamente aos seletores usados
+         * pelos componentes separados.
+         */
+
+        if (!formulario) {
+
+            throw new Error(
+
+                `Module ${entity}: ` +
+                "elemento [data-engine-form] não encontrado."
+
+            );
+
+        }
+
+
+        if (!tabela) {
+
+            throw new Error(
+
+                `Module ${entity}: ` +
+                "elemento [data-engine-table] não encontrado."
+
+            );
+
+        }
+
+
+        if (!toolbar) {
+
+            throw new Error(
+
+                `Module ${entity}: ` +
+                "elemento [data-engine-toolbar] não encontrado."
+
+            );
+
+        }
+
+
         return {
 
-            toolbar:
-                container.querySelector(
-                    "[data-module-toolbar]"
-                ),
+            toolbar,
 
-            formulario:
-                container.querySelector(
-                    "[data-module-form]"
-                ),
+            formulario,
 
-            tabela:
-                container.querySelector(
-                    "[data-module-table]"
-                )
+            tabela
 
         };
+
+    }
+
+
+    // ========================================================
+    // EVENTOS
+    // ========================================================
+
+    function conectarEventos() {
+
+        // ----------------------------------------------------
+        // ENGINE → CARREGADO
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:carregado",
+
+            () => {
+
+                if (
+                    typeof table?.renderizar ===
+                    "function"
+                ) {
+
+                    table.renderizar();
+
+                }
+
+            }
+
+        );
+
+
+        // ----------------------------------------------------
+        // ENGINE → NOVO
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:novo",
+
+            () => {
+
+                if (
+                    typeof form?.novo ===
+                    "function"
+                ) {
+
+                    form.novo();
+
+                }
+
+            }
+
+        );
+
+
+        // ----------------------------------------------------
+        // ENGINE → EDITAR
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:editar",
+
+            evento => {
+
+                if (
+                    typeof form?.editar ===
+                    "function"
+                ) {
+
+                    form.editar(
+                        evento.detail
+                    );
+
+                }
+
+            }
+
+        );
+
+
+        // ----------------------------------------------------
+        // ENGINE → SALVO
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:salvo",
+
+            () => {
+
+                if (
+                    typeof table?.renderizar ===
+                    "function"
+                ) {
+
+                    table.renderizar();
+
+                }
+
+            }
+
+        );
+
+
+        // ----------------------------------------------------
+        // ENGINE → EXCLUÍDO
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:excluido",
+
+            () => {
+
+                if (
+                    typeof table?.renderizar ===
+                    "function"
+                ) {
+
+                    table.renderizar();
+
+                }
+
+            }
+
+        );
+
+
+        // ----------------------------------------------------
+        // ENGINE → FORM FECHADO
+        // ----------------------------------------------------
+
+        container.addEventListener(
+
+            "engine:formulario-fechado",
+
+            () => {
+
+                if (
+                    typeof form?.fechar ===
+                    "function"
+                ) {
+
+                    form.fechar();
+
+                }
+
+            }
+
+        );
 
     }
 
