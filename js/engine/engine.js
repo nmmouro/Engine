@@ -6,15 +6,15 @@
  * Arquivo:
  * js/engine/engine.js
  *
- * Responsabilidade:
+ * Responsabilidades:
  *
  * - Coordenar operações CRUD
- * - Controlar o fluxo Novo
- * - Controlar o fluxo Editar
- * - Controlar o fluxo Salvar
- * - Controlar o fluxo Excluir
- * - Atualizar o State
- * - Emitir eventos para os componentes
+ * - Controlar Novo
+ * - Controlar Editar
+ * - Controlar Salvar
+ * - Controlar Excluir
+ * - Utilizar o State
+ * - Emitir eventos
  *
  * O ENGINE NÃO:
  *
@@ -22,12 +22,16 @@
  * - Renderiza tabela
  * - Cria formulário
  * - Cria toolbar
- * - Conhece PostgreSQL
  * - Conhece Supabase
+ * - Conhece PostgreSQL
  *
- * A comunicação com o backend ocorre através de:
+ * Comunicação:
  *
- *     crud.js
+ *     engine.js
+ *          ↓
+ *       crud.js
+ *          ↓
+ *   crudService.js
  *
  * ============================================================
  */
@@ -55,7 +59,7 @@ export function createEngine(
 ) {
 
     // ========================================================
-    // VALIDAR
+    // VALIDAR CONFIGURAÇÃO
     // ========================================================
 
     if (
@@ -85,7 +89,9 @@ export function createEngine(
     // ========================================================
 
     const entity =
-        config.entity;
+        String(
+            config.entity
+        ).trim();
 
 
     const schema =
@@ -105,11 +111,9 @@ export function createEngine(
     // ========================================================
 
     /*
-     * IMPORTANTE:
-     *
      * O State pertence ao Module.
      *
-     * O Engine apenas utiliza o State.
+     * O Engine apenas manipula o State.
      */
 
     const state =
@@ -117,11 +121,48 @@ export function createEngine(
 
 
     // ========================================================
+    // EMITIR EVENTO
+    // ========================================================
+
+    function emitir(
+        nome,
+        detalhe
+    ) {
+
+        if (
+            !container ||
+            typeof container.dispatchEvent !==
+                "function"
+        ) {
+
+            return;
+
+        }
+
+
+        container.dispatchEvent(
+
+            new CustomEvent(
+
+                `engine:${nome}`,
+
+                {
+                    detail:
+                        detalhe
+                }
+
+            )
+
+        );
+
+    }
+
+
+    // ========================================================
     // ENGINE
     // ========================================================
 
     const engine = {
-
 
         // ====================================================
         // PROPRIEDADES
@@ -149,10 +190,6 @@ export function createEngine(
             );
 
 
-            /*
-             * Não carregamos duas vezes.
-             */
-
             if (
                 state.iniciado
             ) {
@@ -165,24 +202,50 @@ export function createEngine(
                 );
 
 
-                return state.registros || [];
+                return (
+                    state.registros || []
+                );
 
             }
 
 
-            await engine.carregar();
+            try {
+
+                await engine.carregar();
 
 
-            state.iniciado =
-                true;
+                state.iniciado =
+                    true;
 
 
-            emitir(
-                "iniciado"
-            );
+                emitir(
+                    "iniciado"
+                );
 
 
-            return state.registros || [];
+                console.log(
+
+                    `ENGINE ${entity} → ` +
+                    "INICIADO"
+
+                );
+
+
+                return (
+                    state.registros || []
+                );
+
+            } catch (erro) {
+
+                emitir(
+                    "erro",
+                    erro
+                );
+
+
+                throw erro;
+
+            }
 
         },
 
@@ -330,7 +393,9 @@ export function createEngine(
 
             console.log(
 
-                `ENGINE ${entity} → OBTER →`,
+                `ENGINE ${entity} → ` +
+                "OBTER →",
+
                 identificador
 
             );
@@ -357,33 +422,17 @@ export function createEngine(
         novo() {
 
             console.log(
-
                 `ENGINE ${entity} → NOVO`
-
             );
 
-
-            /*
-             * Limpar registro em edição.
-             */
 
             state.registroEditando =
                 null;
 
 
-            /*
-             * Informar ao State que estamos
-             * em modo novo.
-             */
-
             state.modo =
                 "novo";
 
-
-            /*
-             * Limpar formulário através
-             * do evento.
-             */
 
             emitir(
                 "novo"
@@ -459,18 +508,13 @@ export function createEngine(
 
                     throw new Error(
 
-                        `Registro ` +
-                        `${identificador} ` +
+                        `Registro ${identificador} ` +
                         "não encontrado."
 
                     );
 
                 }
 
-
-                /*
-                 * Guardar registro no State.
-                 */
 
                 state.registroEditando =
                     registro;
@@ -479,13 +523,6 @@ export function createEngine(
                 state.modo =
                     "editar";
 
-
-                /*
-                 * Emitir evento.
-                 *
-                 * O form.js recebe o registro
-                 * e preenche os campos.
-                 */
 
                 emitir(
                     "editar",
@@ -557,6 +594,7 @@ export function createEngine(
             console.log(
 
                 `ENGINE ${entity} → SALVAR`,
+
                 dados
 
             );
@@ -600,9 +638,8 @@ export function createEngine(
 
                         throw new Error(
 
-                            "Engine: " +
-                            "registro em edição " +
-                            "não possui ID."
+                            "Engine: registro em " +
+                            "edição não possui ID."
 
                         );
 
@@ -629,12 +666,15 @@ export function createEngine(
                         );
 
 
-                    /*
-                     * Atualizar estado local.
-                     */
+                    const atualizado =
+                        normalizarRegistro(
+                            resposta
+                        );
+
 
                     atualizarRegistroLocal(
 
+                        atualizado ||
                         registroAtualizado
 
                     );
@@ -658,11 +698,8 @@ export function createEngine(
 
                     resposta =
                         await criar(
-
                             entity,
-
                             dados
-
                         );
 
 
@@ -672,26 +709,11 @@ export function createEngine(
                         );
 
 
-                    /*
-                     * Adicionar ao State se o backend
-                     * devolveu o registro.
-                     */
-
                     if (
                         novoRegistro
                     ) {
 
-                        state.registros =
-                            Array.isArray(
-                                state.registros
-                            )
-
-                                ? state.registros
-
-                                : [];
-
-
-                        state.registros.push(
+                        adicionarRegistroLocal(
                             novoRegistro
                         );
 
@@ -826,21 +848,10 @@ export function createEngine(
                 );
 
 
-                /*
-                 * Remover do State.
-                 *
-                 * ATENÇÃO:
-                 *
-                 * Seu Supabase utiliza "id"
-                 * minúsculo.
-                 */
-
                 state.registros =
                     (
                         state.registros || []
-                    )
-
-                    .filter(
+                    ).filter(
 
                         registro =>
 
@@ -928,18 +939,14 @@ export function createEngine(
             );
 
 
-            /*
-             * Se o table.js tiver renderizar(),
-             * ele receberá o evento e poderá atualizar
-             * a tabela.
-             */
-
             emitir(
                 "renderizar"
             );
 
 
-            return obterRegistrosFiltrados();
+            return (
+                obterRegistrosFiltrados()
+            );
 
         },
 
@@ -964,7 +971,9 @@ export function createEngine(
                 )
             ) {
 
-                return;
+                return (
+                    state.paginaAtual
+                );
 
             }
 
@@ -1020,7 +1029,9 @@ export function createEngine(
             );
 
 
-            return state.paginaAtual;
+            return (
+                state.paginaAtual
+            );
 
         },
 
@@ -1072,13 +1083,6 @@ export function createEngine(
 
 
     // ========================================================
-    // RETORNAR ENGINE
-    // ========================================================
-
-    return engine;
-
-
-    // ========================================================
     // FUNÇÕES INTERNAS
     // ========================================================
 
@@ -1102,7 +1106,9 @@ export function createEngine(
             .toLowerCase();
 
 
-        if (!filtro) {
+        if (
+            !filtro
+        ) {
 
             return registros;
 
@@ -1116,7 +1122,6 @@ export function createEngine(
                 Object.values(
                     registro || {}
                 )
-
                 .some(
 
                     valor =>
@@ -1143,6 +1148,15 @@ export function createEngine(
     function atualizarRegistroLocal(
         registro
     ) {
+
+        if (
+            !registro
+        ) {
+
+            return;
+
+        }
+
 
         const id =
             obterId(
@@ -1203,7 +1217,60 @@ export function createEngine(
         state.registros =
             registros;
 
+
+        emitir(
+            "renderizar"
+        );
+
     }
+
+
+    // ========================================================
+    // ADICIONAR REGISTRO LOCAL
+    // ========================================================
+
+    function adicionarRegistroLocal(
+        registro
+    ) {
+
+        if (
+            !registro
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            !Array.isArray(
+                state.registros
+            )
+        ) {
+
+            state.registros =
+                [];
+
+        }
+
+
+        state.registros.push(
+            registro
+        );
+
+
+        emitir(
+            "renderizar"
+        );
+
+    }
+
+
+    // ========================================================
+    // RETORNAR ENGINE
+    // ========================================================
+
+    return engine;
 
 }
 
@@ -1262,7 +1329,9 @@ function normalizarRegistro(
     resposta
 ) {
 
-    if (!resposta) {
+    if (
+        !resposta
+    ) {
 
         return null;
 
@@ -1275,7 +1344,10 @@ function normalizarRegistro(
         )
     ) {
 
-        return resposta[0] || null;
+        return (
+            resposta[0] ||
+            null
+        );
 
     }
 
@@ -1290,7 +1362,10 @@ function normalizarRegistro(
             )
         ) {
 
-            return resposta.dados[0] || null;
+            return (
+                resposta.dados[0] ||
+                null
+            );
 
         }
 
@@ -1317,7 +1392,10 @@ function normalizarRegistro(
             )
         ) {
 
-            return resposta.data[0] || null;
+            return (
+                resposta.data[0] ||
+                null
+            );
 
         }
 
@@ -1357,7 +1435,9 @@ function obterId(
     registro
 ) {
 
-    if (!registro) {
+    if (
+        !registro
+    ) {
 
         return null;
 
@@ -1365,13 +1445,14 @@ function obterId(
 
 
     /*
-     * PostgreSQL / Supabase:
+     * Supabase / PostgreSQL:
      *
-     * id
+     *     id
      *
-     * Compatibilidade com versões anteriores:
+     * Compatibilidade:
      *
-     * ID
+     *     ID
+     *     Id
      */
 
     return (
@@ -1415,41 +1496,7 @@ function validarId(
 
 
 // ============================================================
-// EMITIR EVENTO
-// ============================================================
-
-function emitir(
-    nome,
-    detalhe
-) {
-
-    if (!container) {
-
-        return;
-
-    }
-
-
-    container.dispatchEvent(
-
-        new CustomEvent(
-
-            `engine:${nome}`,
-
-            {
-                detail:
-                    detalhe
-            }
-
-        )
-
-    );
-
-}
-
-
-// ============================================================
-// ERRO
+// MOSTRAR ERRO
 // ============================================================
 
 function mostrarErro(
