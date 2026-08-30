@@ -682,44 +682,88 @@ export function createEngine(
                 }
 
 
-                // ============================================
-                // NOVO
-                // ============================================
+// ========================================================
+// NOVO REGISTRO
+// ========================================================
 
-                else {
+else {
 
-                    console.log(
-
-                        `ENGINE ${entity} → ` +
-                        "CRIAR"
-
-                    );
+    console.log(
+        `ENGINE ${entity} → CRIAR`
+    );
 
 
-                    resposta =
-                        await criar(
-                            entity,
-                            dados
-                        );
+    // ----------------------------------------------------
+    // GERAR ID
+    // ----------------------------------------------------
+
+    const id =
+        gerarNovoId();
 
 
-                    const novoRegistro =
-                        normalizarRegistro(
-                            resposta
-                        );
+    // ----------------------------------------------------
+    // MONTAR REGISTRO
+    // ----------------------------------------------------
+
+    const registroNovo = {
+
+        id,
+
+        ...dados
+
+    };
 
 
-                    if (
-                        novoRegistro
-                    ) {
+    console.log(
+        `ENGINE ${entity} → NOVO REGISTRO:`,
+        registroNovo
+    );
 
-                        adicionarRegistroLocal(
-                            novoRegistro
-                        );
 
-                    }
+    // ----------------------------------------------------
+    // ENVIAR PARA CRUD
+    // ----------------------------------------------------
 
-                }
+    resposta =
+        await criar(
+            entity,
+            registroNovo
+        );
+
+
+    // ----------------------------------------------------
+    // NORMALIZAR RESPOSTA
+    // ----------------------------------------------------
+
+    const novoRegistro =
+        normalizarRegistroResposta(
+            resposta
+        );
+
+
+    // ----------------------------------------------------
+    // ATUALIZAR ESTADO
+    // ----------------------------------------------------
+
+    if (novoRegistro) {
+
+        state.registros.push(
+            novoRegistro
+        );
+
+    } else {
+
+        // Caso a API não devolva o registro criado,
+        // usamos o próprio registro enviado.
+
+        state.registros.push(
+            registroNovo
+        );
+
+    }
+
+}
+
 
 
                 // ============================================
@@ -1264,6 +1308,127 @@ export function createEngine(
         );
 
     }
+
+
+// ============================================================
+// OBTER ID DO REGISTRO
+// ============================================================
+
+function obterIdRegistro(registro) {
+
+    return (
+        registro?.id ??
+        registro?.ID ??
+        null
+    );
+
+}
+
+
+// ============================================================
+// PREFIXO DA ENTIDADE
+// ============================================================
+
+function obterPrefixoId() {
+
+    const prefixos = {
+
+        veiculos: "VEI",
+        veiculo: "VEI",
+
+        empregados: "EMP",
+        empregado: "EMP",
+
+        lancamentos: "LAN",
+        lancamento: "LAN"
+
+    };
+
+
+    return (
+        prefixos[
+            String(entity).toLowerCase()
+        ] ||
+        String(entity)
+            .substring(0, 3)
+            .toUpperCase()
+    );
+
+}
+
+
+// ============================================================
+// GERAR NOVO ID
+// ============================================================
+
+function gerarNovoId() {
+
+    const prefixo =
+        obterPrefixoId();
+
+
+    let maiorNumero = 0;
+
+
+    state.registros.forEach(registro => {
+
+        const id =
+            obterIdRegistro(registro);
+
+
+        if (!id) {
+            return;
+        }
+
+
+        const texto =
+            String(id)
+                .trim()
+                .toUpperCase();
+
+
+        const corresponde =
+            texto.match(
+                new RegExp(
+                    `^${prefixo}(\\d+)$`
+                )
+            );
+
+
+        if (!corresponde) {
+            return;
+        }
+
+
+        const numero =
+            Number(
+                corresponde[1]
+            );
+
+
+        if (
+            Number.isFinite(numero) &&
+            numero > maiorNumero
+        ) {
+
+            maiorNumero =
+                numero;
+
+        }
+
+    });
+
+
+    return (
+        prefixo +
+        String(
+            maiorNumero + 1
+        ).padStart(6, "0")
+    );
+
+}
+
+
 
 
     // ========================================================
