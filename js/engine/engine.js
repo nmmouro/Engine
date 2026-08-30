@@ -640,7 +640,7 @@ export function createEngine(config = {}) {
                     resposta =
                         await atualizar(
                             entity,
-                            id,
+                            
                             registro
                         );
 
