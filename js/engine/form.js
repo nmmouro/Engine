@@ -217,7 +217,7 @@ export function createForm(config = {}) {
 
             form.preencher(registro);
 
-            mostrar();
+            form.mostrar();
 
 
             focarPrimeiroCampo();
