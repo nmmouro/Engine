@@ -1539,6 +1539,134 @@ function registrarEventos() {
     }
 
 
+// ============================================================
+// LOCALIZAR FORMULÁRIO
+// ============================================================
+
+function localizarFormulario() {
+
+    formulario =
+        container.querySelector(
+            "form"
+        );
+
+
+    if (!formulario) {
+
+        console.warn(
+            `FORM ${engine.entity} → ` +
+            "formulário ainda não encontrado."
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        `FORM ${engine.entity} → ` +
+        "FORMULÁRIO ENCONTRADO"
+    );
+
+}
+
+
+// ============================================================
+// REGISTRAR EVENTOS
+// ============================================================
+
+function registrarEventos() {
+
+    if (!formulario) {
+
+        return;
+
+    }
+
+
+    /*
+     * Impede registrar o submit duas vezes.
+     */
+
+    if (
+        formulario.dataset.engineSubmit ===
+        "true"
+    ) {
+
+        return;
+
+    }
+
+
+    formulario.dataset.engineSubmit =
+        "true";
+
+
+    formulario.addEventListener(
+        "submit",
+        async evento => {
+
+            evento.preventDefault();
+
+            evento.stopPropagation();
+
+
+            /*
+             * Não permitir dois salvamentos
+             * simultâneos.
+             */
+
+            if (
+                engine.state &&
+                engine.state.salvando
+            ) {
+
+                console.warn(
+                    `FORM ${engine.entity} → ` +
+                    "SALVAMENTO JÁ EM ANDAMENTO"
+                );
+
+                return;
+
+            }
+
+
+            try {
+
+                const dados =
+                    obterDadosFormulario();
+
+
+                console.log(
+                    `FORM ${engine.entity} → ` +
+                    "DADOS PARA SALVAR:",
+                    dados
+                );
+
+
+                await engine.salvar(
+                    dados
+                );
+
+
+            } catch (erro) {
+
+                console.error(
+                    `FORM ${engine.entity} → ` +
+                    "ERRO AO SALVAR:",
+                    erro
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+
+
     // ========================================================
     // RETORNAR
     // ========================================================
