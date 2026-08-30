@@ -320,7 +320,7 @@ export function createModule(config = {}) {
 
             try {
 
-                ```js
+           
 /* ============================================
    FORM
 ============================================ */
@@ -403,7 +403,7 @@ console.log(
 
 
 return module;
-```
+
 
 
             }
