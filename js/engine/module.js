@@ -6,44 +6,45 @@
  * Arquivo:
  *     js/engine/module.js
  *
- * RESPONSABILIDADE
- * ------------------------------------------------------------
- * Orquestrar:
+ * Responsabilidade:
  *
- *     Form
- *     Table
- *     Toolbar
- *     Engine
+ *     Conectar:
+ *
+ *     - Engine
+ *     - Form
+ *     - Table
+ *     - Toolbar
+ *     - State
+ *     - Schema
  *
  * Fluxo:
  *
  *     createModule()
  *          ↓
- *     criar containers
+ *     createEngine()
  *          ↓
- *     criar Form
- *     criar Table
- *     criar Toolbar
- *     criar Engine
+ *     createForm()
  *          ↓
- *     engine.setComponents()
+ *     createTable()
  *          ↓
- *     iniciar componentes
+ *     createToolbar()
  *          ↓
- *     engine.iniciar()
+ *     iniciar()
  *
- * O Module NÃO conhece Supabase.
- * O Module NÃO conhece PostgreSQL.
+ * O Module NÃO acessa PostgreSQL.
+ * O Module NÃO acessa Supabase.
+ *
+ * A comunicação com o backend fica em:
+ *
+ *     crud.js
+ *     crudService.js
  *
  * ============================================================
  */
 
 import { createEngine } from "./engine.js";
-
 import { createForm } from "./form.js";
-
 import { createTable } from "./table.js";
-
 import { createToolbar } from "./toolbar.js";
 
 
@@ -54,7 +55,7 @@ import { createToolbar } from "./toolbar.js";
 export function createModule(config = {}) {
 
     // ========================================================
-    // VALIDAR
+    // VALIDAR CONFIGURAÇÃO
     // ========================================================
 
     if (!config.entity) {
@@ -69,7 +70,7 @@ export function createModule(config = {}) {
     if (!config.container) {
 
         throw new Error(
-            `Module ${config.entity}: container não informado.`
+            "Module: container não informado."
         );
 
     }
@@ -80,7 +81,7 @@ export function createModule(config = {}) {
     // ========================================================
 
     const entity =
-        String(config.entity);
+        config.entity;
 
     const schema =
         config.schema || null;
@@ -88,6 +89,10 @@ export function createModule(config = {}) {
     const options =
         config.options || {};
 
+
+    // ========================================================
+    // LOCALIZAR CONTAINER
+    // ========================================================
 
     const container =
         typeof config.container === "string"
@@ -108,105 +113,51 @@ export function createModule(config = {}) {
     }
 
 
-    console.log(
-        `MODULE → CRIAR → ${entity}`
-    );
+    // ========================================================
+    // GARANTIR ESTRUTURA DO CONTAINER
+    // ========================================================
+
+    prepararEstrutura();
 
 
     // ========================================================
-    // ESTRUTURA
+    // CRIAR ENGINE PRIMEIRO
+    //
+    // IMPORTANTE:
+    //
+    // Form, Table e Toolbar dependem do Engine.
+    //
+    // Portanto o Engine precisa existir antes.
     // ========================================================
 
-    criarEstrutura(
-        container,
-        entity,
-        options
-    );
+    const engine =
+        createEngine({
 
+            entity,
 
-    // ========================================================
-    // LOCALIZAR CONTAINERS
-    // ========================================================
+            schema,
 
-    const headerContainer =
-        container.querySelector(
-            "[data-engine-header]"
-        );
+            container,
 
+            options
 
-    const toolbarContainer =
-        container.querySelector(
-            "[data-engine-toolbar]"
-        );
-
-
-    const formContainer =
-        container.querySelector(
-            "[data-engine-form]"
-        );
-
-
-    const tableContainer =
-        container.querySelector(
-            "[data-engine-table]"
-        );
-
-
-    if (!toolbarContainer) {
-
-        throw new Error(
-            `Module ${entity}: [data-engine-toolbar] não encontrado.`
-        );
-
-    }
-
-
-    if (!formContainer) {
-
-        throw new Error(
-            `Module ${entity}: [data-engine-form] não encontrado.`
-        );
-
-    }
-
-
-    if (!tableContainer) {
-
-        throw new Error(
-            `Module ${entity}: [data-engine-table] não encontrado.`
-        );
-
-    }
-
-
-    // ========================================================
-    // COMPONENTES
-    // ========================================================
-
-    let form = null;
-
-    let table = null;
-
-    let toolbar = null;
-
-    let engine = null;
+        });
 
 
     // ========================================================
     // CRIAR FORM
     // ========================================================
 
-    form =
+    const form =
         createForm({
 
-            entity,
+            engine,
 
             schema,
 
-            options,
+            container,
 
-            container:
-                formContainer
+            options
 
         });
 
@@ -215,17 +166,16 @@ export function createModule(config = {}) {
     // CRIAR TABLE
     // ========================================================
 
-    table =
+    const table =
         createTable({
 
-            entity,
+            engine,
 
             schema,
 
-            options,
+            container,
 
-            container:
-                tableContainer
+            options
 
         });
 
@@ -234,35 +184,16 @@ export function createModule(config = {}) {
     // CRIAR TOOLBAR
     // ========================================================
 
-    toolbar =
+    const toolbar =
         createToolbar({
 
-            entity,
+            engine,
 
             schema,
 
-            options,
+            container,
 
-            container:
-                toolbarContainer
-
-        });
-
-
-    // ========================================================
-    // CRIAR ENGINE
-    // ========================================================
-
-    engine =
-        createEngine({
-
-            entity,
-
-            schema,
-
-            options,
-
-            container
+            options
 
         });
 
@@ -270,93 +201,15 @@ export function createModule(config = {}) {
     // ========================================================
     // CONECTAR COMPONENTES AO ENGINE
     // ========================================================
-    //
-    // ESTA É A CORREÇÃO PRINCIPAL.
-    //
-    // Sem isso:
-    //
-    //     ENGINE: Form não configurado
-    //     ENGINE: Table não configurado
-    //     ENGINE: Toolbar não configurado
-    //
-    // ========================================================
 
-    engine.setComponents({
+    engine.form =
+        form;
 
-        form,
+    engine.table =
+        table;
 
-        table,
-
-        toolbar
-
-    });
-
-
-    // ========================================================
-    // CONECTAR FORM → ENGINE
-    // ========================================================
-
-    if (
-        form &&
-        typeof form.setEngine === "function"
-    ) {
-
-        form.setEngine(
-            engine
-        );
-
-    }
-
-
-    // ========================================================
-    // CONECTAR TABLE → ENGINE
-    // ========================================================
-
-    if (
-        table &&
-        typeof table.setEngine === "function"
-    ) {
-
-        table.setEngine(
-            engine
-        );
-
-    }
-
-
-    // ========================================================
-    // CONECTAR TOOLBAR → ENGINE
-    // ========================================================
-
-    if (
-        toolbar &&
-        typeof toolbar.setEngine === "function"
-    ) {
-
-        toolbar.setEngine(
-            engine
-        );
-
-    }
-
-
-    // ========================================================
-    // EVENTOS DO ENGINE
-    // ========================================================
-
-    registrarEventos(
-
-        container,
-
-        engine,
-
-        form,
-
-        table,
-
-        toolbar
-
-    );
+    engine.toolbar =
+        toolbar;
 
 
     // ========================================================
@@ -372,17 +225,6 @@ export function createModule(config = {}) {
         options,
 
         container,
-
-        headerContainer,
-
-        toolbarContainer,
-
-        formContainer,
-
-        tableContainer,
-
-        state:
-            engine.state,
 
         engine,
 
@@ -404,94 +246,89 @@ export function createModule(config = {}) {
             );
 
 
-            try {
+            // -----------------------------------------------
+            // FORM
+            // -----------------------------------------------
 
-                // --------------------------------------------
-                // FORM
-                // --------------------------------------------
+            if (
+                form &&
+                typeof form.iniciar === "function"
+            ) {
 
-                if (
-                    form &&
-                    typeof form.iniciar === "function"
-                ) {
+                await form.iniciar();
 
-                    await form.iniciar();
-
-                }
+            }
 
 
-                // --------------------------------------------
-                // TABLE
-                // --------------------------------------------
+            // -----------------------------------------------
+            // TABLE
+            // -----------------------------------------------
 
-                if (
-                    table &&
-                    typeof table.iniciar === "function"
-                ) {
+            if (
+                table &&
+                typeof table.iniciar === "function"
+            ) {
 
-                    await table.iniciar();
+                await table.iniciar();
 
-                }
-
-
-                // --------------------------------------------
-                // TOOLBAR
-                // --------------------------------------------
-
-                if (
-                    toolbar &&
-                    typeof toolbar.iniciar === "function"
-                ) {
-
-                    await toolbar.iniciar();
-
-                }
+            }
 
 
-                // --------------------------------------------
-                // ENGINE
-                // --------------------------------------------
+            // -----------------------------------------------
+            // TOOLBAR
+            // -----------------------------------------------
+
+            if (
+                toolbar &&
+                typeof toolbar.iniciar === "function"
+            ) {
+
+                await toolbar.iniciar();
+
+            }
+
+
+            // -----------------------------------------------
+            // ENGINE
+            // -----------------------------------------------
+
+            if (
+                engine &&
+                typeof engine.iniciar === "function"
+            ) {
 
                 await engine.iniciar();
 
-
-                console.log(
-                    `MODULE → INICIADO → ${entity}`
-                );
-
-
-                return module;
-
-
-            } catch (erro) {
-
-                console.error(
-                    `Module ${entity}: falha na inicialização`,
-                    erro
-                );
-
-
-                throw erro;
-
             }
+
+
+            console.log(
+                `MODULE → INICIADO → ${entity}`
+            );
+
+
+            return module;
 
         },
 
 
         // ====================================================
-        // RECARREGAR
+        // DELEGAR MÉTODOS
         // ====================================================
 
-        async recarregar() {
+        carregar() {
+
+            return engine.carregar();
+
+        },
+
+
+        recarregar() {
 
             return engine.recarregar();
 
         },
 
-
-        // ====================================================
-        // NOVO
-        // ====================================================
 
         novo() {
 
@@ -500,66 +337,53 @@ export function createModule(config = {}) {
         },
 
 
-        // ====================================================
-        // EDITAR
-        // ====================================================
-
         editar(id) {
 
-            return engine.editar(
-                id
-            );
+            return engine.editar(id);
 
         },
 
-
-        // ====================================================
-        // SALVAR
-        // ====================================================
 
         salvar(dados) {
 
-            return engine.salvar(
-                dados
-            );
+            return engine.salvar(dados);
 
         },
 
-
-        // ====================================================
-        // EXCLUIR
-        // ====================================================
 
         excluir(id) {
 
-            return engine.excluir(
-                id
-            );
+            return engine.excluir(id);
 
         },
 
-
-        // ====================================================
-        // FILTRAR
-        // ====================================================
 
         filtrar(valor) {
 
-            return engine.filtrar(
-                valor
-            );
+            return engine.filtrar(valor);
 
         },
 
 
-        // ====================================================
-        // PAGINA
-        // ====================================================
-
         pagina(numero) {
 
-            return engine.pagina(
-                numero
+            return engine.pagina(numero);
+
+        },
+
+
+        fecharFormulario() {
+
+            return engine.fecharFormulario();
+
+        },
+
+
+        action(nome, registro) {
+
+            return engine.action(
+                nome,
+                registro
             );
 
         }
@@ -568,16 +392,27 @@ export function createModule(config = {}) {
 
 
     // ========================================================
-    // INICIALIZAÇÃO
+    // EXPOR NO CONTAINER
+    // ========================================================
+
+    container.__module =
+        module;
+
+
+    // ========================================================
+    // INICIAR
+    //
+    // NÃO inicializar automaticamente aqui.
+    //
+    // A página controla o fluxo.
     // ========================================================
 
     module.iniciar()
-
         .catch(
             erro => {
 
                 console.error(
-                    `Module ${entity}: erro fatal`,
+                    `Module ${entity}: falha na inicialização`,
                     erro
                 );
 
@@ -591,335 +426,98 @@ export function createModule(config = {}) {
 
 
 // ============================================================
-// CRIAR ESTRUTURA
+// PREPARAR ESTRUTURA
 // ============================================================
 
-function criarEstrutura(
-    container,
-    entity,
-    options
-) {
+function prepararEstrutura() {
 
-    /*
-     * IMPORTANTE:
-     *
-     * Não reconstruir a estrutura se ela já existir.
-     *
-     * Isso evita que o botão Novo seja apagado.
-     */
+    // --------------------------------------------------------
+    // FORM
+    // --------------------------------------------------------
 
     if (
-        container.querySelector(
-            "[data-engine-module]"
+        !document.querySelector(
+            "[data-engine-form]"
         )
     ) {
 
-        return;
+        const formContainer =
+            document.createElement("div");
+
+        formContainer.setAttribute(
+            "data-engine-form",
+            ""
+        );
+
+        formContainer.className =
+            "engine-form-container";
+
+        document.querySelector(
+            "#app"
+        )?.appendChild(
+            formContainer
+        );
 
     }
 
 
-    const titulo =
-        options.titulo ||
-        entity;
+    // --------------------------------------------------------
+    // TABLE
+    // --------------------------------------------------------
+
+    if (
+        !document.querySelector(
+            "[data-engine-table]"
+        )
+    ) {
+
+        const tableContainer =
+            document.createElement("div");
+
+        tableContainer.setAttribute(
+            "data-engine-table",
+            ""
+        );
+
+        tableContainer.className =
+            "engine-table-container";
+
+        document.querySelector(
+            "#app"
+        )?.appendChild(
+            tableContainer
+        );
+
+    }
 
 
-    container.innerHTML = `
+    // --------------------------------------------------------
+    // TOOLBAR
+    // --------------------------------------------------------
 
-        <section
-            class="engine-module"
-            data-engine-module
-            data-entity="${escaparHTML(entity)}"
-        >
+    if (
+        !document.querySelector(
+            "[data-engine-toolbar]"
+        )
+    ) {
 
-            <!-- ==========================================
-                 CABEÇALHO
-            =========================================== -->
+        const toolbarContainer =
+            document.createElement("div");
 
-            <header
-                class="engine-header"
-            >
+        toolbarContainer.setAttribute(
+            "data-engine-toolbar",
+            ""
+        );
 
-                <div
-                    class="engine-header-content"
-                    data-engine-header
-                >
+        toolbarContainer.className =
+            "engine-toolbar";
 
-                    <h1>
-                        ${escaparHTML(titulo)}
-                    </h1>
+        document.querySelector(
+            "#app"
+        )?.prepend(
+            toolbarContainer
+        );
 
-                </div>
-
-            </header>
-
-
-            <!-- ==========================================
-                 TOOLBAR
-            =========================================== -->
-
-            <div
-                class="engine-toolbar-container"
-                data-engine-toolbar
-            ></div>
-
-
-            <!-- ==========================================
-                 FORMULÁRIO
-            =========================================== -->
-
-            <div
-                class="engine-form-container"
-                data-engine-form
-            ></div>
-
-
-            <!-- ==========================================
-                 TABELA
-            =========================================== -->
-
-            <section
-                class="engine-table-section"
-            >
-
-                <div
-                    class="engine-loading"
-                    data-engine-loading
-                    hidden
-                >
-                    Carregando...
-                </div>
-
-
-                <div
-                    class="engine-table-container"
-                    data-engine-table
-                ></div>
-
-            </section>
-
-        </section>
-
-    `;
+    }
 
 }
-
-
-// ============================================================
-// EVENTOS
-// ============================================================
-
-function registrarEventos(
-
-    container,
-
-    engine,
-
-    form,
-
-    table,
-
-    toolbar
-
-) {
-
-    // ========================================================
-    // ENGINE → CARREGADO
-    // ========================================================
-
-    container.addEventListener(
-        "engine:carregado",
-        evento => {
-
-            const registros =
-                evento.detail || [];
-
-
-            /*
-             * A tabela recebe os registros.
-             *
-             * O toolbar NÃO é tocado.
-             */
-
-            if (
-                table &&
-                typeof table.renderizar === "function"
-            ) {
-
-                table.renderizar(
-
-                    registros,
-
-                    engine.state,
-
-                    engine
-
-                );
-
-            }
-
-        }
-    );
-
-
-    // ========================================================
-    // ENGINE → SALVO
-    // ========================================================
-
-    container.addEventListener(
-        "engine:salvo",
-        () => {
-
-            /*
-             * Após salvar, atualiza somente a tabela.
-             */
-
-            if (
-                table &&
-                typeof table.renderizar === "function"
-            ) {
-
-                table.renderizar(
-
-                    engine.obterRegistrosFiltrados(),
-
-                    engine.state,
-
-                    engine
-
-                );
-
-            }
-
-        }
-    );
-
-
-    // ========================================================
-    // ENGINE → NOVO
-    // ========================================================
-
-    container.addEventListener(
-        "engine:novo",
-        () => {
-
-            /*
-             * Form é responsável pela exibição.
-             */
-
-            if (
-                form &&
-                typeof form.mostrar === "function"
-            ) {
-
-                form.mostrar();
-
-            }
-
-        }
-    );
-
-
-    // ========================================================
-    // ENGINE → EDITAR
-    // ========================================================
-
-    container.addEventListener(
-        "engine:editar",
-        evento => {
-
-            const registro =
-                evento.detail;
-
-
-            if (
-                !registro
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                form &&
-                typeof form.mostrar === "function"
-            ) {
-
-                form.mostrar();
-
-            }
-
-        }
-    );
-
-
-    // ========================================================
-    // ENGINE → FORMULÁRIO FECHADO
-    // ========================================================
-
-    container.addEventListener(
-        "engine:formulario-fechado",
-        () => {
-
-            if (
-                form &&
-                typeof form.esconder === "function"
-            ) {
-
-                form.esconder();
-
-            }
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// ESCAPAR HTML
-// ============================================================
-
-function escaparHTML(
-    valor
-) {
-
-    return String(
-        valor ?? ""
-    )
-
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-
-    .replace(
-        /</g,
-        "&lt;"
-    )
-
-    .replace(
-        />/g,
-        "&gt;"
-    )
-
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
-}
-
-
-// ============================================================
-// EXPORT DEFAULT
-// ============================================================
-
-export default createModule;
-
