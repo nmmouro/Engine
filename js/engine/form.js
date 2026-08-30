@@ -3,79 +3,55 @@
  * FORM
  * Painel Frota
  *
+ * Arquivo:
+ *     js/engine/form.js
+ *
  * Responsabilidades:
  *
- * - Localizar formulário
- * - Abrir formulário
- * - Fechar formulário
- * - Limpar formulário
+ * - Criar formulário a partir do schema
+ * - Localizar [data-engine-form]
+ * - Novo registro
+ * - Editar registro
  * - Preencher formulário
- * - Ler dados
+ * - Ler dados do formulário
  * - Salvar
- * - Cancelar
+ * - Atualizar
+ * - Cancelar edição
  *
- * NÃO conhece:
- * - Supabase
+ * O FORM NÃO conhece:
+ *
  * - PostgreSQL
- * - CRUD
- * - tabela
+ * - Supabase
+ * - Google Sheets
+ * - crudService
+ * - crud
+ * - table
  * - toolbar
+ *
+ * Comunicação com o Engine:
+ *
+ *     engine.novo()
+ *     engine.salvar(dados)
+ *     engine.fecharFormulario()
+ *     engine.state
+ *
  * ============================================================
  */
 
 
-/**
- * ============================================================
- * CREATE FORM
- * ============================================================
- */
+/* ============================================================
+   CREATE FORM
+============================================================ */
 
 export function createForm(config = {}) {
 
-    // ========================================================
-    // CONFIGURAÇÃO
-    // ========================================================
+    /*
+     * --------------------------------------------------------
+     * VALIDAR ENGINE
+     * --------------------------------------------------------
+     */
 
-    const moduleContainer =
-        config.container || null;
-
-    const engine =
-        config.engine || null;
-
-    const schema =
-        config.schema || {};
-
-    const options =
-        config.options || {};
-
-
-    // ========================================================
-    // VARIÁVEIS INTERNAS
-    // ========================================================
-
-    let container = null;
-
-    let formulario = null;
-
-    let btnSalvar = null;
-
-    let btnCancelar = null;
-
-    let eventosRegistrados = false;
-
-
-    // ========================================================
-    // VALIDAR
-    // ========================================================
-
-    if (!moduleContainer) {
-
-        throw new Error(
-            "Form: container não informado."
-        );
-
-    }
-
+    const engine = config.engine;
 
     if (!engine) {
 
@@ -86,598 +62,860 @@ export function createForm(config = {}) {
     }
 
 
-    // ========================================================
-    // INICIAR
-    // ========================================================
+    /*
+     * --------------------------------------------------------
+     * CONFIGURAÇÃO
+     * --------------------------------------------------------
+     */
 
-    async function iniciar() {
+    const entity =
+        config.entity ||
+        engine.entity ||
+        "";
 
-        console.log(
-            `FORM ${engine.entity} → INICIAR`
-        );
+    const schema =
+        config.schema ||
+        engine.schema ||
+        null;
 
-
-        localizarContainer();
-
-        criarFormularioSeNecessario();
-
-        localizarFormulario();
-
-        registrarEventos();
-
-
-        esconder();
-
-
-        console.log(
-            `FORM ${engine.entity} → INICIADO`
-        );
-
-    }
+    const options =
+        config.options ||
+        engine.options ||
+        {};
 
 
-    // ========================================================
-    // LOCALIZAR CONTAINER
-    // ========================================================
+    /*
+     * --------------------------------------------------------
+     * ESTADO LOCAL
+     * --------------------------------------------------------
+     */
 
-    function localizarContainer() {
+    let container = null;
 
-        container =
-            moduleContainer.querySelector(
-                "[data-engine-form]"
+    let formulario = null;
+
+    let iniciado = false;
+
+    let salvando = false;
+
+
+    /*
+     * --------------------------------------------------------
+     * API PÚBLICA
+     * --------------------------------------------------------
+     */
+
+    const form = {
+
+        entity,
+
+        schema,
+
+        options,
+
+        engine,
+
+        container: null,
+
+        formulario: null,
+
+
+        /* ====================================================
+           INICIAR
+        ==================================================== */
+
+        iniciar() {
+
+            console.log(
+                `FORM ${entity} → INICIAR`
             );
 
 
-        if (!container) {
+            localizarContainer();
 
-            throw new Error(
-                `Form ${engine.entity}: ` +
-                "elemento [data-engine-form] não encontrado."
+
+            /*
+             * O formulário pode já existir no HTML.
+             *
+             * Se não existir, criamos.
+             */
+
+            criarFormulario();
+
+
+            registrarEventos();
+
+
+            iniciado = true;
+
+
+            console.log(
+                `FORM ${entity} → INICIADO`
             );
 
-        }
 
-    }
+            return form;
 
-
-    // ========================================================
-    // CRIAR FORMULÁRIO
-    // ========================================================
-
-    function criarFormularioSeNecessario() {
-
-        if (!container) {
-
-            return;
-
-        }
+        },
 
 
-        /*
-         * Se o module.js ou o HTML já criou
-         * um formulário, não substituir.
-         */
+        /* ====================================================
+           NOVO
+        ==================================================== */
 
-        if (
-            container.querySelector("form")
-        ) {
+        novo() {
 
-            return;
-
-        }
+            garantirInicializado();
 
 
-        const titulo =
-            options.tituloFormulario ||
-            "Cadastro";
+            console.log(
+                `FORM ${entity} → NOVO`
+            );
 
 
-        const campos =
-            Array.isArray(schema.fields)
-                ? schema.fields
-                : [];
+            limpar();
 
 
-        let camposHTML = "";
+            mostrar();
 
 
-        campos.forEach(
-            campo => {
-
-                /*
-                 * ID não aparece no formulário.
-                 */
-
-                if (
-                    campo?.name === "ID" ||
-                    campo?.name === "id"
-                ) {
-
-                    return;
-
-                }
+            focarPrimeiroCampo();
 
 
-                if (
-                    campo?.hidden === true
-                ) {
+            emitir(
+                "novo"
+            );
 
-                    return;
-
-                }
+        },
 
 
-                camposHTML +=
-                    criarCampoHTML(
-                        campo
-                    );
+        /* ====================================================
+           EDITAR
+        ==================================================== */
+
+        editar(registro) {
+
+            garantirInicializado();
+
+
+            if (!registro) {
+
+                console.warn(
+                    `FORM ${entity} → EDITAR → registro não informado`
+                );
+
+                return;
 
             }
-        );
 
 
-        container.innerHTML = `
-
-            <form
-                class="engine-form"
-                data-engine-formulario
-                novalidate
-            >
-
-                <div class="engine-form-header">
-
-                    <h2 data-engine-form-title>
-                        ${escaparHTML(titulo)}
-                    </h2>
-
-                </div>
-
-
-                <div class="engine-form-fields">
-
-                    ${camposHTML}
-
-                </div>
-
-
-                <div class="engine-form-actions">
-
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                        data-engine-salvar
-                    >
-                        Salvar
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        data-engine-cancelar
-                    >
-                        Cancelar
-                    </button>
-
-                </div>
-
-            </form>
-
-        `;
-
-    }
-
-
-    // ========================================================
-    // CRIAR CAMPO
-    // ========================================================
-
-    function criarCampoHTML(
-        campo
-    ) {
-
-        const nome =
-            campo?.name ||
-            campo?.campo ||
-            "";
-
-
-        if (!nome) {
-
-            return "";
-
-        }
-
-
-        const label =
-            campo?.label ||
-            campo?.titulo ||
-            nome;
-
-
-        const tipo =
-            campo?.type ||
-            campo?.tipo ||
-            "text";
-
-
-        const obrigatorio =
-            campo?.required === true ||
-            campo?.obrigatorio === true;
-
-
-        const required =
-            obrigatorio
-                ? "required"
-                : "";
-
-
-        const placeholder =
-            campo?.placeholder ||
-            "";
-
-
-        // ====================================================
-        // SELECT
-        // ====================================================
-
-        if (
-            tipo === "select"
-        ) {
-
-            const opcoes =
-                Array.isArray(
-                    campo.options
-                )
-                    ? campo.options
-                    : [];
-
-
-            const optionsHTML =
-                opcoes
-                    .map(
-                        opcao => {
-
-                            const value =
-                                typeof opcao ===
-                                "object"
-
-                                    ? opcao.value
-                                    : opcao;
-
-
-                            const texto =
-                                typeof opcao ===
-                                "object"
-
-                                    ? (
-                                        opcao.label ??
-                                        opcao.text ??
-                                        opcao.value
-                                    )
-
-                                    : opcao;
-
-
-                            return `
-
-                                <option
-                                    value="${escaparAtributo(value)}"
-                                >
-                                    ${escaparHTML(texto)}
-                                </option>
-
-                            `;
-
-                        }
-                    )
-                    .join("");
-
-
-            return `
-
-                <div class="engine-field">
-
-                    <label
-                        for="engine-${escaparAtributo(nome)}"
-                    >
-                        ${escaparHTML(label)}
-                    </label>
-
-
-                    <select
-                        id="engine-${escaparAtributo(nome)}"
-                        name="${escaparAtributo(nome)}"
-                        ${required}
-                    >
-
-                        <option value="">
-                            Selecione...
-                        </option>
-
-                        ${optionsHTML}
-
-                    </select>
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // CHECKBOX
-        // ====================================================
-
-        if (
-            tipo === "checkbox" ||
-            tipo === "boolean"
-        ) {
-
-            return `
-
-                <div class="engine-field engine-field-checkbox">
-
-                    <label>
-
-                        <input
-                            type="checkbox"
-                            name="${escaparAtributo(nome)}"
-                            value="true"
-                        >
-
-                        ${escaparHTML(label)}
-
-                    </label>
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // TEXTAREA
-        // ====================================================
-
-        if (
-            tipo === "textarea"
-        ) {
-
-            return `
-
-                <div class="engine-field">
-
-                    <label
-                        for="engine-${escaparAtributo(nome)}"
-                    >
-                        ${escaparHTML(label)}
-                    </label>
-
-                    <textarea
-                        id="engine-${escaparAtributo(nome)}"
-                        name="${escaparAtributo(nome)}"
-                        placeholder="${escaparAtributo(placeholder)}"
-                        ${required}
-                    ></textarea>
-
-                </div>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // INPUT
-        // ====================================================
-
-        return `
-
-            <div class="engine-field">
-
-                <label
-                    for="engine-${escaparAtributo(nome)}"
-                >
-                    ${escaparHTML(label)}
-                </label>
-
-
-                <input
-                    id="engine-${escaparAtributo(nome)}"
-                    type="${escaparAtributo(tipo)}"
-                    name="${escaparAtributo(nome)}"
-                    placeholder="${escaparAtributo(placeholder)}"
-                    ${required}
-                >
-
-            </div>
-
-        `;
-
-    }
-
-
-    // ========================================================
-    // LOCALIZAR FORMULÁRIO
-    // ========================================================
-
-    function localizarFormulario() {
-
-        formulario =
-            container?.querySelector(
-                "form"
+            console.log(
+                `FORM ${entity} → EDITAR`,
+                registro
             );
 
 
-        if (!formulario) {
+            preencher(registro);
 
-            throw new Error(
-                `Form ${engine.entity}: ` +
-                "elemento <form> não encontrado."
+
+            mostrar();
+
+
+            focarPrimeiroCampo();
+
+
+            emitir(
+                "editar",
+                registro
             );
 
-        }
+        },
 
 
-        btnSalvar =
-            formulario.querySelector(
-                "[data-engine-salvar]"
+        /* ====================================================
+           PREENCHER
+        ==================================================== */
+
+        preencher(registro) {
+
+            garantirInicializado();
+
+
+            if (!formulario) {
+
+                return;
+
+            }
+
+
+            const dados =
+                registro || {};
+
+
+            const campos =
+                formulario.querySelectorAll(
+                    "[name]"
+                );
+
+
+            campos.forEach(
+                campo => {
+
+                    const nome =
+                        campo.name;
+
+
+                    if (!nome) {
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * ID nunca deve ser exibido.
+                     */
+
+                    if (
+                        nome.toLowerCase() === "id"
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const valor =
+                        obterValorRegistro(
+                            dados,
+                            nome
+                        );
+
+
+                    preencherCampo(
+                        campo,
+                        valor
+                    );
+
+                }
             );
 
 
-        btnCancelar =
-            formulario.querySelector(
-                "[data-engine-cancelar]"
+            atualizarModo();
+
+
+        },
+
+
+        /* ====================================================
+           OBTER DADOS
+        ==================================================== */
+
+        obterDados() {
+
+            garantirInicializado();
+
+
+            if (!formulario) {
+
+                return {};
+
+            }
+
+
+            const dados = {};
+
+
+            const elementos =
+                formulario.querySelectorAll(
+                    "[name]"
+                );
+
+
+            elementos.forEach(
+                campo => {
+
+                    const nome =
+                        campo.name;
+
+
+                    if (!nome) {
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * ID não é enviado pelo formulário.
+                     *
+                     * O Engine utiliza o ID do registro
+                     * em edição.
+                     */
+
+                    if (
+                        nome.toLowerCase() === "id"
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    dados[nome] =
+                        obterValorCampo(
+                            campo
+                        );
+
+                }
             );
 
-    }
+
+            console.log(
+                `FORM ${entity} → DADOS PARA SALVAR:`,
+                dados
+            );
 
 
-    // ========================================================
-    // REGISTRAR EVENTOS
-    // ========================================================
+            return dados;
 
-    function registrarEventos() {
-
-        /*
-         * Proteção contra registro duplicado.
-         */
-
-        if (
-            eventosRegistrados
-        ) {
-
-            return;
-
-        }
+        },
 
 
-        if (!formulario) {
+        /* ====================================================
+           SALVAR
+        ==================================================== */
 
-            return;
+        async salvar() {
 
-        }
-
-
-        eventosRegistrados =
-            true;
+            garantirInicializado();
 
 
-        // ====================================================
-        // SUBMIT
-        // ====================================================
+            if (salvando) {
 
-        formulario.addEventListener(
-            "submit",
-            async evento => {
+                console.warn(
+                    `FORM ${entity} → SALVAMENTO JÁ EM ANDAMENTO`
+                );
 
-                evento.preventDefault();
+                return;
 
-                evento.stopPropagation();
+            }
+
+
+            salvando = true;
+
+
+            try {
+
+                const dados =
+                    form.obterDados();
 
 
                 /*
-                 * Impedir duplo salvamento.
+                 * O Engine decide:
+                 *
+                 * Novo:
+                 *     engine.salvar(dados)
+                 *
+                 * Edição:
+                 *     engine.salvar(dados)
+                 *
+                 * Não duplicamos essa lógica aqui.
                  */
 
-                if (
-                    engine.state?.salvando
-                ) {
-
-                    console.warn(
-                        `FORM ${engine.entity} → ` +
-                        "SALVAMENTO JÁ EM ANDAMENTO"
-                    );
-
-                    return;
-
-                }
-
-
-                try {
-
-                    const dados =
-                        obterDados();
-
-
-                    console.log(
-                        `FORM ${engine.entity} → ` +
-                        "DADOS PARA SALVAR:",
-                        dados
-                    );
-
-
+                const resposta =
                     await engine.salvar(
                         dados
                     );
 
 
-                } catch (erro) {
+                limpar();
 
-                    console.error(
-                        `FORM ${engine.entity} → ` +
-                        "ERRO AO SALVAR:",
-                        erro
-                    );
 
-                }
+                esconder();
+
+
+                emitir(
+                    "salvo",
+                    resposta
+                );
+
+
+                return resposta;
+
+
+            } catch (erro) {
+
+                console.error(
+                    `FORM ${entity} → ERRO AO SALVAR:`,
+                    erro
+                );
+
+
+                emitir(
+                    "erro",
+                    erro
+                );
+
+
+                throw erro;
+
+
+            } finally {
+
+                salvando = false;
 
             }
-        );
+
+        },
 
 
-        // ====================================================
-        // CANCELAR
-        // ====================================================
+        /* ====================================================
+           CANCELAR
+        ==================================================== */
 
-        if (btnCancelar) {
+        cancelar() {
 
-            btnCancelar.addEventListener(
-                "click",
-                evento => {
+            garantirInicializado();
 
-                    evento.preventDefault();
 
-                    engine.fecharFormulario();
+            console.log(
+                `FORM ${entity} → CANCELAR`
+            );
+
+
+            limpar();
+
+
+            esconder();
+
+
+            /*
+             * Deixa o Engine limpar
+             * registroEditando.
+             */
+
+            if (
+                typeof engine.fecharFormulario ===
+                "function"
+            ) {
+
+                engine.fecharFormulario();
+
+            }
+
+
+            emitir(
+                "cancelado"
+            );
+
+        },
+
+
+        /* ====================================================
+           LIMPAR
+        ==================================================== */
+
+        limpar() {
+
+            if (!formulario) {
+
+                return;
+
+            }
+
+
+            formulario.reset();
+
+
+            /*
+             * Reset não necessariamente remove
+             * valores programáticos de selects.
+             */
+
+            const campos =
+                formulario.querySelectorAll(
+                    "[name]"
+                );
+
+
+            campos.forEach(
+                campo => {
+
+                    if (
+                        campo.type === "checkbox"
+                    ) {
+
+                        campo.checked = false;
+
+                    }
 
                 }
             );
 
+
+            atualizarModo();
+
+        },
+
+
+        /* ====================================================
+           MOSTRAR
+        ==================================================== */
+
+        mostrar() {
+
+            if (!container) {
+
+                return;
+
+            }
+
+
+            container.hidden = false;
+
+            container.style.display = "";
+
+
+            container.classList.add(
+                "engine-form-visible"
+            );
+
+
+        },
+
+
+        /* ====================================================
+           ESCONDER
+        ==================================================== */
+
+        esconder() {
+
+            if (!container) {
+
+                return;
+
+            }
+
+
+            container.classList.remove(
+                "engine-form-visible"
+            );
+
+
+            /*
+             * Usamos hidden.
+             *
+             * Não removemos o HTML.
+             */
+
+            container.hidden = true;
+
+        },
+
+
+        /* ====================================================
+           ATUALIZAR MODO
+        ==================================================== */
+
+        atualizarModo() {
+
+            atualizarModo();
+
+        },
+
+
+        /* ====================================================
+           RENDERIZAR
+        ==================================================== */
+
+        renderizar() {
+
+            criarFormulario();
+
+        },
+
+
+        /* ====================================================
+           EMITIR EVENTO
+        ==================================================== */
+
+        emitir(nome, detalhe) {
+
+            emitir(
+                nome,
+                detalhe
+            );
+
         }
+
+    };
+
+
+    /*
+     * ========================================================
+     * LOCALIZAR CONTAINER
+     * ========================================================
+     */
+
+    function localizarContainer() {
+
+        /*
+         * Primeira opção:
+         *
+         * container recebido na configuração.
+         */
+
+        if (config.container) {
+
+            container =
+                resolverElemento(
+                    config.container
+                );
+
+        }
+
+
+        /*
+         * Segunda opção:
+         *
+         * container do Engine.
+         */
+
+        if (!container && engine.container) {
+
+            const engineContainer =
+                resolverElemento(
+                    engine.container
+                );
+
+
+            if (engineContainer) {
+
+                container =
+                    engineContainer.querySelector(
+                        "[data-engine-form]"
+                    );
+
+            }
+
+        }
+
+
+        /*
+         * Terceira opção:
+         *
+         * procurar pelo atributo dentro do
+         * documento.
+         */
+
+        if (!container) {
+
+            container =
+                document.querySelector(
+                    "[data-engine-form]"
+                );
+
+        }
+
+
+        if (!container) {
+
+            throw new Error(
+                `Form ${entity}: elemento [data-engine-form] não encontrado.`
+            );
+
+        }
+
+
+        form.container =
+            container;
 
     }
 
 
-    // ========================================================
-    // OBTER DADOS
-    // ========================================================
+    /*
+     * ========================================================
+     * CRIAR FORMULÁRIO
+     * ========================================================
+     */
 
-    function obterDados() {
+    function criarFormulario() {
 
-        const dados = {};
+        if (!container) {
 
-
-        if (!formulario) {
-
-            return dados;
+            throw new Error(
+                `Form ${entity}: container não localizado.`
+            );
 
         }
 
 
-        const elementos =
-            formulario.querySelectorAll(
-                "[name]"
+        /*
+         * Se já existe um <form>,
+         * reutilizamos.
+         */
+
+        const existente =
+            container.querySelector(
+                "form[data-engine-formulario]"
             );
 
 
-        elementos.forEach(
-            campo => {
+        if (existente) {
+
+            formulario =
+                existente;
+
+            form.formulario =
+                formulario;
+
+            return;
+
+        }
+
+
+        /*
+         * Criar estrutura.
+         */
+
+        container.innerHTML = `
+
+            <div class="engine-form-wrapper">
+
+                <div class="engine-form-header">
+
+                    <h2 data-engine-form-titulo>
+                        ${escaparHTML(
+                            obterTitulo()
+                        )}
+                    </h2>
+
+                </div>
+
+
+                <form
+                    data-engine-formulario
+                    autocomplete="off"
+                    novalidate
+                >
+
+                    <div
+                        class="engine-form-fields"
+                        data-engine-form-fields
+                    ></div>
+
+
+                    <div class="engine-form-actions">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            data-engine-salvar
+                        >
+                            Salvar
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-engine-cancelar
+                        >
+                            Cancelar
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        `;
+
+
+        formulario =
+            container.querySelector(
+                "form[data-engine-formulario]"
+            );
+
+
+        form.formulario =
+            formulario;
+
+
+        const fieldsContainer =
+            container.querySelector(
+                "[data-engine-form-fields]"
+            );
+
+
+        gerarCampos(
+            fieldsContainer
+        );
+
+
+        /*
+         * Formulário inicia fechado.
+         */
+
+        container.hidden = true;
+
+    }
+
+
+    /*
+     * ========================================================
+     * GERAR CAMPOS
+     * ========================================================
+     */
+
+    function gerarCampos(
+        fieldsContainer
+    ) {
+
+        if (!fieldsContainer) {
+
+            return;
+
+        }
+
+
+        const fields =
+            obterFields();
+
+
+        if (!fields.length) {
+
+            fieldsContainer.innerHTML = `
+
+                <div class="engine-form-empty">
+
+                    Nenhum campo configurado.
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        let html = "";
+
+
+        fields.forEach(
+            (campo, indice) => {
+
+                /*
+                 * ID nunca aparece.
+                 */
 
                 const nome =
-                    campo.name;
+                    obterNomeCampo(
+                        campo
+                    );
 
 
                 if (!nome) {
@@ -688,90 +926,505 @@ export function createForm(config = {}) {
 
 
                 if (
-                    campo.type ===
-                    "checkbox"
+                    nome.toLowerCase() === "id"
                 ) {
-
-                    dados[nome] =
-                        campo.checked;
 
                     return;
 
                 }
 
 
-                dados[nome] =
-                    campo.value;
+                /*
+                 * Campo explicitamente oculto.
+                 */
 
-            }
-        );
+                if (
+                    campo.hidden === true ||
+                    campo.visible === false
+                ) {
 
+                    return;
 
-        return dados;
-
-    }
-
-
-    // ========================================================
-    // PREENCHER
-    // ========================================================
-
-    function preencher(
-        registro = {}
-    ) {
-
-        if (!formulario) {
-
-            return;
-
-        }
+                }
 
 
-        Object.entries(
-            registro
-        )
-        .forEach(
-            ([nome, valor]) => {
-
-                const campo =
-                    formulario.querySelector(
-                        `[name="${cssEscape(nome)}"]`
+                const tipo =
+                    obterTipoCampo(
+                        campo
                     );
 
 
-                if (!campo) {
+                const label =
+                    obterLabelCampo(
+                        campo,
+                        nome
+                    );
 
-                    return;
 
-                }
+                const obrigatorio =
+                    campo.required === true ||
+                    campo.obrigatorio === true;
 
 
-                if (
-                    campo.type ===
-                    "checkbox"
-                ) {
+                const placeholder =
+                    campo.placeholder ||
+                    "";
 
-                    campo.checked =
-                        Boolean(valor);
 
-                } else {
+                const classe =
+                    campo.className ||
+                    campo.class ||
+                    "";
 
-                    campo.value =
-                        valor ?? "";
 
-                }
+                html += `
+
+                    <div
+                        class="engine-field ${escaparHTML(
+                            classe
+                        )}"
+                        data-engine-field="${escaparAtributo(
+                            nome
+                        )}"
+                    >
+
+                        <label
+                            for="engine-field-${indice}"
+                        >
+
+                            ${escaparHTML(label)}
+
+                            ${
+                                obrigatorio
+                                    ? `<span class="engine-required">*</span>`
+                                    : ""
+                            }
+
+                        </label>
+
+                        ${gerarElementoCampo(
+                            campo,
+                            nome,
+                            tipo,
+                            indice,
+                            placeholder
+                        )}
+
+                    </div>
+
+                `;
 
             }
         );
 
+
+        fieldsContainer.innerHTML =
+            html;
+
     }
 
 
-    // ========================================================
-    // LIMPAR
-    // ========================================================
+    /*
+     * ========================================================
+     * GERAR ELEMENTO
+     * ========================================================
+     */
 
-    function limpar() {
+    function gerarElementoCampo(
+        campo,
+        nome,
+        tipo,
+        indice,
+        placeholder
+    ) {
+
+        const id =
+            `engine-field-${indice}`;
+
+
+        const required =
+            campo.required === true ||
+            campo.obrigatorio === true
+                ? "required"
+                : "";
+
+
+        const readonly =
+            campo.readonly === true ||
+            campo.somenteLeitura === true
+                ? "readonly"
+                : "";
+
+
+        const disabled =
+            campo.disabled === true
+                ? "disabled"
+                : "";
+
+
+        const min =
+            campo.min !== undefined
+                ? `min="${escaparAtributo(campo.min)}"`
+                : "";
+
+
+        const max =
+            campo.max !== undefined
+                ? `max="${escaparAtributo(campo.max)}"`
+                : "";
+
+
+        const step =
+            campo.step !== undefined
+                ? `step="${escaparAtributo(campo.step)}"`
+                : "";
+
+
+        const maxlength =
+            campo.maxlength !== undefined
+                ? `maxlength="${escaparAtributo(campo.maxlength)}"`
+                : "";
+
+
+        const pattern =
+            campo.pattern
+                ? `pattern="${escaparAtributo(campo.pattern)}"`
+                : "";
+
+
+        const autocomplete =
+            campo.autocomplete
+                ? `autocomplete="${escaparAtributo(campo.autocomplete)}"`
+                : "autocomplete=\"off\"";
+
+
+        /*
+         * SELECT
+         */
+
+        if (tipo === "select") {
+
+            return gerarSelect(
+                campo,
+                nome,
+                id,
+                required,
+                disabled
+            );
+
+        }
+
+
+        /*
+         * TEXTAREA
+         */
+
+        if (
+            tipo === "textarea" ||
+            campo.multiline === true
+        ) {
+
+            return `
+
+                <textarea
+                    id="${id}"
+                    name="${escaparAtributo(nome)}"
+                    placeholder="${escaparAtributo(
+                        placeholder
+                    )}"
+                    ${required}
+                    ${readonly}
+                    ${disabled}
+                    ${maxlength}
+                ></textarea>
+
+            `;
+
+        }
+
+
+        /*
+         * CHECKBOX
+         */
+
+        if (
+            tipo === "checkbox" ||
+            tipo === "boolean"
+        ) {
+
+            return `
+
+                <label class="engine-checkbox">
+
+                    <input
+                        id="${id}"
+                        type="checkbox"
+                        name="${escaparAtributo(nome)}"
+                        ${required}
+                        ${disabled}
+                    >
+
+                    <span>
+                        ${escaparHTML(
+                            campo.checkboxLabel ||
+                            "Sim"
+                        )}
+                    </span>
+
+                </label>
+
+            `;
+
+        }
+
+
+        /*
+         * RADIO
+         */
+
+        if (tipo === "radio") {
+
+            return gerarRadio(
+                campo,
+                nome,
+                id,
+                required
+            );
+
+        }
+
+
+        /*
+         * INPUT
+         */
+
+        return `
+
+            <input
+                id="${id}"
+                type="${escaparAtributo(tipo)}"
+                name="${escaparAtributo(nome)}"
+                placeholder="${escaparAtributo(
+                    placeholder
+                )}"
+                ${required}
+                ${readonly}
+                ${disabled}
+                ${min}
+                ${max}
+                ${step}
+                ${maxlength}
+                ${pattern}
+                ${autocomplete}
+            >
+
+        `;
+
+    }
+
+
+    /*
+     * ========================================================
+     * SELECT
+     * ========================================================
+     */
+
+    function gerarSelect(
+        campo,
+        nome,
+        id,
+        required,
+        disabled
+    ) {
+
+        const opcoes =
+            obterOpcoes(
+                campo
+            );
+
+
+        let html = `
+
+            <select
+                id="${id}"
+                name="${escaparAtributo(nome)}"
+                ${required}
+                ${disabled}
+            >
+
+        `;
+
+
+        /*
+         * Placeholder.
+         */
+
+        if (
+            campo.placeholder ||
+            campo.allowEmpty !== false
+        ) {
+
+            html += `
+
+                <option value="">
+
+                    ${escaparHTML(
+                        campo.placeholder ||
+                        "Selecione..."
+                    )}
+
+                </option>
+
+            `;
+
+        }
+
+
+        opcoes.forEach(
+            opcao => {
+
+                const valor =
+                    opcao.value !== undefined
+                        ? opcao.value
+                        : opcao.valor;
+
+
+                const texto =
+                    opcao.label !== undefined
+                        ? opcao.label
+                        : (
+                            opcao.text !== undefined
+                                ? opcao.text
+                                : (
+                                    opcao.titulo !== undefined
+                                        ? opcao.titulo
+                                        : valor
+                                )
+                        );
+
+
+                html += `
+
+                    <option
+                        value="${escaparAtributo(
+                            valor
+                        )}"
+                    >
+
+                        ${escaparHTML(
+                            texto
+                        )}
+
+                    </option>
+
+                `;
+
+            }
+        );
+
+
+        html += `
+
+            </select>
+
+        `;
+
+
+        return html;
+
+    }
+
+
+    /*
+     * ========================================================
+     * RADIO
+     * ========================================================
+     */
+
+    function gerarRadio(
+        campo,
+        nome,
+        id,
+        required
+    ) {
+
+        const opcoes =
+            obterOpcoes(
+                campo
+            );
+
+
+        if (!opcoes.length) {
+
+            return "";
+
+        }
+
+
+        return `
+
+            <div
+                class="engine-radio-group"
+                id="${id}"
+            >
+
+                ${opcoes.map(
+                    (opcao, indice) => {
+
+                        const valor =
+                            opcao.value !== undefined
+                                ? opcao.value
+                                : opcao.valor;
+
+
+                        const texto =
+                            opcao.label !== undefined
+                                ? opcao.label
+                                : (
+                                    opcao.text !== undefined
+                                        ? opcao.text
+                                        : valor
+                                );
+
+
+                        return `
+
+                            <label>
+
+                                <input
+                                    type="radio"
+                                    name="${escaparAtributo(nome)}"
+                                    value="${escaparAtributo(valor)}"
+                                    ${indice === 0 && required
+                                        ? "required"
+                                        : ""}
+                                >
+
+                                <span>
+                                    ${escaparHTML(texto)}
+                                </span>
+
+                            </label>
+
+                        `;
+
+                    }
+                ).join("")}
+
+            </div>
+
+        `;
+
+    }
+
+
+    /*
+     * ========================================================
+     * REGISTRAR EVENTOS
+     * ========================================================
+     */
+
+    function registrarEventos() {
 
         if (!formulario) {
 
@@ -780,124 +1433,1018 @@ export function createForm(config = {}) {
         }
 
 
-        formulario.reset();
+        /*
+         * SUBMIT
+         */
 
-    }
+        formulario.addEventListener(
+            "submit",
+            async evento => {
 
-
-    // ========================================================
-    // MOSTRAR
-    // ========================================================
-
-    function mostrar() {
-
-        if (!container) {
-
-            return;
-
-        }
+                evento.preventDefault();
 
 
-        container.hidden =
-            false;
+                if (salvando) {
+
+                    console.warn(
+                        `FORM ${entity} → SALVAMENTO JÁ EM ANDAMENTO`
+                    );
+
+                    return;
+
+                }
 
 
-        container.style.display =
-            "";
+                /*
+                 * Validação HTML.
+                 */
 
-    }
+                if (
+                    !formulario.checkValidity()
+                ) {
 
+                    formulario.reportValidity();
 
-    // ========================================================
-    // ESCONDER
-    // ========================================================
+                    return;
 
-    function esconder() {
-
-        if (!container) {
-
-            return;
-
-        }
+                }
 
 
-        container.hidden =
-            true;
+                try {
 
-    }
+                    await form.salvar();
 
+                } catch (erro) {
 
-    // ========================================================
-    // NOVO
-    // ========================================================
+                    /*
+                     * O Engine já trata o erro.
+                     *
+                     * Não relançamos aqui para evitar
+                     * Promise rejection desnecessário.
+                     */
 
-    function novo() {
+                    console.error(
+                        `FORM ${entity} → ERRO AO SALVAR:`,
+                        erro
+                    );
 
-        limpar();
+                }
 
-        mostrar();
-
-
-        definirTitulo(
-            options.tituloNovo ||
-            "Novo veículo"
+            }
         );
 
-    }
 
+        /*
+         * CANCELAR
+         */
 
-    // ========================================================
-    // EDITAR
-    // ========================================================
-
-    function editar(
-        registro
-    ) {
-
-        limpar();
-
-        preencher(
-            registro
-        );
-
-        mostrar();
-
-
-        definirTitulo(
-            options.tituloEditar ||
-            "Editar veículo"
-        );
-
-    }
-
-
-    // ========================================================
-    // TÍTULO
-    // ========================================================
-
-    function definirTitulo(
-        titulo
-    ) {
-
-        const elemento =
-            formulario?.querySelector(
-                "[data-engine-form-title]"
+        const btnCancelar =
+            formulario.querySelector(
+                "[data-engine-cancelar]"
             );
 
 
-        if (elemento) {
+        if (btnCancelar) {
 
-            elemento.textContent =
-                titulo;
+            btnCancelar.addEventListener(
+                "click",
+                () => {
+
+                    form.cancelar();
+
+                }
+            );
 
         }
 
     }
 
 
-    // ========================================================
-    // ESCAPAR HTML
-    // ========================================================
+    /*
+     * ========================================================
+     * ATUALIZAR MODO
+     * ========================================================
+     */
+
+    function atualizarModo() {
+
+        if (!container) {
+
+            return;
+
+        }
+
+
+        const titulo =
+            container.querySelector(
+                "[data-engine-form-titulo]"
+            );
+
+
+        const editando =
+            Boolean(
+                engine.state &&
+                engine.state.registroEditando
+            );
+
+
+        if (titulo) {
+
+            titulo.textContent =
+                editando
+                    ? `Editar ${obterTitulo()}`
+                    : `Novo ${obterTitulo()}`;
+
+        }
+
+
+        const botaoSalvar =
+            container.querySelector(
+                "[data-engine-salvar]"
+            );
+
+
+        if (botaoSalvar) {
+
+            botaoSalvar.textContent =
+                editando
+                    ? "Atualizar"
+                    : "Salvar";
+
+        }
+
+
+        container.classList.toggle(
+            "modo-edicao",
+            editando
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * OBTER FIELDS
+     * ========================================================
+     */
+
+    function obterFields() {
+
+        if (
+            schema &&
+            Array.isArray(
+                schema.fields
+            )
+        ) {
+
+            return schema.fields;
+
+        }
+
+
+        if (
+            schema &&
+            Array.isArray(
+                schema.campos
+            )
+        ) {
+
+            return schema.campos;
+
+        }
+
+
+        return [];
+
+    }
+
+
+    /*
+     * ========================================================
+     * NOME DO CAMPO
+     * ========================================================
+     */
+
+    function obterNomeCampo(campo) {
+
+        if (
+            typeof campo === "string"
+        ) {
+
+            return campo;
+
+        }
+
+
+        return (
+            campo?.name ||
+            campo?.campo ||
+            campo?.field ||
+            campo?.nome ||
+            ""
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * LABEL
+     * ========================================================
+     */
+
+    function obterLabelCampo(
+        campo,
+        nome
+    ) {
+
+        if (
+            typeof campo === "string"
+        ) {
+
+            return nome;
+
+        }
+
+
+        return (
+            campo?.label ||
+            campo?.titulo ||
+            campo?.title ||
+            campo?.rotulo ||
+            nome
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * TIPO
+     * ========================================================
+     */
+
+    function obterTipoCampo(
+        campo
+    ) {
+
+        if (
+            typeof campo === "string"
+        ) {
+
+            return "text";
+
+        }
+
+
+        const tipo =
+            String(
+                campo?.type ||
+                campo?.tipo ||
+                campo?.inputType ||
+                "text"
+            )
+            .toLowerCase();
+
+
+        const mapa = {
+
+            string:
+                "text",
+
+            text:
+                "text",
+
+            number:
+                "number",
+
+            integer:
+                "number",
+
+            numeric:
+                "number",
+
+            decimal:
+                "number",
+
+            date:
+                "date",
+
+            datetime:
+                "datetime-local",
+
+            "datetime-local":
+                "datetime-local",
+
+            time:
+                "time",
+
+            email:
+                "email",
+
+            tel:
+                "tel",
+
+            url:
+                "url",
+
+            password:
+                "password",
+
+            checkbox:
+                "checkbox",
+
+            boolean:
+                "checkbox",
+
+            bool:
+                "checkbox",
+
+            select:
+                "select",
+
+            dropdown:
+                "select",
+
+            textarea:
+                "textarea",
+
+            radio:
+                "radio"
+
+        };
+
+
+        return mapa[tipo] || tipo || "text";
+
+    }
+
+
+    /*
+     * ========================================================
+     * OPÇÕES
+     * ========================================================
+     */
+
+    function obterOpcoes(
+        campo
+    ) {
+
+        if (
+            !campo ||
+            typeof campo !== "object"
+        ) {
+
+            return [];
+
+        }
+
+
+        const opcoes =
+            campo.options ||
+            campo.opcoes ||
+            campo.choices ||
+            campo.valores ||
+            [];
+
+
+        if (!Array.isArray(opcoes)) {
+
+            return [];
+
+        }
+
+
+        /*
+         * Permitir formato simples:
+         *
+         * ["ATIVO", "INATIVO"]
+         */
+
+        return opcoes.map(
+            opcao => {
+
+                if (
+                    typeof opcao === "string" ||
+                    typeof opcao === "number"
+                ) {
+
+                    return {
+
+                        value: opcao,
+
+                        label: opcao
+
+                    };
+
+                }
+
+
+                return opcao;
+
+            }
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * OBTER VALOR DO REGISTRO
+     * ========================================================
+     *
+     * Aceita:
+     *
+     * registro.id
+     * registro.ID
+     *
+     * registro.data_cadastro
+     * registro.Data
+     *
+     * etc.
+     *
+     * Primeiro procura exatamente o nome.
+     * Depois procura sem diferença de maiúsculas/minúsculas.
+     */
+
+    function obterValorRegistro(
+        registro,
+        nome
+    ) {
+
+        if (!registro) {
+
+            return "";
+
+        }
+
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                registro,
+                nome
+            )
+        ) {
+
+            return registro[nome];
+
+        }
+
+
+        const nomeLower =
+            String(nome)
+                .toLowerCase();
+
+
+        const chave =
+            Object.keys(
+                registro
+            )
+            .find(
+                item =>
+                    String(item)
+                        .toLowerCase() ===
+                    nomeLower
+            );
+
+
+        if (chave) {
+
+            return registro[chave];
+
+        }
+
+
+        return "";
+
+    }
+
+
+    /*
+     * ========================================================
+     * PREENCHER CAMPO
+     * ========================================================
+     */
+
+    function preencherCampo(
+        campo,
+        valor
+    ) {
+
+        if (!campo) {
+
+            return;
+
+        }
+
+
+        /*
+         * CHECKBOX
+         */
+
+        if (
+            campo.type === "checkbox"
+        ) {
+
+            campo.checked =
+                valor === true ||
+                valor === 1 ||
+                String(valor)
+                    .toLowerCase() === "true" ||
+                String(valor)
+                    .toLowerCase() === "sim" ||
+                String(valor)
+                    .toLowerCase() === "1";
+
+            return;
+
+        }
+
+
+        /*
+         * RADIO
+         */
+
+        if (
+            campo.type === "radio"
+        ) {
+
+            campo.checked =
+                String(campo.value) ===
+                String(valor ?? "");
+
+            return;
+
+        }
+
+
+        /*
+         * DATETIME
+         */
+
+        if (
+            campo.type === "datetime-local"
+        ) {
+
+            campo.value =
+                normalizarDateTimeLocal(
+                    valor
+                );
+
+            return;
+
+        }
+
+
+        /*
+         * TIME
+         */
+
+        if (
+            campo.type === "time"
+        ) {
+
+            campo.value =
+                normalizarHora(
+                    valor
+                );
+
+            return;
+
+        }
+
+
+        /*
+         * DATE
+         */
+
+        if (
+            campo.type === "date"
+        ) {
+
+            campo.value =
+                normalizarData(
+                    valor
+                );
+
+            return;
+
+        }
+
+
+        campo.value =
+            valor === null ||
+            valor === undefined
+                ? ""
+                : String(valor);
+
+    }
+
+
+    /*
+     * ========================================================
+     * OBTER VALOR DO CAMPO
+     * ========================================================
+     */
+
+    function obterValorCampo(
+        campo
+    ) {
+
+        if (
+            campo.type === "checkbox"
+        ) {
+
+            return campo.checked;
+
+        }
+
+
+        /*
+         * Radio:
+         *
+         * somente o selecionado será processado.
+         */
+
+        if (
+            campo.type === "radio"
+        ) {
+
+            return campo.checked
+                ? campo.value
+                : "";
+
+        }
+
+
+        let valor =
+            campo.value;
+
+
+        /*
+         * NUMBER
+         *
+         * Não convertemos automaticamente.
+         *
+         * O backend/PostgreSQL pode tratar o tipo.
+         * Isso evita problemas com valores vazios.
+         */
+
+        if (
+            campo.type === "number" &&
+            valor === ""
+        ) {
+
+            return null;
+
+        }
+
+
+        return valor;
+
+    }
+
+
+    /*
+     * ========================================================
+     * NORMALIZAR DATA
+     * ========================================================
+     */
+
+    function normalizarData(
+        valor
+    ) {
+
+        if (!valor) {
+
+            return "";
+
+        }
+
+
+        const texto =
+            String(valor);
+
+
+        /*
+         * 2026-08-29
+         */
+
+        if (
+            /^\d{4}-\d{2}-\d{2}$/
+                .test(texto)
+        ) {
+
+            return texto;
+
+        }
+
+
+        /*
+         * 2026-08-29T08:36:35
+         */
+
+        if (
+            /^\d{4}-\d{2}-\d{2}T/
+                .test(texto)
+        ) {
+
+            return texto.substring(
+                0,
+                10
+            );
+
+        }
+
+
+        /*
+         * 29/08/2026
+         */
+
+        const br =
+            texto.match(
+                /^(\d{2})\/(\d{2})\/(\d{4})$/
+            );
+
+
+        if (br) {
+
+            return `${br[3]}-${br[2]}-${br[1]}`;
+
+        }
+
+
+        return texto;
+
+    }
+
+
+    /*
+     * ========================================================
+     * NORMALIZAR HORA
+     * ========================================================
+     */
+
+    function normalizarHora(
+        valor
+    ) {
+
+        if (!valor) {
+
+            return "";
+
+        }
+
+
+        const texto =
+            String(valor);
+
+
+        /*
+         * 08:36:35
+         *
+         * vira:
+         *
+         * 08:36
+         */
+
+        const match =
+            texto.match(
+                /^(\d{2}):(\d{2})/
+            );
+
+
+        if (match) {
+
+            return `${match[1]}:${match[2]}`;
+
+        }
+
+
+        return texto;
+
+    }
+
+
+    /*
+     * ========================================================
+     * NORMALIZAR DATETIME
+     * ========================================================
+     */
+
+    function normalizarDateTimeLocal(
+        valor
+    ) {
+
+        if (!valor) {
+
+            return "";
+
+        }
+
+
+        const texto =
+            String(valor)
+                .trim();
+
+
+        /*
+         * Remove segundos:
+         *
+         * 2026-08-29T08:36:35
+         *
+         * →
+         *
+         * 2026-08-29T08:36
+         */
+
+        const match =
+            texto.match(
+                /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})/
+            );
+
+
+        if (match) {
+
+            return `${match[1]}T${match[2]}:${match[3]}`;
+
+        }
+
+
+        return texto;
+
+    }
+
+
+    /*
+     * ========================================================
+     * OBTER TÍTULO
+     * ========================================================
+     */
+
+    function obterTitulo() {
+
+        return (
+            options.titulo ||
+            schema?.title ||
+            schema?.titulo ||
+            entity ||
+            "Registro"
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * GARANTIR INICIALIZAÇÃO
+     * ========================================================
+     */
+
+    function garantirInicializado() {
+
+        if (!iniciado) {
+
+            throw new Error(
+                `Form ${entity}: não foi inicializado.`
+            );
+
+        }
+
+    }
+
+
+    /*
+     * ========================================================
+     * FOCAR PRIMEIRO CAMPO
+     * ========================================================
+     */
+
+    function focarPrimeiroCampo() {
+
+        if (!formulario) {
+
+            return;
+
+        }
+
+
+        const campo =
+            formulario.querySelector(
+                "input:not([type='hidden']):not([disabled]), select:not([disabled]), textarea:not([disabled])"
+            );
+
+
+        if (campo) {
+
+            /*
+             * Pequeno atraso para garantir
+             * que o formulário já esteja visível.
+             */
+
+            setTimeout(
+                () => {
+
+                    try {
+
+                        campo.focus();
+
+                    } catch (erro) {
+
+                        /*
+                         * Não interromper o fluxo.
+                         */
+
+                    }
+
+                },
+                50
+            );
+
+        }
+
+    }
+
+
+    /*
+     * ========================================================
+     * EMITIR
+     * ========================================================
+     */
+
+    function emitir(
+        nome,
+        detalhe
+    ) {
+
+        if (!container) {
+
+            return;
+
+        }
+
+
+        container.dispatchEvent(
+
+            new CustomEvent(
+                `form:${nome}`,
+                {
+                    detail: detalhe
+                }
+            )
+
+        );
+
+    }
+
+
+    /*
+     * ========================================================
+     * RESOLVER ELEMENTO
+     * ========================================================
+     */
+
+    function resolverElemento(
+        elemento
+    ) {
+
+        if (!elemento) {
+
+            return null;
+
+        }
+
+
+        if (
+            typeof elemento === "string"
+        ) {
+
+            return document.querySelector(
+                elemento
+            );
+
+        }
+
+
+        if (
+            elemento instanceof Element
+        ) {
+
+            return elemento;
+
+        }
+
+
+        return null;
+
+    }
+
+
+    /*
+     * ========================================================
+     * ESCAPAR HTML
+     * ========================================================
+     */
 
     function escaparHTML(
         valor
@@ -935,9 +2482,11 @@ export function createForm(config = {}) {
     }
 
 
-    // ========================================================
-    // ESCAPAR ATRIBUTO
-    // ========================================================
+    /*
+     * ========================================================
+     * ESCAPAR ATRIBUTO
+     * ========================================================
+     */
 
     function escaparAtributo(
         valor
@@ -950,60 +2499,12 @@ export function createForm(config = {}) {
     }
 
 
-    // ========================================================
-    // CSS ESCAPE
-    // ========================================================
+    /*
+     * ========================================================
+     * RETORNO
+     * ========================================================
+     */
 
-    function cssEscape(
-        valor
-    ) {
-
-        if (
-            window.CSS &&
-            typeof window.CSS.escape ===
-            "function"
-        ) {
-
-            return window.CSS.escape(
-                valor
-            );
-
-        }
-
-
-        return String(
-            valor
-        )
-        .replace(
-            /["\\]/g,
-            "\\$&"
-        );
-
-    }
-
-
-    // ========================================================
-    // API PÚBLICA
-    // ========================================================
-
-    return {
-
-        iniciar,
-
-        mostrar,
-
-        esconder,
-
-        limpar,
-
-        preencher,
-
-        obterDados,
-
-        novo,
-
-        editar
-
-    };
+    return form;
 
 }
