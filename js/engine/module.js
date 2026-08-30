@@ -2,28 +2,35 @@
  * ============================================================
  * MODULE
  * Painel Frota
- * Arquivo: module.js
+ * Arquivo: js/engine/module.js
  *
  * Responsabilidade:
  *
- * - Criar o módulo completo
- * - Localizar o container
- * - Criar estrutura HTML base
+ * - Criar um módulo
  * - Criar State
  * - Criar Engine
- * - Criar Toolbar
  * - Criar Form
  * - Criar Table
+ * - Criar Toolbar
  * - Conectar os componentes
+ * - Inicializar o módulo
  *
- * NÃO conhece:
+ * O Module NÃO executa CRUD diretamente.
  *
- * - PostgreSQL
- * - Supabase
- * - Google Sheets
- * - Regras específicas de VEÍCULOS
- * - Regras específicas de EMPREGADOS
- * - Regras específicas de LANÇAMENTOS
+ * Arquitetura:
+ *
+ * PAGE
+ *   ↓
+ * MODULE
+ *   ├── STATE
+ *   ├── ENGINE
+ *   ├── FORM
+ *   ├── TABLE
+ *   └── TOOLBAR
+ *          ↓
+ *      CRUD SERVICE
+ *          ↓
+ *       SUPABASE
  *
  * ============================================================
  */
@@ -62,28 +69,17 @@ import {
 // CREATE MODULE
 // ============================================================
 
-export function createModule(config = {}) {
+export function createModule(
+    config = {}
+) {
 
     // ========================================================
     // VALIDAR CONFIGURAÇÃO
     // ========================================================
 
-    if (!config.entity) {
-
-        throw new Error(
-            "Module: entidade não informada."
-        );
-
-    }
-
-
-    if (!config.container) {
-
-        throw new Error(
-            `Module ${config.entity}: container não informado.`
-        );
-
-    }
+    validarConfiguracao(
+        config
+    );
 
 
     // ========================================================
@@ -91,15 +87,11 @@ export function createModule(config = {}) {
     // ========================================================
 
     const entity =
-        String(
-            config.entity
-        )
-        .trim()
-        .toLowerCase();
+        config.entity;
 
 
     const schema =
-        config.schema || null;
+        config.schema || {};
 
 
     const options =
@@ -111,7 +103,7 @@ export function createModule(config = {}) {
 
 
     // ========================================================
-    // LOCALIZAR CONTAINER
+    // CONTAINER
     // ========================================================
 
     const container =
@@ -127,7 +119,11 @@ export function createModule(config = {}) {
     if (!container) {
 
         throw new Error(
-            `Module ${entity}: container "${containerSelector}" não encontrado.`
+
+            `Module ${entity}: ` +
+
+            `container "${containerSelector}" não encontrado.`
+
         );
 
     }
@@ -140,43 +136,57 @@ export function createModule(config = {}) {
     const state =
         createState({
 
-            entity,
+            name:
+                options.stateName ||
+                entity,
 
             pageSize:
                 options.pageSize ||
-                config.pageSize ||
                 10
 
         });
 
 
     // ========================================================
-    // ESTRUTURA BASE
+    // COMPONENTES
     // ========================================================
 
-    renderizarEstrutura();
+    let engine =
+        null;
+
+
+    let form =
+        null;
+
+
+    let table =
+        null;
+
+
+    let toolbar =
+        null;
 
 
     // ========================================================
-    // ENGINE
+    // ESTRUTURA HTML
     // ========================================================
 
-    /*
-     * O engine é criado com:
-     *
-     * - entity
-     * - schema
-     * - container
-     * - state
-     * - options
-     *
-     * IMPORTANTE:
-     *
-     * engine.js NÃO deve criar novamente
-     * form, table ou toolbar.
-     */
+    prepararContainer();
 
-    const engine =
+
+    // ========================================================
+    // LOCALIZAR ÁREAS
+    // ========================================================
+
+    const areas =
+        localizarAreas();
+
+
+    // ========================================================
+    // CRIAR ENGINE
+    // ========================================================
+
+    engine =
         createEngine({
 
             entity,
@@ -185,67 +195,27 @@ export function createModule(config = {}) {
 
             container,
 
-            state,
-
             options,
 
-            autoStart: false
-
-        });
-
-
-    // ========================================================
-    // TOOLBAR
-    // ========================================================
-
-    const toolbar =
-        createToolbar({
-
-            entity,
-
-            container,
-
-            engine,
-
-            options
-
-        });
-
-
-    // ========================================================
-    // FORM
-    // ========================================================
-
-    const form =
-        createForm({
-
-            entity,
-
-            schema,
-
-            container,
-
             state,
 
-            engine,
-
-            options
+            autoStart:
+                false
 
         });
 
 
     // ========================================================
-    // TABLE
+    // CRIAR TABLE
     // ========================================================
 
-    const table =
+    table =
         createTable({
 
-            entity,
+            container:
+                areas.tabela,
 
             schema,
-
-            container,
 
             state,
 
@@ -257,10 +227,67 @@ export function createModule(config = {}) {
 
 
     // ========================================================
-    // API PÚBLICA
+    // CRIAR FORM
+    // ========================================================
+
+    form =
+        createForm({
+
+            container:
+                areas.formulario,
+
+            schema,
+
+            state,
+
+            engine,
+
+            options
+
+        });
+
+
+    // ========================================================
+    // CRIAR TOOLBAR
+    // ========================================================
+
+    toolbar =
+        createToolbar({
+
+            container:
+                areas.toolbar,
+
+            schema,
+
+            state,
+
+            engine,
+
+            form,
+
+            table,
+
+            options
+
+        });
+
+
+    // ========================================================
+    // CONECTAR ENGINE
+    // ========================================================
+
+    conectarEngine();
+
+
+    // ========================================================
+    // OBJETO MODULE
     // ========================================================
 
     const module = {
+
+        // ----------------------------------------------------
+        // IDENTIFICAÇÃO
+        // ----------------------------------------------------
 
         entity,
 
@@ -270,258 +297,369 @@ export function createModule(config = {}) {
 
         container,
 
+
+        // ----------------------------------------------------
+        // COMPONENTES
+        // ----------------------------------------------------
+
         state,
 
         engine,
-
-        toolbar,
 
         form,
 
         table,
 
-        iniciar,
+        toolbar,
 
-        recarregar,
 
-        destruir
+        // ----------------------------------------------------
+        // INICIAR
+        // ----------------------------------------------------
+
+        async iniciar() {
+
+            console.log(
+                `MODULE → INICIAR → ${entity}`
+            );
+
+
+            try {
+
+                // --------------------------------------------
+                // TOOLBAR
+                // --------------------------------------------
+
+                if (
+                    toolbar &&
+                    typeof toolbar.iniciar ===
+                    "function"
+                ) {
+
+                    toolbar.iniciar();
+
+                }
+
+
+                // --------------------------------------------
+                // FORM
+                // --------------------------------------------
+
+                if (
+                    form &&
+                    typeof form.iniciar ===
+                    "function"
+                ) {
+
+                    form.iniciar();
+
+                }
+
+
+                // --------------------------------------------
+                // TABLE
+                // --------------------------------------------
+
+                if (
+                    table &&
+                    typeof table.iniciar ===
+                    "function"
+                ) {
+
+                    table.iniciar();
+
+                }
+
+
+                // --------------------------------------------
+                // ENGINE
+                // --------------------------------------------
+
+                if (
+                    engine &&
+                    typeof engine.iniciar ===
+                    "function"
+                ) {
+
+                    await engine.iniciar();
+
+                }
+
+
+                // --------------------------------------------
+                // EVENTO
+                // --------------------------------------------
+
+                emitirEvento(
+                    container,
+                    "modulo-iniciado",
+                    module
+                );
+
+
+                console.log(
+                    `MODULE → INICIADO → ${entity}`
+                );
+
+
+                return module;
+
+            } catch (erro) {
+
+                console.error(
+
+                    `Module ${entity}: ` +
+                    `falha na inicialização`,
+
+                    erro
+
+                );
+
+
+                throw erro;
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // RECARREGAR
+        // ----------------------------------------------------
+
+        async recarregar() {
+
+            if (
+                engine &&
+                typeof engine.recarregar ===
+                "function"
+            ) {
+
+                return engine.recarregar();
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // NOVO
+        // ----------------------------------------------------
+
+        novo() {
+
+            if (
+                engine &&
+                typeof engine.novo ===
+                "function"
+            ) {
+
+                return engine.novo();
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // EDITAR
+        // ----------------------------------------------------
+
+        async editar(
+            id
+        ) {
+
+            if (
+                engine &&
+                typeof engine.editar ===
+                "function"
+            ) {
+
+                return engine.editar(
+                    id
+                );
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // SALVAR
+        // ----------------------------------------------------
+
+        async salvar(
+            dados
+        ) {
+
+            if (
+                engine &&
+                typeof engine.salvar ===
+                "function"
+            ) {
+
+                return engine.salvar(
+                    dados
+                );
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // EXCLUIR
+        // ----------------------------------------------------
+
+        async excluir(
+            id
+        ) {
+
+            if (
+                engine &&
+                typeof engine.excluir ===
+                "function"
+            ) {
+
+                return engine.excluir(
+                    id
+                );
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // FILTRAR
+        // ----------------------------------------------------
+
+        filtrar(
+            valor
+        ) {
+
+            if (
+                engine &&
+                typeof engine.filtrar ===
+                "function"
+            ) {
+
+                return engine.filtrar(
+                    valor
+                );
+
+            }
+
+        },
+
+
+        // ----------------------------------------------------
+        // FECHAR FORMULÁRIO
+        // ----------------------------------------------------
+
+        fecharFormulario() {
+
+            if (
+                engine &&
+                typeof engine.fecharFormulario ===
+                "function"
+            ) {
+
+                return engine.fecharFormulario();
+
+            }
+
+        }
 
     };
 
 
     // ========================================================
-    // CONECTAR COMPONENTES AO ENGINE
+    // DISPONIBILIZAR MODULE
     // ========================================================
+
+    return module;
+
+}
+
+
+// ============================================================
+// PREPARAR CONTAINER
+// ============================================================
+
+function prepararContainer() {
 
     /*
-     * O Engine continua sendo responsável pelo CRUD,
-     * mas delega atualização visual aos componentes.
+     * Se o container já possui estrutura criada
+     * pelo HTML, preservamos.
      */
 
-    conectarComponentes();
+    let estrutura =
+        containerEstruturaExistente();
 
 
-    // ========================================================
-    // INICIALIZAÇÃO
-    // ========================================================
+    if (estrutura) {
 
-    iniciar()
-        .catch(
-            erro => {
-
-                console.error(
-                    `Module ${entity}: falha na inicialização`,
-                    erro
-                );
-
-            }
-        );
-
-
-    // ========================================================
-    // INICIAR
-    // ========================================================
-
-    async function iniciar() {
-
-        console.log(
-            `MODULE → INICIAR → ${entity}`
-        );
-
-
-        /*
-         * Iniciar componentes visuais primeiro.
-         */
-
-        toolbar.iniciar();
-
-        form.iniciar();
-
-        table.iniciar();
-
-
-        /*
-         * Depois carregar dados.
-         */
-
-        await engine.carregar();
-
-
-        return module;
+        return;
 
     }
 
 
-    // ========================================================
-    // RECONECTAR / RECARREGAR
-    // ========================================================
+    /*
+     * O module cria somente a estrutura
+     * das áreas.
+     */
 
-    async function recarregar() {
-
-        console.log(
-            `MODULE → RECARREGAR → ${entity}`
-        );
+    const titulo =
+        optionsTitulo();
 
 
-        return engine.recarregar();
+    container.innerHTML = `
 
-    }
+        <section
+            class="engine-module"
+            data-module="${escaparHTML(entity)}"
+        >
 
-
-    // ========================================================
-    // CONECTAR COMPONENTES
-    // ========================================================
-
-    function conectarComponentes() {
-
-        /*
-         * ====================================================
-         * ENGINE → FORM
-         * ====================================================
-         */
-
-        engine.mostrarFormulario =
-            function () {
-
-                form.mostrar();
-
-            };
-
-
-        engine.esconderFormulario =
-            function () {
-
-                form.esconder();
-
-            };
-
-
-        engine.limparFormulario =
-            function () {
-
-                form.limpar();
-
-            };
-
-
-        engine.preencherFormulario =
-            function (
-                registro
-            ) {
-
-                form.preencher(
-                    registro
-                );
-
-            };
-
-
-        /*
-         * ====================================================
-         * ENGINE → TABLE
-         * ====================================================
-         */
-
-        engine.renderizarTabela =
-            function () {
-
-                table.renderizar();
-
-            };
-
-
-        /*
-         * ====================================================
-         * ATUALIZAÇÃO APÓS EVENTOS
-         * ====================================================
-         */
-
-        container.addEventListener(
-            "engine:carregado",
-            () => {
-
-                table.renderizar();
-
-            }
-        );
-
-
-        container.addEventListener(
-            "engine:salvo",
-            () => {
-
-                table.renderizar();
-
-            }
-        );
-
-
-        container.addEventListener(
-            "engine:excluido",
-            () => {
-
-                table.renderizar();
-
-            }
-        );
-
-    }
-
-
-    // ========================================================
-    // ESTRUTURA BASE
-    // ========================================================
-
-    function renderizarEstrutura() {
-
-        /*
-         * IMPORTANTE:
-         *
-         * O module é dono da estrutura principal.
-         *
-         * Cada componente preenche apenas sua área.
-         */
-
-        container.innerHTML = `
-
-            <section
-                class="engine"
-                data-engine-module="${escaparAtributo(
-                    entity
-                )}"
+            <header
+                class="engine-header"
             >
 
-                <!-- ==========================================
-                     TOOLBAR
-                =========================================== -->
-
-                <header
-                    class="engine-header"
-                    data-engine-toolbar-container
+                <div
+                    class="engine-title"
                 >
 
-                    <div
-                        class="engine-toolbar"
-                        data-engine-toolbar
-                    ></div>
+                    <h1>
 
-                </header>
+                        ${escaparHTML(titulo)}
 
+                    </h1>
 
-                <!-- ==========================================
-                     FORM
-                =========================================== -->
-
-                <section
-                    class="engine-form-container"
-                    data-engine-form
-                    hidden
-                ></section>
+                </div>
 
 
-                <!-- ==========================================
-                     LOADING
-                =========================================== -->
+                <div
+                    class="engine-toolbar"
+                    data-module-toolbar
+                >
+
+                </div>
+
+            </header>
+
+
+            <section
+                class="engine-form-container"
+                data-module-form
+                hidden
+            >
+
+            </section>
+
+
+            <section
+                class="engine-table-container"
+            >
 
                 <div
                     class="engine-loading"
@@ -534,127 +672,400 @@ export function createModule(config = {}) {
                 </div>
 
 
-                <!-- ==========================================
-                     TABLE
-                =========================================== -->
-
-                <section
-                    class="engine-table-container"
-                    data-engine-table-container
+                <div
+                    class="engine-table-area"
+                    data-module-table
                 >
 
-                    <div
-                        data-engine-table
-                    ></div>
-
-                </section>
+                </div>
 
             </section>
 
-        `;
+        </section>
 
-    }
+    `;
+
+}
 
 
-    // ========================================================
-    // ESCAPAR ATRIBUTO
-    // ========================================================
+// ============================================================
+// LOCALIZAR ÁREAS
+// ============================================================
 
-    function escaparAtributo(
-        valor
+function localizarAreas() {
+
+    const toolbar =
+        container.querySelector(
+            "[data-module-toolbar]"
+        );
+
+
+    const formulario =
+        container.querySelector(
+            "[data-module-form]"
+        );
+
+
+    const tabela =
+        container.querySelector(
+            "[data-module-table]"
+        );
+
+
+    return {
+
+        toolbar,
+
+        formulario,
+
+        tabela
+
+    };
+
+}
+
+
+// ============================================================
+// CONECTAR ENGINE
+// ============================================================
+
+function conectarEngine() {
+
+    // --------------------------------------------------------
+    // ENGINE → TABLE
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:carregado",
+
+        () => {
+
+            if (
+                table &&
+                typeof table.renderizar ===
+                "function"
+            ) {
+
+                table.renderizar();
+
+            }
+
+        }
+
+    );
+
+
+    // --------------------------------------------------------
+    // ENGINE → SALVO
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:salvo",
+
+        () => {
+
+            if (
+                table &&
+                typeof table.renderizar ===
+                "function"
+            ) {
+
+                table.renderizar();
+
+            }
+
+
+            if (
+                form &&
+                typeof form.limpar ===
+                "function"
+            ) {
+
+                form.limpar();
+
+            }
+
+        }
+
+    );
+
+
+    // --------------------------------------------------------
+    // ENGINE → EXCLUÍDO
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:excluido",
+
+        () => {
+
+            if (
+                table &&
+                typeof table.renderizar ===
+                "function"
+            ) {
+
+                table.renderizar();
+
+            }
+
+        }
+
+    );
+
+
+    // --------------------------------------------------------
+    // ENGINE → NOVO
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:novo",
+
+        () => {
+
+            if (
+                form &&
+                typeof form.novo ===
+                "function"
+            ) {
+
+                form.novo();
+
+            }
+
+        }
+
+    );
+
+
+    // --------------------------------------------------------
+    // ENGINE → EDITAR
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:editar",
+
+        evento => {
+
+            if (
+                form &&
+                typeof form.editar ===
+                "function"
+            ) {
+
+                form.editar(
+                    evento.detail
+                );
+
+            }
+
+        }
+
+    );
+
+
+    // --------------------------------------------------------
+    // ENGINE → FORMULÁRIO FECHADO
+    // --------------------------------------------------------
+
+    container.addEventListener(
+
+        "engine:formulario-fechado",
+
+        () => {
+
+            if (
+                form &&
+                typeof form.fechar ===
+                "function"
+            ) {
+
+                form.fechar();
+
+            }
+
+        }
+
+    );
+
+}
+
+
+// ============================================================
+// ESTRUTURA EXISTENTE
+// ============================================================
+
+function containerEstruturaExistente() {
+
+    return (
+
+        container.querySelector(
+            "[data-module-toolbar]"
+        ) &&
+
+        container.querySelector(
+            "[data-module-form]"
+        ) &&
+
+        container.querySelector(
+            "[data-module-table]"
+        )
+
+    );
+
+}
+
+
+// ============================================================
+// TÍTULO
+// ============================================================
+
+function optionsTitulo() {
+
+    return (
+
+        options.titulo ||
+
+        schema.title ||
+
+        schema.titulo ||
+
+        entity
+
+    );
+
+}
+
+
+// ============================================================
+// VALIDAR CONFIGURAÇÃO
+// ============================================================
+
+function validarConfiguracao(
+    config
+) {
+
+    if (
+        !config ||
+        typeof config !==
+        "object"
     ) {
 
-        return String(
-            valor ?? ""
-        )
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
+        throw new Error(
+            "Module: configuração inválida."
         );
 
     }
 
 
-    // ========================================================
-    // DESTRUIR
-    // ========================================================
+    if (
+        !config.entity
+    ) {
 
-    function destruir() {
-
-        console.log(
-            `MODULE → DESTRUIR → ${entity}`
+        throw new Error(
+            "Module: entidade não informada."
         );
-
-
-        /*
-         * Destruir componentes.
-         */
-
-        if (
-            toolbar &&
-            typeof toolbar.destruir === "function"
-        ) {
-
-            toolbar.destruir();
-
-        }
-
-
-        if (
-            form &&
-            typeof form.destruir === "function"
-        ) {
-
-            form.destruir();
-
-        }
-
-
-        if (
-            table &&
-            typeof table.destruir === "function"
-        ) {
-
-            table.destruir();
-
-        }
-
-
-        /*
-         * Limpar HTML.
-         */
-
-        container.innerHTML =
-            "";
 
     }
 
 
-    // ========================================================
-    // RETORNAR MODULE
-    // ========================================================
+    if (
+        !config.container
+    ) {
 
-    return module;
+        throw new Error(
+            "Module: container não informado."
+        );
+
+    }
+
+
+    if (
+        !config.schema
+    ) {
+
+        console.warn(
+
+            `Module ${config.entity}: ` +
+            "schema não informado."
+
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// EMITIR EVENTO
+// ============================================================
+
+function emitirEvento(
+    elemento,
+    nome,
+    detalhe
+) {
+
+    elemento.dispatchEvent(
+
+        new CustomEvent(
+
+            `module:${nome}`,
+
+            {
+
+                detail:
+                    detalhe
+
+            }
+
+        )
+
+    );
+
+}
+
+
+// ============================================================
+// ESCAPAR HTML
+// ============================================================
+
+function escaparHTML(
+    valor
+) {
+
+    return String(
+        valor ?? ""
+    )
+
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+
+    .replace(
+        /</g,
+        "&lt;"
+    )
+
+    .replace(
+        />/g,
+        "&gt;"
+    )
+
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+
+    .replace(
+        /'/g,
+        "&#039;"
+    );
 
 }
