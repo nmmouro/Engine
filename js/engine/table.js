@@ -1,123 +1,87 @@
+```javascript
 /**
  * ============================================================
  * TABLE
  * Painel Frota
- * Arquivo: js/engine/table.js
  *
- * Responsabilidade:
+ * Responsabilidades:
  *
- * - Criar tabela
- * - Inicializar tabela
- * - Renderizar registros
- * - Renderizar ações
- * - Gerar data-id
+ * - Renderizar somente a tabela
+ * - Editar
+ * - Excluir
+ * - Paginação
+ * - Filtro
  *
- * Não possui:
+ * NÃO altera:
  *
- * - CRUD
- * - Supabase
- * - PostgreSQL
+ * - Toolbar
  * - Formulário
- *
+ * - Container principal
  * ============================================================
  */
 
-
-// ============================================================
-// CREATE TABLE
-// ============================================================
 
 export function createTable(
     config = {}
 ) {
 
     const container =
-        config.container;
+        config.container || null;
+
+    const engine =
+        config.engine || null;
 
     const schema =
         config.schema || {};
-
-    const state =
-        config.state;
-
-    const engine =
-        config.engine;
 
     const options =
         config.options || {};
 
 
     // ========================================================
-    // VALIDAÇÃO
+    // VALIDAR
     // ========================================================
 
     if (!container) {
 
         throw new Error(
-            "TABLE: container não informado."
+            "Table: container não informado."
         );
 
     }
 
 
-    if (!state) {
+    if (!engine) {
 
         throw new Error(
-            "TABLE: state não informado."
+            "Table: engine não informado."
         );
 
     }
 
 
     // ========================================================
-    // OBJETO TABLE
+    // INICIAR
     // ========================================================
 
-    const table = {
+    function iniciar() {
 
-        // ----------------------------------------------------
-        // INICIAR
-        // ----------------------------------------------------
-
-        iniciar() {
-
-            renderizar();
-
-        },
+        console.log(
+            `TABLE ${engine.entity} → INICIAR`
+        );
 
 
-        // ----------------------------------------------------
-        // RENDERIZAR
-        // ----------------------------------------------------
-
-        renderizar,
+        registrarEventos();
 
 
-        // Compatibilidade
-        render:
-            renderizar,
+        renderizar();
 
 
-        // ----------------------------------------------------
-        // ATUALIZAR
-        // ----------------------------------------------------
+        console.log(
+            `TABLE ${engine.entity} → INICIADO`
+        );
 
-        atualizar:
-            renderizar,
-
-
-        // ----------------------------------------------------
-        // LIMPAR
-        // ----------------------------------------------------
-
-        limpar() {
-
-            container.innerHTML =
-                "";
-
-        }
-
-    };
+    }
 
 
     // ========================================================
@@ -126,34 +90,41 @@ export function createTable(
 
     function renderizar() {
 
+        /*
+         * IMPORTANTE:
+         *
+         * Somente o elemento da tabela
+         * pode ser alterado.
+         */
+
+        const tabela =
+            container.querySelector(
+                "[data-engine-table]"
+            );
+
+
+        if (!tabela) {
+
+            console.warn(
+                `TABLE ${engine.entity}: ` +
+                "[data-engine-table] não encontrado."
+            );
+
+            return;
+
+        }
+
+
         const registros =
-            Array.isArray(
-                state.registros
-            )
-                ? state.registros
-                : [];
+            obterRegistros();
 
 
-        const colunas =
-            obterColunas();
+        if (!registros.length) {
 
-
-        // ====================================================
-        // NENHUM REGISTRO
-        // ====================================================
-
-        if (
-            registros.length === 0
-        ) {
-
-            container.innerHTML = `
-
+            tabela.innerHTML = `
                 <div class="engine-empty">
-
                     Nenhum registro encontrado.
-
                 </div>
-
             `;
 
             return;
@@ -161,20 +132,16 @@ export function createTable(
         }
 
 
-        // ====================================================
-        // TABELA
-        // ====================================================
+        const colunas =
+            obterColunas();
+
 
         let html = `
+            <table class="engine-table">
 
-            <div class="engine-table-wrapper">
+                <thead>
 
-                <table class="engine-table">
-
-                    <thead>
-
-                        <tr>
-
+                    <tr>
         `;
 
 
@@ -186,26 +153,18 @@ export function createTable(
             coluna => {
 
                 html += `
-
                     <th>
-
                         ${escaparHTML(
-                            obterLabel(
+                            obterTitulo(
                                 coluna
                             )
                         )}
-
                     </th>
-
                 `;
 
             }
         );
 
-
-        // ====================================================
-        // COLUNA AÇÕES
-        // ====================================================
 
         if (
             options.permitirEditar !== false ||
@@ -213,305 +172,173 @@ export function createTable(
         ) {
 
             html += `
-
-                <th class="engine-actions-header">
-
-                    Ações
-
-                </th>
-
+                <th>Ações</th>
             `;
 
         }
 
 
         html += `
+                    </tr>
 
-                        </tr>
+                </thead>
 
-                    </thead>
-
-                    <tbody>
-
+                <tbody>
         `;
 
 
         // ====================================================
-        // REGISTROS
+        // LINHAS
         // ====================================================
 
         registros.forEach(
             registro => {
 
-                html +=
-                    criarLinha(
-                        registro,
-                        colunas
+                const id =
+                    obterId(
+                        registro
                     );
+
+
+                html += `
+                    <tr>
+                `;
+
+
+                colunas.forEach(
+                    coluna => {
+
+                        const nome =
+                            obterNome(
+                                coluna
+                            );
+
+
+                        html += `
+                            <td>
+                                ${formatarValor(
+                                    registro?.[nome],
+                                    coluna
+                                )}
+                            </td>
+                        `;
+
+                    }
+                );
+
+
+                // ============================================
+                // AÇÕES
+                // ============================================
+
+                if (
+                    options.permitirEditar !== false ||
+                    options.permitirExcluir !== false
+                ) {
+
+                    html += `
+                        <td class="engine-actions">
+                    `;
+
+
+                    if (
+                        options.permitirEditar !== false
+                    ) {
+
+                        html += `
+                            <button
+                                type="button"
+                                data-action="editar"
+                                data-id="${escaparAtributo(
+                                    id
+                                )}"
+                            >
+                                Editar
+                            </button>
+                        `;
+
+                    }
+
+
+                    if (
+                        options.permitirExcluir !== false
+                    ) {
+
+                        html += `
+                            <button
+                                type="button"
+                                data-action="excluir"
+                                data-id="${escaparAtributo(
+                                    id
+                                )}"
+                            >
+                                Excluir
+                            </button>
+                        `;
+
+                    }
+
+
+                    html += `
+                        </td>
+                    `;
+
+                }
+
+
+                html += `
+                    </tr>
+                `;
 
             }
         );
 
 
         html += `
+                </tbody>
 
-                    </tbody>
-
-                </table>
-
-            </div>
-
+            </table>
         `;
 
 
-        container.innerHTML =
+        /*
+         * SOMENTE a tabela é alterada.
+         *
+         * Nunca:
+         *
+         * container.innerHTML
+         *
+         */
+
+        tabela.innerHTML =
             html;
 
     }
 
 
     // ========================================================
-    // CRIAR LINHA
+    // OBTER REGISTROS
     // ========================================================
 
-    function criarLinha(
-        registro,
-        colunas
-    ) {
-
-        let html =
-            "<tr>";
-
-
-        // ====================================================
-        // CAMPOS
-        // ====================================================
-
-        colunas.forEach(
-            coluna => {
-
-                const nome =
-                    obterNome(
-                        coluna
-                    );
-
-
-                const valor =
-                    registro?.[
-                        nome
-                    ];
-
-
-                html += `
-
-                    <td>
-
-                        ${formatarValor(
-                            valor,
-                            coluna
-                        )}
-
-                    </td>
-
-                `;
-
-            }
-        );
-
-
-        // ====================================================
-        // AÇÕES
-        // ====================================================
+    function obterRegistros() {
 
         if (
-            options.permitirEditar !== false ||
-            options.permitirExcluir !== false
+            typeof engine.obterRegistrosFiltrados ===
+            "function"
         ) {
 
-            html +=
-                criarAcoes(
-                    registro
-                );
+            return engine.obterRegistrosFiltrados();
 
         }
 
 
-        html +=
-            "</tr>";
-
-
-        return html;
-
-    }
-
-
-    // ========================================================
-    // CRIAR AÇÕES
-    // ========================================================
-
-    function criarAcoes(
-        registro
-    ) {
-
-        /*
-         * IMPORTANTE
-         *
-         * O Supabase retorna:
-         *
-         * {
-         *     id: "VEI000002"
-         * }
-         *
-         * Portanto usamos registro.id.
-         *
-         * O fallback para ID mantém
-         * compatibilidade.
-         */
-
-        const id =
-            registro?.id ??
-            registro?.ID ??
-            "";
-
-
-        const idSeguro =
-            escaparAtributo(
-                id
-            );
-
-
-        let html = `
-
-            <td class="engine-actions">
-
-        `;
-
-
-        // ====================================================
-        // EDITAR
-        // ====================================================
-
-        if (
-            options.permitirEditar !== false
-        ) {
-
-            html += `
-
-                <button
-                    type="button"
-                    class="btn-editar"
-                    data-action="editar"
-                    data-id="${idSeguro}"
-                >
-                    Editar
-                </button>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // EXCLUIR
-        // ====================================================
-
-        if (
-            options.permitirExcluir !== false
-        ) {
-
-            html += `
-
-                <button
-                    type="button"
-                    class="btn-excluir"
-                    data-action="excluir"
-                    data-id="${idSeguro}"
-                >
-                    Excluir
-                </button>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // ACTIONS PERSONALIZADAS
-        // ====================================================
-
-        html +=
-            criarActionsPersonalizadas(
-                registro
-            );
-
-
-        html += `
-
-            </td>
-
-        `;
-
-
-        return html;
-
-    }
-
-
-    // ========================================================
-    // ACTIONS PERSONALIZADAS
-    // ========================================================
-
-    function criarActionsPersonalizadas(
-        registro
-    ) {
-
-        const actions =
-            options.actions || {};
-
-
-        const id =
-            registro?.id ??
-            registro?.ID ??
-            "";
-
-
-        return Object.entries(
-            actions
+        return Array.isArray(
+            engine.state?.registros
         )
 
-        .filter(
-            ([, funcao]) =>
-                typeof funcao ===
-                "function"
-        )
+            ? engine.state.registros
 
-        .map(
-            ([nome]) => {
-
-                return `
-
-                    <button
-                        type="button"
-                        data-engine-action="${escaparAtributo(
-                            nome
-                        )}"
-                        data-id="${escaparAtributo(
-                            id
-                        )}"
-                    >
-                        ${escaparHTML(
-                            obterTituloAction(
-                                nome
-                            )
-                        )}
-                    </button>
-
-                `;
-
-            }
-        )
-
-        .join("");
+            : [];
 
     }
 
@@ -521,10 +348,6 @@ export function createTable(
     // ========================================================
 
     function obterColunas() {
-
-        // ----------------------------------------------------
-        // COLUNAS DEFINIDAS PELO MÓDULO
-        // ----------------------------------------------------
 
         if (
             Array.isArray(
@@ -537,10 +360,6 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
-        // SCHEMA
-        // ----------------------------------------------------
-
         if (
             Array.isArray(
                 schema.fields
@@ -551,25 +370,21 @@ export function createTable(
 
                 campo =>
 
-                    campo.visible !== false &&
+                    campo?.visible !== false &&
 
-                    campo.hidden !== true &&
+                    campo?.hidden !== true &&
 
-                    campo.name !== "id" &&
+                    campo?.name !== "ID" &&
 
-                    campo.name !== "ID"
+                    campo?.name !== "id"
 
             );
 
         }
 
 
-        // ----------------------------------------------------
-        // AUTOMÁTICO
-        // ----------------------------------------------------
-
         const primeiro =
-            state.registros?.[0];
+            obterRegistros()[0];
 
 
         if (!primeiro) {
@@ -582,25 +397,15 @@ export function createTable(
         return Object.keys(
             primeiro
         )
-
         .filter(
-            campo =>
-
-                campo !== "id" &&
-
-                campo !== "ID"
-
+            nome =>
+                nome !== "ID" &&
+                nome !== "id"
         )
-
         .map(
-            campo => ({
-
-                name:
-                    campo,
-
-                label:
-                    campo
-
+            nome => ({
+                name: nome,
+                label: nome
             })
         );
 
@@ -608,22 +413,12 @@ export function createTable(
 
 
     // ========================================================
-    // NOME DO CAMPO
+    // NOME
     // ========================================================
 
     function obterNome(
         coluna
     ) {
-
-        if (
-            typeof coluna ===
-            "string"
-        ) {
-
-            return coluna;
-
-        }
-
 
         return (
 
@@ -631,9 +426,7 @@ export function createTable(
 
             coluna?.campo ||
 
-            coluna?.field ||
-
-            ""
+            coluna
 
         );
 
@@ -641,22 +434,12 @@ export function createTable(
 
 
     // ========================================================
-    // LABEL
+    // TÍTULO
     // ========================================================
 
-    function obterLabel(
+    function obterTitulo(
         coluna
     ) {
-
-        if (
-            typeof coluna ===
-            "string"
-        ) {
-
-            return coluna;
-
-        }
-
 
         return (
 
@@ -667,6 +450,29 @@ export function createTable(
             coluna?.name ||
 
             coluna?.campo ||
+
+            coluna
+
+        );
+
+    }
+
+
+    // ========================================================
+    // ID
+    // ========================================================
+
+    function obterId(
+        registro
+    ) {
+
+        return (
+
+            registro?.id ??
+
+            registro?.ID ??
+
+            registro?.Id ??
 
             ""
 
@@ -686,7 +492,15 @@ export function createTable(
 
         if (
             valor === null ||
-            valor === undefined ||
+            valor === undefined
+        ) {
+
+            return "";
+
+        }
+
+
+        if (
             valor === ""
         ) {
 
@@ -695,13 +509,9 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
-        // BOOLEAN
-        // ----------------------------------------------------
-
         if (
-            coluna?.type ===
-            "boolean"
+            coluna?.type === "boolean" ||
+            coluna?.tipo === "boolean"
         ) {
 
             return valor
@@ -711,237 +521,165 @@ export function createTable(
         }
 
 
-        // ----------------------------------------------------
-        // DATA
-        // ----------------------------------------------------
-
-        if (
-            coluna?.type ===
-            "date"
-        ) {
-
-            return escaparHTML(
-                formatarData(
-                    valor
-                )
-            );
-
-        }
-
-
-        // ----------------------------------------------------
-        // DATA/HORA
-        // ----------------------------------------------------
-
-        if (
-            coluna?.type ===
-            "datetime-local"
-        ) {
-
-            return escaparHTML(
-                formatarDataHora(
-                    valor
-                )
-            );
-
-        }
-
-
-        // ----------------------------------------------------
-        // STATUS
-        // ----------------------------------------------------
-
-        if (
-            coluna?.name ===
-            "status"
-        ) {
-
-            return escaparHTML(
-                String(valor)
-            );
-
-        }
-
-
         return escaparHTML(
-            String(valor)
-        );
-
-    }
-
-
-    // ========================================================
-    // FORMATAR DATA
-    // ========================================================
-
-    function formatarData(
-        valor
-    ) {
-
-        const texto =
             String(
                 valor
-            );
-
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                texto
             )
-        ) {
-
-            const partes =
-                texto.split("-");
-
-
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-
-        }
-
-
-        return texto;
+        );
 
     }
 
 
     // ========================================================
-    // FORMATAR DATA/HORA
+    // EVENTOS
     // ========================================================
 
-    function formatarDataHora(
-        valor
-    ) {
-
-        const texto =
-            String(
-                valor
-            );
-
+    function registrarEventos() {
 
         if (
-            texto.includes("T")
+            container.dataset.tableEventos ===
+            "true"
         ) {
 
-            const partes =
-                texto.split("T");
-
-
-            const data =
-                formatarData(
-                    partes[0]
-                );
-
-
-            const hora =
-                (partes[1] || "")
-                .substring(
-                    0,
-                    5
-                );
-
-
-            return `${data} ${hora}`;
+            return;
 
         }
 
 
-        return texto;
-
-    }
-
-
-    // ========================================================
-    // TÍTULO ACTION
-    // ========================================================
-
-    function obterTituloAction(
-        nome
-    ) {
-
-        const titulos = {
-
-            abrirChecklist:
-                "Checklist",
-
-            abastecer:
-                "Abastecer",
-
-            visualizar:
-                "Visualizar",
-
-            finalizar:
-                "Finalizar"
-
-        };
+        container.dataset.tableEventos =
+            "true";
 
 
-        return (
-            titulos[nome] ||
-            nome
+        container.addEventListener(
+            "click",
+            evento => {
+
+                const botao =
+                    evento.target.closest(
+                        "[data-action]"
+                    );
+
+
+                if (!botao) {
+
+                    return;
+
+                }
+
+
+                const acao =
+                    botao.getAttribute(
+                        "data-action"
+                    );
+
+
+                const id =
+                    botao.getAttribute(
+                        "data-id"
+                    );
+
+
+                if (
+                    !id
+                ) {
+
+                    console.error(
+
+                        `TABLE ${engine.entity} → ` +
+                        `${acao.toUpperCase()} → ` +
+                        "botão sem data-id",
+
+                        botao
+
+                    );
+
+                    return;
+
+                }
+
+
+                console.log(
+
+                    `TABLE ${engine.entity} → ` +
+                    `${acao.toUpperCase()} → ID:`,
+
+                    id
+
+                );
+
+
+                if (
+                    acao === "editar"
+                ) {
+
+                    engine.editar(
+                        id
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    acao === "excluir"
+                ) {
+
+                    engine.excluir(
+                        id
+                    );
+
+                    return;
+
+                }
+
+            }
         );
 
     }
 
 
     // ========================================================
-    // ESCAPAR HTML
+    // EVENTO ENGINE → RENDERIZAR
     // ========================================================
 
-    function escaparHTML(
-        valor
-    ) {
+    function registrarEventosEngine() {
 
-        return String(
-            valor ?? ""
-        )
+        if (
+            !container
+        ) {
 
-        .replace(
-            /&/g,
-            "&amp;"
-        )
+            return;
 
-        .replace(
-            /</g,
-            "&lt;"
-        )
+        }
 
-        .replace(
-            />/g,
-            "&gt;"
-        )
 
-        .replace(
-            /"/g,
-            "&quot;"
-        )
+        container.addEventListener(
 
-        .replace(
-            /'/g,
-            "&#039;"
+            "engine:renderizar",
+
+            () => {
+
+                renderizar();
+
+            }
+
         );
 
     }
 
 
     // ========================================================
-    // ESCAPAR ATRIBUTO
+    // API PÚBLICA
     // ========================================================
 
-    function escaparAtributo(
-        valor
-    ) {
+    return {
 
-        return escaparHTML(
-            valor
-        );
+        iniciar,
 
-    }
+        renderizar
 
-
-    // ========================================================
-    // RETORNO
-    // ========================================================
-
-    return table;
+    };
 
 }
+```
