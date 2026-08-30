@@ -4,42 +4,38 @@
  * Painel Frota
  *
  * Arquivo:
- * js/engine/engine.js
+ *     js/engine/engine.js
  *
- * Responsabilidades:
+ * RESPONSABILIDADE
+ * ------------------------------------------------------------
+ * O Engine é o controlador central do módulo.
  *
- * - Coordenar operações CRUD
- * - Controlar Novo
- * - Controlar Editar
- * - Controlar Salvar
- * - Controlar Excluir
- * - Utilizar o State
- * - Emitir eventos
+ * Ele:
  *
- * O ENGINE NÃO:
+ * - mantém referência ao estado;
+ * - comunica com crud.js;
+ * - controla Novo;
+ * - controla Editar;
+ * - controla Salvar;
+ * - controla Excluir;
+ * - dispara eventos;
+ * - coordena Form;
+ * - coordena Table;
+ * - coordena Toolbar.
  *
- * - Cria HTML
- * - Renderiza tabela
- * - Cria formulário
- * - Cria toolbar
- * - Conhece Supabase
- * - Conhece PostgreSQL
+ * NÃO FAZ:
  *
- * Comunicação:
+ * - HTML do formulário
+ * - HTML da tabela
+ * - HTML da toolbar
+ * - criação de campos
+ * - comunicação direta com Supabase
+ * - comunicação direta com PostgreSQL
  *
- *     engine.js
- *          ↓
- *       crud.js
- *          ↓
- *   crudService.js
+ * Essas responsabilidades pertencem aos módulos separados.
  *
  * ============================================================
  */
-
-
-// ============================================================
-// IMPORT CRUD
-// ============================================================
 
 import {
     listar,
@@ -54,33 +50,22 @@ import {
 // CREATE ENGINE
 // ============================================================
 
-export function createEngine(
-    config = {}
-) {
+export function createEngine(config = {}) {
 
     // ========================================================
     // VALIDAR CONFIGURAÇÃO
     // ========================================================
 
-    if (
-        !config.entity
-    ) {
-
+    if (!config.entity) {
         throw new Error(
             "Engine: entidade não informada."
         );
-
     }
 
-
-    if (
-        !config.state
-    ) {
-
+    if (!config.container) {
         throw new Error(
-            "Engine: state não informado."
+            `Engine ${config.entity}: container não informado.`
         );
-
     }
 
 
@@ -89,73 +74,60 @@ export function createEngine(
     // ========================================================
 
     const entity =
-        String(
-            config.entity
-        ).trim();
-
+        String(config.entity);
 
     const schema =
-        config.schema || {};
-
+        config.schema || null;
 
     const options =
         config.options || {};
 
-
     const container =
-        config.container || null;
+        typeof config.container === "string"
+            ? document.querySelector(config.container)
+            : config.container;
 
 
-    // ========================================================
-    // STATE
-    // ========================================================
-
-    /*
-     * O State pertence ao Module.
-     *
-     * O Engine apenas manipula o State.
-     */
-
-    const state =
-        config.state;
-
-
-    // ========================================================
-    // EMITIR EVENTO
-    // ========================================================
-
-    function emitir(
-        nome,
-        detalhe
-    ) {
-
-        if (
-            !container ||
-            typeof container.dispatchEvent !==
-                "function"
-        ) {
-
-            return;
-
-        }
-
-
-        container.dispatchEvent(
-
-            new CustomEvent(
-
-                `engine:${nome}`,
-
-                {
-                    detail:
-                        detalhe
-                }
-
-            )
-
+    if (!container) {
+        throw new Error(
+            `Engine ${entity}: container não encontrado.`
         );
-
     }
+
+
+    // ========================================================
+    // ESTADO
+    // ========================================================
+
+    const state = {
+
+        registros: [],
+
+        registroEditando: null,
+
+        carregando: false,
+
+        salvando: false,
+
+        filtro: "",
+
+        paginaAtual: 1,
+
+        paginaTamanho:
+            Number(options.pageSize) || 10
+
+    };
+
+
+    // ========================================================
+    // COMPONENTES
+    // ========================================================
+
+    let form = null;
+
+    let table = null;
+
+    let toolbar = null;
 
 
     // ========================================================
@@ -163,10 +135,6 @@ export function createEngine(
     // ========================================================
 
     const engine = {
-
-        // ====================================================
-        // PROPRIEDADES
-        // ====================================================
 
         entity,
 
@@ -180,6 +148,33 @@ export function createEngine(
 
 
         // ====================================================
+        // COMPONENTES
+        // ====================================================
+
+        setComponents({
+
+            form: formComponent = null,
+
+            table: tableComponent = null,
+
+            toolbar: toolbarComponent = null
+
+        } = {}) {
+
+            form =
+                formComponent;
+
+            table =
+                tableComponent;
+
+            toolbar =
+                toolbarComponent;
+
+            return engine;
+        },
+
+
+        // ====================================================
         // INICIAR
         // ====================================================
 
@@ -189,64 +184,66 @@ export function createEngine(
                 `ENGINE ${entity} → INICIAR`
             );
 
-
-            if (
-                state.iniciado
-            ) {
-
-                console.warn(
-
-                    `ENGINE ${entity}: ` +
-                    "já iniciado."
-
-                );
-
-
-                return (
-                    state.registros || []
-                );
-
-            }
-
+            emitir(
+                "iniciando"
+            );
 
             try {
+
+                /*
+                 * Os componentes são iniciados pelo module.js.
+                 *
+                 * O Engine apenas garante que eles existam.
+                 */
+
+                if (!form) {
+                    console.warn(
+                        `ENGINE ${entity}: Form não configurado.`
+                    );
+                }
+
+                if (!table) {
+                    console.warn(
+                        `ENGINE ${entity}: Table não configurado.`
+                    );
+                }
+
+                if (!toolbar) {
+                    console.warn(
+                        `ENGINE ${entity}: Toolbar não configurado.`
+                    );
+                }
+
 
                 await engine.carregar();
 
 
-                state.iniciado =
-                    true;
-
+                console.log(
+                    `ENGINE ${entity} → INICIADO`
+                );
 
                 emitir(
-                    "iniciado"
+                    "iniciado",
+                    state.registros
                 );
 
 
-                console.log(
-
-                    `ENGINE ${entity} → ` +
-                    "INICIADO"
-
-                );
-
-
-                return (
-                    state.registros || []
-                );
+                return engine;
 
             } catch (erro) {
+
+                console.error(
+                    `ENGINE ${entity}: falha na inicialização`,
+                    erro
+                );
 
                 emitir(
                     "erro",
                     erro
                 );
 
-
                 throw erro;
-
             }
-
         },
 
 
@@ -256,13 +253,9 @@ export function createEngine(
 
         async carregar() {
 
-            if (
-                state.carregando
-            ) {
+            if (state.carregando) {
 
-                return (
-                    state.registros || []
-                );
+                return state.registros;
 
             }
 
@@ -289,14 +282,10 @@ export function createEngine(
                     );
 
 
-                const registros =
+                state.registros =
                     normalizarLista(
                         resposta
                     );
-
-
-                state.registros =
-                    registros;
 
 
                 state.paginaAtual =
@@ -304,37 +293,45 @@ export function createEngine(
 
 
                 console.log(
-
-                    `ENGINE ${entity} → ` +
-                    "REGISTROS CARREGADOS:",
-
-                    registros
-
+                    `ENGINE ${entity} → REGISTROS CARREGADOS:`,
+                    state.registros
                 );
+
+
+                /*
+                 * IMPORTANTE:
+                 *
+                 * O Engine NÃO monta a tabela.
+                 *
+                 * Apenas entrega os dados ao Table.
+                 */
+
+                if (
+                    table &&
+                    typeof table.renderizar === "function"
+                ) {
+
+                    table.renderizar(
+                        state.registros,
+                        state
+                    );
+
+                }
 
 
                 emitir(
                     "carregado",
-                    registros
+                    state.registros
                 );
 
 
-                return registros;
+                return state.registros;
+
 
             } catch (erro) {
 
                 console.error(
-
-                    `ENGINE ${entity}: ` +
-                    "erro ao carregar",
-
-                    erro
-
-                );
-
-
-                emitir(
-                    "erro",
+                    `ENGINE ${entity}: erro ao carregar`,
                     erro
                 );
 
@@ -345,6 +342,7 @@ export function createEngine(
 
 
                 throw erro;
+
 
             } finally {
 
@@ -376,40 +374,24 @@ export function createEngine(
         // OBTER
         // ====================================================
 
-        async obter(
-            id
-        ) {
-
-            validarId(
-                id
-            );
-
+        async obter(id) {
 
             const identificador =
-                String(
-                    id
-                ).trim();
+                normalizarId(id);
 
 
-            console.log(
+            if (!identificador) {
 
-                `ENGINE ${entity} → ` +
-                "OBTER →",
-
-                identificador
-
-            );
-
-
-            const resposta =
-                await obter(
-                    entity,
-                    identificador
+                throw new Error(
+                    "Engine: ID não informado."
                 );
 
+            }
 
-            return normalizarRegistro(
-                resposta
+
+            return obter(
+                entity,
+                identificador
             );
 
         },
@@ -430,8 +412,30 @@ export function createEngine(
                 null;
 
 
-            state.modo =
-                "novo";
+            /*
+             * Form fica responsável por limpar
+             * e mostrar o formulário.
+             */
+
+            if (
+                form &&
+                typeof form.novo === "function"
+            ) {
+
+                form.novo(
+                    engine,
+                    schema,
+                    options
+                );
+
+            } else if (
+                form &&
+                typeof form.limpar === "function"
+            ) {
+
+                form.limpar();
+
+            }
 
 
             emitir(
@@ -448,69 +452,46 @@ export function createEngine(
         // EDITAR
         // ====================================================
 
-        async editar(
-            id
-        ) {
-
-            validarId(
-                id
-            );
-
+        async editar(id) {
 
             const identificador =
-                String(
-                    id
-                ).trim();
+                normalizarId(id);
 
 
             console.log(
-
-                `ENGINE ${entity} → ` +
-                "EDITAR → ID RECEBIDO:",
-
+                `ENGINE ${entity} → EDITAR → ID:`,
                 identificador
-
             );
 
 
-            state.salvando =
-                false;
+            if (!identificador) {
+
+                throw new Error(
+                    "Engine: ID não informado."
+                );
+
+            }
 
 
             try {
 
-                const resposta =
+                const registro =
                     await obter(
                         entity,
                         identificador
                     );
 
 
-                const registro =
-                    normalizarRegistro(
-                        resposta
-                    );
-
-
                 console.log(
-
-                    `ENGINE ${entity} → ` +
-                    "REGISTRO OBTIDO:",
-
+                    "ENGINE → REGISTRO OBTIDO:",
                     registro
-
                 );
 
 
-                if (
-                    !registro
-                ) {
+                if (!registro) {
 
                     throw new Error(
-
-                        `Registro ${identificador} ` +
-                        "não encontrado."
-
+                        `Registro ${identificador} não encontrado.`
                     );
 
                 }
@@ -520,8 +501,32 @@ export function createEngine(
                     registro;
 
 
-                state.modo =
-                    "editar";
+                /*
+                 * Form recebe o registro.
+                 */
+
+                if (
+                    form &&
+                    typeof form.editar === "function"
+                ) {
+
+                    form.editar(
+                        registro,
+                        engine,
+                        schema,
+                        options
+                    );
+
+                } else if (
+                    form &&
+                    typeof form.preencher === "function"
+                ) {
+
+                    form.preencher(
+                        registro
+                    );
+
+                }
 
 
                 emitir(
@@ -532,20 +537,11 @@ export function createEngine(
 
                 return registro;
 
+
             } catch (erro) {
 
                 console.error(
-
-                    `ENGINE ${entity}: ` +
-                    "erro ao editar",
-
-                    erro
-
-                );
-
-
-                emitir(
-                    "erro",
+                    `ENGINE ${entity}: erro ao editar`,
                     erro
                 );
 
@@ -566,21 +562,13 @@ export function createEngine(
         // SALVAR
         // ====================================================
 
-        async salvar(
-            dados = {}
-        ) {
+        async salvar(dados) {
 
-            if (
-                state.salvando
-            ) {
+            if (state.salvando) {
 
                 console.warn(
-
-                    `ENGINE ${entity}: ` +
-                    "salvamento já em andamento."
-
+                    `ENGINE ${entity}: salvamento já em andamento.`
                 );
-
 
                 return;
 
@@ -592,11 +580,8 @@ export function createEngine(
 
 
             console.log(
-
                 `ENGINE ${entity} → SALVAR`,
-
                 dados
-
             );
 
 
@@ -611,179 +596,151 @@ export function createEngine(
                 let resposta;
 
 
-                // ============================================
-                // EDIÇÃO
-                // ============================================
+                // ==================================================
+                // ATUALIZAR
+                // ==================================================
 
                 if (
                     state.registroEditando
                 ) {
 
-                    const registroAtualizado = {
-
-                        ...state.registroEditando,
-
-                        ...dados
-
-                    };
-
-
                     const id =
-                        obterId(
-                            state.registroEditando
+                        normalizarId(
+                            state.registroEditando.id
                         );
 
 
                     if (!id) {
 
                         throw new Error(
-
-                            "Engine: registro em " +
-                            "edição não possui ID."
-
+                            "Engine: registro em edição sem ID."
                         );
 
                     }
 
 
+                    const registro =
+                        {
+
+                            ...state.registroEditando,
+
+                            ...dados,
+
+                            id
+
+                        };
+
+
                     console.log(
-
-                        `ENGINE ${entity} → ` +
-                        "ATUALIZAR → ID:",
-
-                        id
-
+                        `ENGINE ${entity} → ATUALIZAR`,
+                        registro
                     );
 
 
                     resposta =
                         await atualizar(
-
                             entity,
-
-                            registroAtualizado
-
+                            id,
+                            registro
                         );
 
 
-                    const atualizado =
-                        normalizarRegistro(
+                    const registroAtualizado =
+                        normalizarRegistroResposta(
                             resposta
-                        );
+                        ) ||
+                        registro;
 
 
-                    atualizarRegistroLocal(
-
-                        atualizado ||
+                    atualizarEstadoLocal(
                         registroAtualizado
-
                     );
 
                 }
 
 
-// ========================================================
-// NOVO REGISTRO
-// ========================================================
+                // ==================================================
+                // CRIAR
+                // ==================================================
 
-else {
+                else {
 
-    console.log(
-        `ENGINE ${entity} → CRIAR`
-    );
-
-
-    // ----------------------------------------------------
-    // GERAR ID
-    // ----------------------------------------------------
-
-    const id =
-        gerarNovoId();
+                    console.log(
+                        `ENGINE ${entity} → CRIAR`
+                    );
 
 
-    // ----------------------------------------------------
-    // MONTAR REGISTRO
-    // ----------------------------------------------------
+                    /*
+                     * Não enviamos ID vazio.
+                     *
+                     * O backend/crud.js é responsável por
+                     * gerar o ID.
+                     */
 
-    const registroNovo = {
-
-        id,
-
-        ...dados
-
-    };
-
-
-    console.log(
-        `ENGINE ${entity} → NOVO REGISTRO:`,
-        registroNovo
-    );
+                    const dadosCriar =
+                        {
+                            ...dados
+                        };
 
 
-    // ----------------------------------------------------
-    // ENVIAR PARA CRUD
-    // ----------------------------------------------------
+                    delete dadosCriar.id;
 
-    resposta =
-        await criar(
-            entity,
-            registroNovo
-        );
+                    delete dadosCriar.ID;
 
 
-    // ----------------------------------------------------
-    // NORMALIZAR RESPOSTA
-    // ----------------------------------------------------
-
-    const novoRegistro =
-        normalizarRegistroResposta(
-            resposta
-        );
+                    resposta =
+                        await criar(
+                            entity,
+                            dadosCriar
+                        );
 
 
-    // ----------------------------------------------------
-    // ATUALIZAR ESTADO
-    // ----------------------------------------------------
-
-    if (novoRegistro) {
-
-        state.registros.push(
-            novoRegistro
-        );
-
-    } else {
-
-        // Caso a API não devolva o registro criado,
-        // usamos o próprio registro enviado.
-
-        state.registros.push(
-            registroNovo
-        );
-
-    }
-
-}
+                    const novoRegistro =
+                        normalizarRegistroResposta(
+                            resposta
+                        );
 
 
+                    if (novoRegistro) {
 
-                // ============================================
+                        state.registros.push(
+                            novoRegistro
+                        );
+
+                    }
+
+                }
+
+
+                // ==================================================
                 // FINALIZAR
-                // ============================================
+                // ==================================================
 
                 state.registroEditando =
                     null;
 
 
-                state.modo =
-                    null;
+                if (
+                    form &&
+                    typeof form.limpar === "function"
+                ) {
+
+                    form.limpar();
+
+                }
 
 
-                console.log(
+                if (
+                    form &&
+                    typeof form.fechar === "function"
+                ) {
 
-                    `ENGINE ${entity} → ` +
-                    "SALVO COM SUCESSO"
+                    form.fechar();
 
-                );
+                }
+
+
+                renderizarTabela();
 
 
                 emitir(
@@ -794,20 +751,11 @@ else {
 
                 return resposta;
 
+
             } catch (erro) {
 
                 console.error(
-
-                    `ENGINE ${entity}: ` +
-                    "erro ao salvar",
-
-                    erro
-
-                );
-
-
-                emitir(
-                    "erro",
+                    `ENGINE ${entity}: erro ao salvar`,
                     erro
                 );
 
@@ -818,6 +766,7 @@ else {
 
 
                 throw erro;
+
 
             } finally {
 
@@ -838,43 +787,34 @@ else {
         // EXCLUIR
         // ====================================================
 
-        async excluir(
-            id
-        ) {
-
-            validarId(
-                id
-            );
-
+        async excluir(id) {
 
             const identificador =
-                String(
-                    id
-                ).trim();
+                normalizarId(id);
 
 
             console.log(
-
-                `ENGINE ${entity} → ` +
-                "EXCLUIR → ID RECEBIDO:",
-
+                `ENGINE ${entity} → EXCLUIR → ID:`,
                 identificador
-
             );
+
+
+            if (!identificador) {
+
+                throw new Error(
+                    "Engine: ID não informado."
+                );
+
+            }
 
 
             const confirmar =
                 window.confirm(
-
-                    "Deseja realmente " +
-                    "excluir este registro?"
-
+                    "Deseja realmente excluir este registro?"
                 );
 
 
-            if (
-                !confirmar
-            ) {
+            if (!confirmar) {
 
                 return false;
 
@@ -884,39 +824,21 @@ else {
             try {
 
                 await excluir(
-
                     entity,
-
                     identificador
-
                 );
 
 
                 state.registros =
-                    (
-                        state.registros || []
-                    ).filter(
-
+                    state.registros.filter(
                         registro =>
-
-                            String(
-                                obterId(
-                                    registro
-                                )
-                            ) !==
-                            identificador
-
+                            normalizarId(
+                                registro?.id
+                            ) !== identificador
                     );
 
 
-                console.log(
-
-                    `ENGINE ${entity} → ` +
-                    "EXCLUÍDO:",
-
-                    identificador
-
-                );
+                renderizarTabela();
 
 
                 emitir(
@@ -927,20 +849,11 @@ else {
 
                 return true;
 
+
             } catch (erro) {
 
                 console.error(
-
-                    `ENGINE ${entity}: ` +
-                    "erro ao excluir",
-
-                    erro
-
-                );
-
-
-                emitir(
-                    "erro",
+                    `ENGINE ${entity}: erro ao excluir`,
                     erro
                 );
 
@@ -961,9 +874,7 @@ else {
         // FILTRAR
         // ====================================================
 
-        filtrar(
-            valor
-        ) {
+        filtrar(valor) {
 
             state.filtro =
                 String(
@@ -977,20 +888,7 @@ else {
                 1;
 
 
-            emitir(
-                "filtrado",
-                state.filtro
-            );
-
-
-            emitir(
-                "renderizar"
-            );
-
-
-            return (
-                obterRegistrosFiltrados()
-            );
+            renderizarTabela();
 
         },
 
@@ -999,83 +897,34 @@ else {
         // PAGINAÇÃO
         // ====================================================
 
-        pagina(
-            numero
-        ) {
+        pagina(numero) {
 
-            const pagina =
-                Number(
-                    numero
-                );
-
-
-            if (
-                !Number.isFinite(
-                    pagina
-                )
-            ) {
-
-                return (
-                    state.paginaAtual
-                );
-
-            }
-
-
-            const registros =
-                obterRegistrosFiltrados();
-
-
-            const tamanho =
-                Number(
-                    state.paginaTamanho ||
-                    options.pageSize ||
-                    10
-                );
+            const total =
+                obterRegistrosFiltrados()
+                    .length;
 
 
             const totalPaginas =
                 Math.max(
-
                     1,
-
                     Math.ceil(
-
-                        registros.length /
-                        tamanho
-
+                        total /
+                        state.paginaTamanho
                     )
-
                 );
 
 
             state.paginaAtual =
                 Math.min(
-
                     Math.max(
-                        1,
-                        pagina
+                        Number(numero) || 1,
+                        1
                     ),
-
                     totalPaginas
-
                 );
 
 
-            emitir(
-                "pagina",
-                state.paginaAtual
-            );
-
-
-            emitir(
-                "renderizar"
-            );
-
-
-            return (
-                state.paginaAtual
-            );
+            renderizarTabela();
 
         },
 
@@ -1086,28 +935,128 @@ else {
 
         fecharFormulario() {
 
-            console.log(
-
-                `ENGINE ${entity} → ` +
-                "FECHAR FORMULÁRIO"
-
-            );
-
-
             state.registroEditando =
                 null;
 
 
-            state.modo =
-                null;
+            if (
+                form &&
+                typeof form.fechar === "function"
+            ) {
+
+                form.fechar();
+
+            } else if (
+                form &&
+                typeof form.esconder === "function"
+            ) {
+
+                form.esconder();
+
+            }
 
 
             emitir(
                 "formulario-fechado"
             );
 
+        },
 
-            return true;
+
+        // ====================================================
+        // ACTION
+        // ====================================================
+
+        action(
+            nome,
+            registro
+        ) {
+
+            const actions =
+                options.actions || {};
+
+
+            const funcao =
+                actions[nome];
+
+
+            if (
+                typeof funcao !== "function"
+            ) {
+
+                console.warn(
+                    `ENGINE ${entity}: action "${nome}" não encontrada.`
+                );
+
+                return;
+
+            }
+
+
+            return funcao(
+                registro,
+                engine
+            );
+
+        },
+
+
+        // ====================================================
+        // RENDERIZAR TABELA
+        // ====================================================
+
+        renderizarTabela() {
+
+            if (
+                table &&
+                typeof table.renderizar === "function"
+            ) {
+
+                const registros =
+                    obterRegistrosFiltrados();
+
+
+                table.renderizar(
+                    registros,
+                    state,
+                    engine
+                );
+
+            }
+
+        },
+
+
+        // ====================================================
+        // REGISTROS FILTRADOS
+        // ====================================================
+
+        obterRegistrosFiltrados() {
+
+            return obterRegistrosFiltrados();
+
+        },
+
+
+        // ====================================================
+        // GET REGISTRO EM EDIÇÃO
+        // ====================================================
+
+        getRegistroEditando() {
+
+            return state.registroEditando;
+
+        },
+
+
+        // ====================================================
+        // SET REGISTRO EM EDIÇÃO
+        // ====================================================
+
+        setRegistroEditando(registro) {
+
+            state.registroEditando =
+                registro || null;
 
         }
 
@@ -1115,100 +1064,97 @@ else {
 
 
     // ========================================================
-    // MÉTODOS AUXILIARES PÚBLICOS
-    // ========================================================
-
-    engine.obterRegistrosFiltrados =
-        obterRegistrosFiltrados;
-
-
-    engine.obterId =
-        obterId;
-
-
-    // ========================================================
-    // FUNÇÕES INTERNAS
+    // REGISTROS FILTRADOS
     // ========================================================
 
     function obterRegistrosFiltrados() {
 
-        const registros =
-            Array.isArray(
-                state.registros
-            )
+        if (!state.filtro) {
 
-                ? state.registros
-
-                : [];
-
-
-        const filtro =
-            String(
-                state.filtro || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-        if (
-            !filtro
-        ) {
-
-            return registros;
+            return state.registros;
 
         }
 
 
-        return registros.filter(
+        return state.registros.filter(
+            registro => {
 
-            registro =>
-
-                Object.values(
+                return Object.values(
                     registro || {}
                 )
                 .some(
-
                     valor =>
-
                         String(
                             valor ?? ""
                         )
                         .toLowerCase()
                         .includes(
-                            filtro
+                            state.filtro
                         )
+                );
 
-                )
-
+            }
         );
 
     }
 
 
     // ========================================================
-    // ATUALIZAR REGISTRO LOCAL
+    // ATUALIZAR ESTADO LOCAL
     // ========================================================
 
-    function atualizarRegistroLocal(
+    function atualizarEstadoLocal(
         registro
     ) {
 
-        if (
-            !registro
-        ) {
+        const id =
+            normalizarId(
+                registro?.id
+            );
+
+
+        if (!id) {
 
             return;
 
         }
 
 
-        const id =
-            obterId(
-                registro
+        const indice =
+            state.registros.findIndex(
+                item =>
+                    normalizarId(
+                        item?.id
+                    ) === id
             );
 
 
-        if (!id) {
+        if (indice >= 0) {
+
+            state.registros[indice] =
+                registro;
+
+        } else {
+
+            state.registros.push(
+                registro
+            );
+
+        }
+
+    }
+
+
+    // ========================================================
+    // RENDERIZAR TABELA
+    // ========================================================
+
+    function renderizarTabela() {
+
+        if (
+            !table ||
+            typeof table.renderizar !== "function"
+        ) {
 
             return;
 
@@ -1216,219 +1162,250 @@ else {
 
 
         const registros =
-            Array.isArray(
-                state.registros
-            )
-
-                ? state.registros
-
-                : [];
+            obterRegistrosFiltrados();
 
 
-        const indice =
-            registros.findIndex(
-
-                item =>
-
-                    String(
-                        obterId(
-                            item
-                        )
-                    ) ===
-                    String(
-                        id
-                    )
-
-            );
-
-
-        if (
-            indice >= 0
-        ) {
-
-            registros[indice] =
-                registro;
-
-        } else {
-
-            registros.push(
-                registro
-            );
-
-        }
-
-
-        state.registros =
-            registros;
-
-
-        emitir(
-            "renderizar"
+        table.renderizar(
+            registros,
+            state,
+            engine
         );
 
     }
 
 
     // ========================================================
-    // ADICIONAR REGISTRO LOCAL
+    // NORMALIZAR LISTA
     // ========================================================
 
-    function adicionarRegistroLocal(
-        registro
+    function normalizarLista(
+        resposta
     ) {
 
         if (
-            !registro
+            Array.isArray(resposta)
         ) {
+
+            return resposta;
+
+        }
+
+
+        if (
+            resposta &&
+            Array.isArray(resposta.data)
+        ) {
+
+            return resposta.data;
+
+        }
+
+
+        if (
+            resposta &&
+            Array.isArray(resposta.dados)
+        ) {
+
+            return resposta.dados;
+
+        }
+
+
+        return [];
+
+    }
+
+
+    // ========================================================
+    // NORMALIZAR REGISTRO
+    // ========================================================
+
+    function normalizarRegistroResposta(
+        resposta
+    ) {
+
+        if (!resposta) {
+
+            return null;
+
+        }
+
+
+        if (
+            Array.isArray(resposta)
+        ) {
+
+            return resposta[0] || null;
+
+        }
+
+
+        if (
+            resposta.data
+        ) {
+
+            if (
+                Array.isArray(
+                    resposta.data
+                )
+            ) {
+
+                return (
+                    resposta.data[0] ||
+                    null
+                );
+
+            }
+
+
+            if (
+                typeof resposta.data === "object"
+            ) {
+
+                return resposta.data;
+
+            }
+
+        }
+
+
+        if (
+            resposta.dados
+        ) {
+
+            if (
+                Array.isArray(
+                    resposta.dados
+                )
+            ) {
+
+                return (
+                    resposta.dados[0] ||
+                    null
+                );
+
+            }
+
+
+            if (
+                typeof resposta.dados === "object"
+            ) {
+
+                return resposta.dados;
+
+            }
+
+        }
+
+
+        if (
+            typeof resposta === "object" &&
+            resposta.id
+        ) {
+
+            return resposta;
+
+        }
+
+
+        return null;
+
+    }
+
+
+    // ========================================================
+    // NORMALIZAR ID
+    // ========================================================
+
+    function normalizarId(id) {
+
+        if (
+            id === undefined ||
+            id === null
+        ) {
+
+            return "";
+
+        }
+
+
+        return String(
+            id
+        ).trim();
+
+    }
+
+
+    // ========================================================
+    // EVENTO
+    // ========================================================
+
+    function emitir(
+        nome,
+        detalhe = null
+    ) {
+
+        if (!container) {
 
             return;
 
         }
 
 
-        if (
-            !Array.isArray(
-                state.registros
+        container.dispatchEvent(
+
+            new CustomEvent(
+                `engine:${nome}`,
+                {
+                    detail: detalhe
+                }
             )
-        ) {
 
-            state.registros =
-                [];
-
-        }
-
-
-        state.registros.push(
-            registro
-        );
-
-
-        emitir(
-            "renderizar"
         );
 
     }
 
 
-// ============================================================
-// OBTER ID DO REGISTRO
-// ============================================================
+    // ========================================================
+    // ERRO
+    // ========================================================
 
-function obterIdRegistro(registro) {
+    function mostrarErro(
+        erro
+    ) {
 
-    return (
-        registro?.id ??
-        registro?.ID ??
-        null
-    );
-
-}
-
-
-// ============================================================
-// PREFIXO DA ENTIDADE
-// ============================================================
-
-function obterPrefixoId() {
-
-    const prefixos = {
-
-        veiculos: "VEI",
-        veiculo: "VEI",
-
-        empregados: "EMP",
-        empregado: "EMP",
-
-        lancamentos: "LAN",
-        lancamento: "LAN"
-
-    };
+        const mensagem =
+            erro?.message ||
+            String(erro) ||
+            "Ocorreu um erro.";
 
 
-    return (
-        prefixos[
-            String(entity).toLowerCase()
-        ] ||
-        String(entity)
-            .substring(0, 3)
-            .toUpperCase()
-    );
-
-}
-
-
-// ============================================================
-// GERAR NOVO ID
-// ============================================================
-
-function gerarNovoId() {
-
-    const prefixo =
-        obterPrefixoId();
-
-
-    let maiorNumero = 0;
-
-
-    state.registros.forEach(registro => {
-
-        const id =
-            obterIdRegistro(registro);
-
-
-        if (!id) {
-            return;
-        }
-
-
-        const texto =
-            String(id)
-                .trim()
-                .toUpperCase();
-
-
-        const corresponde =
-            texto.match(
-                new RegExp(
-                    `^${prefixo}(\\d+)$`
-                )
-            );
-
-
-        if (!corresponde) {
-            return;
-        }
-
-
-        const numero =
-            Number(
-                corresponde[1]
-            );
+        console.error(
+            `ENGINE ${entity}:`,
+            erro
+        );
 
 
         if (
-            Number.isFinite(numero) &&
-            numero > maiorNumero
+            typeof window.mostrarToast ===
+            "function"
         ) {
 
-            maiorNumero =
-                numero;
+            window.mostrarToast(
+                mensagem,
+                "erro"
+            );
+
+            return;
 
         }
 
-    });
 
+        window.alert(
+            mensagem
+        );
 
-    return (
-        prefixo +
-        String(
-            maiorNumero + 1
-        ).padStart(6, "0")
-    );
-
-}
-
-
+    }
 
 
     // ========================================================
@@ -1441,274 +1418,7 @@ function gerarNovoId() {
 
 
 // ============================================================
-// NORMALIZAR LISTA
+// EXPORT DEFAULT
 // ============================================================
 
-function normalizarLista(
-    resposta
-) {
-
-    if (
-        Array.isArray(
-            resposta
-        )
-    ) {
-
-        return resposta;
-
-    }
-
-
-    if (
-        Array.isArray(
-            resposta?.dados
-        )
-    ) {
-
-        return resposta.dados;
-
-    }
-
-
-    if (
-        Array.isArray(
-            resposta?.data
-        )
-    ) {
-
-        return resposta.data;
-
-    }
-
-
-    return [];
-
-}
-
-
-// ============================================================
-// NORMALIZAR REGISTRO
-// ============================================================
-
-function normalizarRegistro(
-    resposta
-) {
-
-    if (
-        !resposta
-    ) {
-
-        return null;
-
-    }
-
-
-    if (
-        Array.isArray(
-            resposta
-        )
-    ) {
-
-        return (
-            resposta[0] ||
-            null
-        );
-
-    }
-
-
-    if (
-        resposta?.dados
-    ) {
-
-        if (
-            Array.isArray(
-                resposta.dados
-            )
-        ) {
-
-            return (
-                resposta.dados[0] ||
-                null
-            );
-
-        }
-
-
-        if (
-            typeof resposta.dados ===
-            "object"
-        ) {
-
-            return resposta.dados;
-
-        }
-
-    }
-
-
-    if (
-        resposta?.data
-    ) {
-
-        if (
-            Array.isArray(
-                resposta.data
-            )
-        ) {
-
-            return (
-                resposta.data[0] ||
-                null
-            );
-
-        }
-
-
-        if (
-            typeof resposta.data ===
-            "object"
-        ) {
-
-            return resposta.data;
-
-        }
-
-    }
-
-
-    if (
-        typeof resposta ===
-        "object"
-    ) {
-
-        return resposta;
-
-    }
-
-
-    return null;
-
-}
-
-
-// ============================================================
-// OBTER ID
-// ============================================================
-
-function obterId(
-    registro
-) {
-
-    if (
-        !registro
-    ) {
-
-        return null;
-
-    }
-
-
-    /*
-     * Supabase / PostgreSQL:
-     *
-     *     id
-     *
-     * Compatibilidade:
-     *
-     *     ID
-     *     Id
-     */
-
-    return (
-
-        registro.id ??
-
-        registro.ID ??
-
-        registro.Id ??
-
-        null
-
-    );
-
-}
-
-
-// ============================================================
-// VALIDAR ID
-// ============================================================
-
-function validarId(
-    id
-) {
-
-    if (
-        id === undefined ||
-        id === null ||
-        String(
-            id
-        ).trim() === ""
-    ) {
-
-        throw new Error(
-            "Engine: ID não informado."
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// MOSTRAR ERRO
-// ============================================================
-
-function mostrarErro(
-    erro
-) {
-
-    const mensagem =
-
-        erro?.message ||
-
-        String(
-            erro ||
-            "Ocorreu um erro."
-        );
-
-
-    if (
-        typeof window !==
-        "undefined" &&
-
-        typeof window.mostrarToast ===
-        "function"
-    ) {
-
-        window.mostrarToast(
-            mensagem,
-            "erro"
-        );
-
-
-        return;
-
-    }
-
-
-    if (
-        typeof window !==
-        "undefined" &&
-
-        typeof window.alert ===
-        "function"
-    ) {
-
-        window.alert(
-            mensagem
-        );
-
-    }
-
-}
+export default createEngine;
