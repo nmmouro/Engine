@@ -2,48 +2,39 @@
  * ============================================================
  * ENGINE
  * Painel Frota
- * Arquivo: engine.js
  *
- * ENGINE ENXUTO
+ * Arquivo:
+ * js/engine/engine.js
  *
  * Responsabilidade:
  *
- * - Controlar CRUD
- * - Manter referência ao state
- * - Carregar registros
- * - Obter registro
- * - Criar registro
- * - Atualizar registro
- * - Excluir registro
- * - Controlar eventos do Engine
+ * - Coordenar operações CRUD
+ * - Controlar o fluxo Novo
+ * - Controlar o fluxo Editar
+ * - Controlar o fluxo Salvar
+ * - Controlar o fluxo Excluir
+ * - Atualizar o State
+ * - Emitir eventos para os componentes
  *
- * NÃO possui responsabilidade por:
+ * O ENGINE NÃO:
  *
- * - HTML
- * - Formulário
- * - Tabela
- * - Toolbar
- * - PostgreSQL
- * - Supabase
- * - Google Sheets
+ * - Cria HTML
+ * - Renderiza tabela
+ * - Cria formulário
+ * - Cria toolbar
+ * - Conhece PostgreSQL
+ * - Conhece Supabase
  *
- * Componentes:
+ * A comunicação com o backend ocorre através de:
  *
- *     state.js
- *     form.js
- *     table.js
- *     toolbar.js
- *
- * Backend:
- *
- *     services/crudService.js
+ *     crud.js
  *
  * ============================================================
  */
 
 
 // ============================================================
-// CRUD SERVICE
+// IMPORT CRUD
 // ============================================================
 
 import {
@@ -52,29 +43,53 @@ import {
     criar,
     atualizar,
     excluir
-} from "../services/crudService.js";
+} from "./crud.js";
 
 
 // ============================================================
 // CREATE ENGINE
 // ============================================================
 
-export function createEngine(config = {}) {
+export function createEngine(
+    config = {}
+) {
+
+    // ========================================================
+    // VALIDAR
+    // ========================================================
+
+    if (
+        !config.entity
+    ) {
+
+        throw new Error(
+            "Engine: entidade não informada."
+        );
+
+    }
+
+
+    if (
+        !config.state
+    ) {
+
+        throw new Error(
+            "Engine: state não informado."
+        );
+
+    }
+
 
     // ========================================================
     // CONFIGURAÇÃO
     // ========================================================
 
     const entity =
-        String(
-            config.entity || ""
-        )
-        .trim()
-        .toLowerCase();
+        config.entity;
 
 
     const schema =
-        config.schema || null;
+        config.schema || {};
 
 
     const options =
@@ -85,30 +100,20 @@ export function createEngine(config = {}) {
         config.container || null;
 
 
+    // ========================================================
+    // STATE
+    // ========================================================
+
+    /*
+     * IMPORTANTE:
+     *
+     * O State pertence ao Module.
+     *
+     * O Engine apenas utiliza o State.
+     */
+
     const state =
         config.state;
-
-
-    // ========================================================
-    // VALIDAÇÃO
-    // ========================================================
-
-    if (!entity) {
-
-        throw new Error(
-            "Engine: entidade não informada."
-        );
-
-    }
-
-
-    if (!state) {
-
-        throw new Error(
-            `Engine ${entity}: state não informado.`
-        );
-
-    }
 
 
     // ========================================================
@@ -116,6 +121,11 @@ export function createEngine(config = {}) {
     // ========================================================
 
     const engine = {
+
+
+        // ====================================================
+        // PROPRIEDADES
+        // ====================================================
 
         entity,
 
@@ -134,7 +144,45 @@ export function createEngine(config = {}) {
 
         async iniciar() {
 
-            return engine.carregar();
+            console.log(
+                `ENGINE ${entity} → INICIAR`
+            );
+
+
+            /*
+             * Não carregamos duas vezes.
+             */
+
+            if (
+                state.iniciado
+            ) {
+
+                console.warn(
+
+                    `ENGINE ${entity}: ` +
+                    "já iniciado."
+
+                );
+
+
+                return state.registros || [];
+
+            }
+
+
+            await engine.carregar();
+
+
+            state.iniciado =
+                true;
+
+
+            emitir(
+                "iniciado"
+            );
+
+
+            return state.registros || [];
 
         },
 
@@ -149,9 +197,16 @@ export function createEngine(config = {}) {
                 state.carregando
             ) {
 
-                return state.registros;
+                return (
+                    state.registros || []
+                );
 
             }
+
+
+            console.log(
+                `ENGINE ${entity} → CARREGAR`
+            );
 
 
             state.carregando =
@@ -163,47 +218,55 @@ export function createEngine(config = {}) {
             );
 
 
-            mostrarLoading();
-
-
             try {
 
-                console.log(
-                    `ENGINE ${entity} → CARREGAR`
-                );
-
-
-                const dados =
+                const resposta =
                     await listar(
                         entity
                     );
 
 
-                state.registros =
+                const registros =
                     normalizarLista(
-                        dados
+                        resposta
                     );
+
+
+                state.registros =
+                    registros;
 
 
                 state.paginaAtual =
                     1;
 
 
-                emitir(
-                    "carregado",
-                    state.registros
+                console.log(
+
+                    `ENGINE ${entity} → ` +
+                    "REGISTROS CARREGADOS:",
+
+                    registros
+
                 );
 
 
-                return state.registros;
+                emitir(
+                    "carregado",
+                    registros
+                );
 
-            }
 
-            catch (erro) {
+                return registros;
+
+            } catch (erro) {
 
                 console.error(
-                    `ENGINE ${entity} → ERRO AO CARREGAR:`,
+
+                    `ENGINE ${entity}: ` +
+                    "erro ao carregar",
+
                     erro
+
                 );
 
 
@@ -220,15 +283,10 @@ export function createEngine(config = {}) {
 
                 throw erro;
 
-            }
-
-            finally {
+            } finally {
 
                 state.carregando =
                     false;
-
-
-                esconderLoading();
 
 
                 emitir(
@@ -259,58 +317,35 @@ export function createEngine(config = {}) {
             id
         ) {
 
-            const identificador =
-                normalizarId(
-                    id
-                );
-
-
-            if (!identificador) {
-
-                throw new Error(
-                    "Engine: ID não informado."
-                );
-
-            }
-
-
-            console.log(
-                `ENGINE ${entity} → OBTER → ID:`,
-                identificador
+            validarId(
+                id
             );
 
 
-            try {
-
-                const resposta =
-                    await obter(
-                        entity,
-                        identificador
-                    );
+            const identificador =
+                String(
+                    id
+                ).trim();
 
 
-                return normalizarRegistro(
-                    resposta
-                );
+            console.log(
 
-            }
+                `ENGINE ${entity} → OBTER →`,
+                identificador
 
-            catch (erro) {
-
-                console.error(
-                    `ENGINE ${entity} → ERRO AO OBTER:`,
-                    erro
-                );
+            );
 
 
-                mostrarErro(
-                    erro
+            const resposta =
+                await obter(
+                    entity,
+                    identificador
                 );
 
 
-                throw erro;
-
-            }
+            return normalizarRegistro(
+                resposta
+            );
 
         },
 
@@ -321,38 +356,38 @@ export function createEngine(config = {}) {
 
         novo() {
 
-            state.registroEditando =
-                null;
+            console.log(
 
+                `ENGINE ${entity} → NOVO`
 
-            emitir(
-                "novo"
             );
 
 
             /*
-             * O form.js escuta o evento
-             * e prepara o formulário.
+             * Limpar registro em edição.
              */
 
-            if (
-                typeof engine.limparFormulario ===
-                "function"
-            ) {
-
-                engine.limparFormulario();
-
-            }
+            state.registroEditando =
+                null;
 
 
-            if (
-                typeof engine.mostrarFormulario ===
-                "function"
-            ) {
+            /*
+             * Informar ao State que estamos
+             * em modo novo.
+             */
 
-                engine.mostrarFormulario();
+            state.modo =
+                "novo";
 
-            }
+
+            /*
+             * Limpar formulário através
+             * do evento.
+             */
+
+            emitir(
+                "novo"
+            );
 
 
             return true;
@@ -368,88 +403,89 @@ export function createEngine(config = {}) {
             id
         ) {
 
-            const identificador =
-                normalizarId(
-                    id
-                );
-
-
-            console.log(
-                `ENGINE ${entity} → EDITAR → ID RECEBIDO:`,
-                identificador
+            validarId(
+                id
             );
 
 
-            if (!identificador) {
+            const identificador =
+                String(
+                    id
+                ).trim();
 
-                throw new Error(
-                    "Engine: ID não informado."
-                );
 
-            }
+            console.log(
+
+                `ENGINE ${entity} → ` +
+                "EDITAR → ID RECEBIDO:",
+
+                identificador
+
+            );
+
+
+            state.salvando =
+                false;
 
 
             try {
 
-                /*
-                 * Buscar registro no backend.
-                 */
-
-                const registro =
-                    await engine.obter(
+                const resposta =
+                    await obter(
+                        entity,
                         identificador
                     );
 
 
+                const registro =
+                    normalizarRegistro(
+                        resposta
+                    );
+
+
                 console.log(
-                    `ENGINE ${entity} → REGISTRO OBTIDO:`,
+
+                    `ENGINE ${entity} → ` +
+                    "REGISTRO OBTIDO:",
+
                     registro
+
                 );
 
 
-                if (!registro) {
+                if (
+                    !registro
+                ) {
 
                     throw new Error(
-                        `Registro ${identificador} não encontrado.`
+
+                        `Registro ` +
+                        `${identificador} ` +
+                        "não encontrado."
+
                     );
 
                 }
 
 
                 /*
-                 * Guardar no estado.
+                 * Guardar registro no State.
                  */
 
                 state.registroEditando =
                     registro;
 
 
+                state.modo =
+                    "editar";
+
+
                 /*
-                 * O form.js será responsável
-                 * por preencher o formulário.
+                 * Emitir evento.
+                 *
+                 * O form.js recebe o registro
+                 * e preenche os campos.
                  */
-
-                if (
-                    typeof engine.preencherFormulario ===
-                    "function"
-                ) {
-
-                    engine.preencherFormulario(
-                        registro
-                    );
-
-                }
-
-
-                if (
-                    typeof engine.mostrarFormulario ===
-                    "function"
-                ) {
-
-                    engine.mostrarFormulario();
-
-                }
-
 
                 emitir(
                     "editar",
@@ -459,12 +495,20 @@ export function createEngine(config = {}) {
 
                 return registro;
 
-            }
-
-            catch (erro) {
+            } catch (erro) {
 
                 console.error(
-                    `ENGINE ${entity} → ERRO AO EDITAR:`,
+
+                    `ENGINE ${entity}: ` +
+                    "erro ao editar",
+
+                    erro
+
+                );
+
+
+                emitir(
+                    "erro",
                     erro
                 );
 
@@ -486,14 +530,22 @@ export function createEngine(config = {}) {
         // ====================================================
 
         async salvar(
-            dados
+            dados = {}
         ) {
 
             if (
                 state.salvando
             ) {
 
-                return null;
+                console.warn(
+
+                    `ENGINE ${entity}: ` +
+                    "salvamento já em andamento."
+
+                );
+
+
+                return;
 
             }
 
@@ -502,7 +554,12 @@ export function createEngine(config = {}) {
                 true;
 
 
-            mostrarLoading();
+            console.log(
+
+                `ENGINE ${entity} → SALVAR`,
+                dados
+
+            );
 
 
             emitir(
@@ -513,56 +570,62 @@ export function createEngine(config = {}) {
 
             try {
 
-                const registroEditando =
-                    state.registroEditando;
+                let resposta;
 
 
                 // ============================================
-                // ATUALIZAR
+                // EDIÇÃO
                 // ============================================
 
                 if (
-                    registroEditando
+                    state.registroEditando
                 ) {
 
+                    const registroAtualizado = {
+
+                        ...state.registroEditando,
+
+                        ...dados
+
+                    };
+
+
                     const id =
-                        normalizarId(
-                            registroEditando.id ??
-                            registroEditando.ID
+                        obterId(
+                            state.registroEditando
                         );
 
 
                     if (!id) {
 
                         throw new Error(
-                            "Engine: registro em edição não possui ID."
+
+                            "Engine: " +
+                            "registro em edição " +
+                            "não possui ID."
+
                         );
 
                     }
 
 
-                    const registro =
-                        {
-
-                            ...registroEditando,
-
-                            ...(dados || {}),
-
-                            id
-
-                        };
-
-
                     console.log(
-                        `ENGINE ${entity} → ATUALIZAR → ID:`,
+
+                        `ENGINE ${entity} → ` +
+                        "ATUALIZAR → ID:",
+
                         id
+
                     );
 
 
-                    const resposta =
+                    resposta =
                         await atualizar(
+
                             entity,
-                            registro
+
+                            registroAtualizado
+
                         );
 
 
@@ -570,81 +633,90 @@ export function createEngine(config = {}) {
                      * Atualizar estado local.
                      */
 
-                    atualizarEstadoLocal(
-                        registro
+                    atualizarRegistroLocal(
+
+                        registroAtualizado
+
                     );
-
-
-                    state.registroEditando =
-                        null;
-
-
-                    emitir(
-                        "atualizado",
-                        resposta
-                    );
-
-
-                    emitir(
-                        "salvo",
-                        resposta
-                    );
-
-
-                    return resposta;
 
                 }
 
 
                 // ============================================
-                // CRIAR
+                // NOVO
                 // ============================================
 
-                console.log(
-                    `ENGINE ${entity} → CRIAR`
-                );
+                else {
 
+                    console.log(
 
-                const resposta =
-                    await criar(
-                        entity,
-                        dados || {}
+                        `ENGINE ${entity} → ` +
+                        "CRIAR"
+
                     );
 
 
-                /*
-                 * O backend/Supabase pode retornar:
-                 *
-                 * Array
-                 * { data: [...] }
-                 * { dados: [...] }
-                 * Objeto
-                 */
+                    resposta =
+                        await criar(
 
-                const novoRegistro =
-                    normalizarRegistro(
-                        resposta
-                    );
+                            entity,
+
+                            dados
+
+                        );
 
 
-                if (
-                    novoRegistro
-                ) {
+                    const novoRegistro =
+                        normalizarRegistro(
+                            resposta
+                        );
 
-                    state.registros.push(
+
+                    /*
+                     * Adicionar ao State se o backend
+                     * devolveu o registro.
+                     */
+
+                    if (
                         novoRegistro
-                    );
+                    ) {
+
+                        state.registros =
+                            Array.isArray(
+                                state.registros
+                            )
+
+                                ? state.registros
+
+                                : [];
+
+
+                        state.registros.push(
+                            novoRegistro
+                        );
+
+                    }
 
                 }
 
+
+                // ============================================
+                // FINALIZAR
+                // ============================================
 
                 state.registroEditando =
                     null;
 
 
-                emitir(
-                    "criado",
-                    novoRegistro
+                state.modo =
+                    null;
+
+
+                console.log(
+
+                    `ENGINE ${entity} → ` +
+                    "SALVO COM SUCESSO"
+
                 );
 
 
@@ -656,18 +728,20 @@ export function createEngine(config = {}) {
 
                 return resposta;
 
-            }
-
-            catch (erro) {
+            } catch (erro) {
 
                 console.error(
-                    `ENGINE ${entity} → ERRO AO SALVAR:`,
+
+                    `ENGINE ${entity}: ` +
+                    "erro ao salvar",
+
                     erro
+
                 );
 
 
                 emitir(
-                    "erro-salvamento",
+                    "erro",
                     erro
                 );
 
@@ -679,15 +753,10 @@ export function createEngine(config = {}) {
 
                 throw erro;
 
-            }
-
-            finally {
+            } finally {
 
                 state.salvando =
                     false;
-
-
-                esconderLoading();
 
 
                 emitir(
@@ -707,34 +776,39 @@ export function createEngine(config = {}) {
             id
         ) {
 
-            const identificador =
-                normalizarId(
-                    id
-                );
-
-
-            console.log(
-                `ENGINE ${entity} → EXCLUIR → ID RECEBIDO:`,
-                identificador
+            validarId(
+                id
             );
 
 
-            if (!identificador) {
+            const identificador =
+                String(
+                    id
+                ).trim();
 
-                throw new Error(
-                    "Engine: ID não informado."
-                );
 
-            }
+            console.log(
+
+                `ENGINE ${entity} → ` +
+                "EXCLUIR → ID RECEBIDO:",
+
+                identificador
+
+            );
 
 
             const confirmar =
                 window.confirm(
-                    "Deseja realmente excluir este registro?"
+
+                    "Deseja realmente " +
+                    "excluir este registro?"
+
                 );
 
 
-            if (!confirmar) {
+            if (
+                !confirmar
+            ) {
 
                 return false;
 
@@ -744,37 +818,50 @@ export function createEngine(config = {}) {
             try {
 
                 await excluir(
+
                     entity,
+
                     identificador
+
                 );
 
 
                 /*
-                 * Remover do estado local.
+                 * Remover do State.
                  *
-                 * IMPORTANTE:
+                 * ATENÇÃO:
                  *
-                 * PostgreSQL/Supabase usa:
-                 *
-                 *     registro.id
-                 *
-                 * e não:
-                 *
-                 *     registro.ID
+                 * Seu Supabase utiliza "id"
+                 * minúsculo.
                  */
 
                 state.registros =
-                    state.registros.filter(
+                    (
+                        state.registros || []
+                    )
+
+                    .filter(
 
                         registro =>
 
-                            normalizarId(
-                                registro?.id ??
-                                registro?.ID
+                            String(
+                                obterId(
+                                    registro
+                                )
                             ) !==
                             identificador
 
                     );
+
+
+                console.log(
+
+                    `ENGINE ${entity} → ` +
+                    "EXCLUÍDO:",
+
+                    identificador
+
+                );
 
 
                 emitir(
@@ -785,12 +872,20 @@ export function createEngine(config = {}) {
 
                 return true;
 
-            }
-
-            catch (erro) {
+            } catch (erro) {
 
                 console.error(
-                    `ENGINE ${entity} → ERRO AO EXCLUIR:`,
+
+                    `ENGINE ${entity}: ` +
+                    "erro ao excluir",
+
+                    erro
+
+                );
+
+
+                emitir(
+                    "erro",
                     erro
                 );
 
@@ -828,19 +923,20 @@ export function createEngine(config = {}) {
 
 
             emitir(
-                "filtro",
+                "filtrado",
                 state.filtro
             );
 
 
-            if (
-                typeof engine.renderizarTabela ===
-                "function"
-            ) {
+            /*
+             * Se o table.js tiver renderizar(),
+             * ele receberá o evento e poderá atualizar
+             * a tabela.
+             */
 
-                engine.renderizarTabela();
-
-            }
+            emitir(
+                "renderizar"
+            );
 
 
             return obterRegistrosFiltrados();
@@ -856,23 +952,47 @@ export function createEngine(config = {}) {
             numero
         ) {
 
+            const pagina =
+                Number(
+                    numero
+                );
+
+
+            if (
+                !Number.isFinite(
+                    pagina
+                )
+            ) {
+
+                return;
+
+            }
+
+
             const registros =
                 obterRegistrosFiltrados();
 
 
             const tamanho =
                 Number(
-                    state.paginaTamanho
-                ) || 10;
+                    state.paginaTamanho ||
+                    options.pageSize ||
+                    10
+                );
 
 
             const totalPaginas =
                 Math.max(
+
                     1,
+
                     Math.ceil(
+
                         registros.length /
                         tamanho
+
                     )
+
                 );
 
 
@@ -881,9 +1001,7 @@ export function createEngine(config = {}) {
 
                     Math.max(
                         1,
-                        Number(
-                            numero
-                        ) || 1
+                        pagina
                     ),
 
                     totalPaginas
@@ -897,14 +1015,9 @@ export function createEngine(config = {}) {
             );
 
 
-            if (
-                typeof engine.renderizarTabela ===
-                "function"
-            ) {
-
-                engine.renderizarTabela();
-
-            }
+            emitir(
+                "renderizar"
+            );
 
 
             return state.paginaAtual;
@@ -918,74 +1031,28 @@ export function createEngine(config = {}) {
 
         fecharFormulario() {
 
+            console.log(
+
+                `ENGINE ${entity} → ` +
+                "FECHAR FORMULÁRIO"
+
+            );
+
+
             state.registroEditando =
                 null;
 
 
-            if (
-                typeof engine.esconderFormulario ===
-                "function"
-            ) {
-
-                engine.esconderFormulario();
-
-            }
+            state.modo =
+                null;
 
 
             emitir(
                 "formulario-fechado"
             );
 
-        },
 
-
-        // ====================================================
-        // ACTION
-        // ====================================================
-
-        action(
-            nome,
-            registro
-        ) {
-
-            const actions =
-                options.actions || {};
-
-
-            const funcao =
-                actions[nome];
-
-
-            if (
-                typeof funcao !==
-                "function"
-            ) {
-
-                console.warn(
-                    `Engine ${entity}: action "${nome}" não encontrada.`
-                );
-
-
-                return null;
-
-            }
-
-
-            return funcao(
-                registro,
-                engine
-            );
-
-        },
-
-
-        // ====================================================
-        // ESTADO
-        // ====================================================
-
-        obterEstado() {
-
-            return state;
+            return true;
 
         }
 
@@ -993,33 +1060,15 @@ export function createEngine(config = {}) {
 
 
     // ========================================================
-    // MÉTODOS VISUAIS
+    // MÉTODOS AUXILIARES PÚBLICOS
     // ========================================================
 
-    /*
-     * Estes métodos são pontos de integração.
-     *
-     * O module.js/form.js/table.js pode substituí-los.
-     */
-
-    engine.mostrarFormulario =
-        null;
+    engine.obterRegistrosFiltrados =
+        obterRegistrosFiltrados;
 
 
-    engine.esconderFormulario =
-        null;
-
-
-    engine.limparFormulario =
-        null;
-
-
-    engine.preencherFormulario =
-        null;
-
-
-    engine.renderizarTabela =
-        null;
+    engine.obterId =
+        obterId;
 
 
     // ========================================================
@@ -1028,31 +1077,133 @@ export function createEngine(config = {}) {
 
     return engine;
 
-}
+
+    // ========================================================
+    // FUNÇÕES INTERNAS
+    // ========================================================
+
+    function obterRegistrosFiltrados() {
+
+        const registros =
+            Array.isArray(
+                state.registros
+            )
+
+                ? state.registros
+
+                : [];
 
 
-// ============================================================
-// NORMALIZAR ID
-// ============================================================
+        const filtro =
+            String(
+                state.filtro || ""
+            )
+            .trim()
+            .toLowerCase();
 
-function normalizarId(
-    id
-) {
 
-    if (
-        id === undefined ||
-        id === null
-    ) {
+        if (!filtro) {
 
-        return "";
+            return registros;
+
+        }
+
+
+        return registros.filter(
+
+            registro =>
+
+                Object.values(
+                    registro || {}
+                )
+
+                .some(
+
+                    valor =>
+
+                        String(
+                            valor ?? ""
+                        )
+                        .toLowerCase()
+                        .includes(
+                            filtro
+                        )
+
+                )
+
+        );
 
     }
 
 
-    return String(
-        id
-    )
-    .trim();
+    // ========================================================
+    // ATUALIZAR REGISTRO LOCAL
+    // ========================================================
+
+    function atualizarRegistroLocal(
+        registro
+    ) {
+
+        const id =
+            obterId(
+                registro
+            );
+
+
+        if (!id) {
+
+            return;
+
+        }
+
+
+        const registros =
+            Array.isArray(
+                state.registros
+            )
+
+                ? state.registros
+
+                : [];
+
+
+        const indice =
+            registros.findIndex(
+
+                item =>
+
+                    String(
+                        obterId(
+                            item
+                        )
+                    ) ===
+                    String(
+                        id
+                    )
+
+            );
+
+
+        if (
+            indice >= 0
+        ) {
+
+            registros[indice] =
+                registro;
+
+        } else {
+
+            registros.push(
+                registro
+            );
+
+        }
+
+
+        state.registros =
+            registros;
+
+    }
 
 }
 
@@ -1077,25 +1228,23 @@ function normalizarLista(
 
 
     if (
-        resposta &&
         Array.isArray(
-            resposta.data
+            resposta?.dados
         )
     ) {
 
-        return resposta.data;
+        return resposta.dados;
 
     }
 
 
     if (
-        resposta &&
         Array.isArray(
-            resposta.dados
+            resposta?.data
         )
     ) {
 
-        return resposta.dados;
+        return resposta.data;
 
     }
 
@@ -1120,93 +1269,70 @@ function normalizarRegistro(
     }
 
 
-    /*
-     * Array
-     */
-
     if (
         Array.isArray(
             resposta
         )
     ) {
 
-        return (
-            resposta[0] ||
-            null
-        );
+        return resposta[0] || null;
 
     }
 
-
-    /*
-     * { data: [...] }
-     */
 
     if (
-        Array.isArray(
-            resposta.data
-        )
+        resposta?.dados
     ) {
 
-        return (
-            resposta.data[0] ||
-            null
-        );
+        if (
+            Array.isArray(
+                resposta.dados
+            )
+        ) {
+
+            return resposta.dados[0] || null;
+
+        }
+
+
+        if (
+            typeof resposta.dados ===
+            "object"
+        ) {
+
+            return resposta.dados;
+
+        }
 
     }
 
-
-    /*
-     * { dados: [...] }
-     */
 
     if (
-        Array.isArray(
-            resposta.dados
-        )
+        resposta?.data
     ) {
 
-        return (
-            resposta.dados[0] ||
-            null
-        );
+        if (
+            Array.isArray(
+                resposta.data
+            )
+        ) {
+
+            return resposta.data[0] || null;
+
+        }
+
+
+        if (
+            typeof resposta.data ===
+            "object"
+        ) {
+
+            return resposta.data;
+
+        }
 
     }
 
-
-    /*
-     * { data: {...} }
-     */
-
-    if (
-        resposta.data &&
-        typeof resposta.data ===
-        "object"
-    ) {
-
-        return resposta.data;
-
-    }
-
-
-    /*
-     * { dados: {...} }
-     */
-
-    if (
-        resposta.dados &&
-        typeof resposta.dados ===
-        "object"
-    ) {
-
-        return resposta.dados;
-
-    }
-
-
-    /*
-     * Objeto direto.
-     */
 
     if (
         typeof resposta ===
@@ -1224,68 +1350,72 @@ function normalizarRegistro(
 
 
 // ============================================================
-// ATUALIZAR ESTADO LOCAL
+// OBTER ID
 // ============================================================
 
-function atualizarEstadoLocal(
+function obterId(
     registro
 ) {
 
+    if (!registro) {
+
+        return null;
+
+    }
+
+
+    /*
+     * PostgreSQL / Supabase:
+     *
+     * id
+     *
+     * Compatibilidade com versões anteriores:
+     *
+     * ID
+     */
+
+    return (
+
+        registro.id ??
+
+        registro.ID ??
+
+        registro.Id ??
+
+        null
+
+    );
+
+}
+
+
+// ============================================================
+// VALIDAR ID
+// ============================================================
+
+function validarId(
+    id
+) {
+
     if (
-        !registro
+        id === undefined ||
+        id === null ||
+        String(
+            id
+        ).trim() === ""
     ) {
 
-        return;
-
-    }
-
-
-    const id =
-        normalizarId(
-            registro.id ??
-            registro.ID
+        throw new Error(
+            "Engine: ID não informado."
         );
 
-
-    if (!id) {
-
-        return;
-
     }
 
-
-    const registros =
-        this?.state?.registros;
-
-
-    /*
-     * O this não é confiável em função externa.
-     *
-     * Esta função é usada pelo Engine
-     * através de atualizarRegistroEstado().
-     */
-
 }
 
 
 // ============================================================
-// FILTRAR REGISTROS
-// ============================================================
-
-function obterRegistrosFiltrados() {
-
-    /*
-     * Esta função é substituída abaixo
-     * pelo método interno do Engine.
-     */
-
-    return [];
-
-}
-
-
-// ============================================================
-// EVENTOS
+// EMITIR EVENTO
 // ============================================================
 
 function emitir(
@@ -1293,40 +1423,27 @@ function emitir(
     detalhe
 ) {
 
-    /*
-     * Esta função recebe o container
-     * através do contexto do Engine.
-     *
-     * Será substituída pelo helper interno.
-     */
+    if (!container) {
 
-}
+        return;
+
+    }
 
 
-// ============================================================
-// LOADING
-// ============================================================
+    container.dispatchEvent(
 
-function mostrarLoading() {
+        new CustomEvent(
 
-    /*
-     * O loading visual é responsabilidade
-     * do module/componentes.
-     */
+            `engine:${nome}`,
 
-}
+            {
+                detail:
+                    detalhe
+            }
 
+        )
 
-// ============================================================
-// ESCONDER LOADING
-// ============================================================
-
-function esconderLoading() {
-
-    /*
-     * O loading visual é responsabilidade
-     * do module/componentes.
-     */
+    );
 
 }
 
@@ -1339,17 +1456,20 @@ function mostrarErro(
     erro
 ) {
 
-    console.error(
-        erro
-    );
-
-
     const mensagem =
+
         erro?.message ||
-        "Ocorreu um erro.";
+
+        String(
+            erro ||
+            "Ocorreu um erro."
+        );
 
 
     if (
+        typeof window !==
+        "undefined" &&
+
         typeof window.mostrarToast ===
         "function"
     ) {
@@ -1359,13 +1479,24 @@ function mostrarErro(
             "erro"
         );
 
+
         return;
 
     }
 
 
-    window.alert(
-        mensagem
-    );
+    if (
+        typeof window !==
+        "undefined" &&
+
+        typeof window.alert ===
+        "function"
+    ) {
+
+        window.alert(
+            mensagem
+        );
+
+    }
 
 }
