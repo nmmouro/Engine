@@ -637,6 +637,21 @@ export function createEngine(config = {}) {
                     );
 
 
+
+console.log(
+    "DEBUG ENGINE → CHAMANDO ATUALIZAR",
+    {
+        entity,
+        id,
+        registro,
+        tipoRegistro: typeof registro
+    }
+);
+
+
+                    
+
+
                     resposta =
                         await atualizar(
                             entity,
