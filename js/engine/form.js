@@ -173,10 +173,10 @@ export function createForm(config = {}) {
             );
 
 
-            FORM.limpar();
+            form.limpar();
 
-
-            FORM.mostrar();
+   
+            form.mostrar();
 
 
             focarPrimeiroCampo();
