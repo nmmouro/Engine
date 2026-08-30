@@ -1,45 +1,35 @@
+// ============================================================
+// INICIALIZAR TOOLBAR
+// ============================================================
+
+if (
+    toolbar &&
+    typeof toolbar.iniciar === "function"
+) {
+
+    toolbar.iniciar();
+
+}
+
+
 /**
  * ============================================================
  * TOOLBAR
  * Painel Frota
- * Arquivo: toolbar.js
  *
  * Responsabilidade:
  *
- * - Criar barra de ferramentas
+ * - Controlar os botões da barra de ferramentas
  * - Botão Novo
- * - Título do módulo
- * - Botões personalizados
- * - Eventos da toolbar
  *
- * NÃO conhece:
- *
- * - PostgreSQL
- * - Supabase
- * - Google Sheets
- * - CRUD diretamente
- *
- * Para executar operações utiliza:
- *
- *     engine.novo()
- *     engine.action()
- *
+ * Não executa CRUD diretamente.
  * ============================================================
  */
 
 
-// ============================================================
-// CREATE TOOLBAR
-// ============================================================
-
-export function createToolbar(config = {}) {
-
-    // ========================================================
-    // CONFIGURAÇÃO
-    // ========================================================
-
-    const entity =
-        config.entity || "";
+export function createToolbar(
+    config = {}
+) {
 
     const container =
         config.container || null;
@@ -52,13 +42,13 @@ export function createToolbar(config = {}) {
 
 
     // ========================================================
-    // VALIDAÇÃO
+    // VALIDAR
     // ========================================================
 
     if (!container) {
 
         throw new Error(
-            `Toolbar ${entity}: container não informado.`
+            "Toolbar: container não informado."
         );
 
     }
@@ -67,43 +57,17 @@ export function createToolbar(config = {}) {
     if (!engine) {
 
         throw new Error(
-            `Toolbar ${entity}: engine não informado.`
+            "Toolbar: engine não informado."
         );
 
     }
 
 
     // ========================================================
-    // ELEMENTOS
+    // ESTADO
     // ========================================================
 
-    let toolbar =
-        null;
-
-
-    // ========================================================
-    // API PÚBLICA
-    // ========================================================
-
-    const api = {
-
-        entity,
-
-        container,
-
-        engine,
-
-        options,
-
-        iniciar,
-
-        renderizar,
-
-        novo,
-
-        destruir
-
-    };
+    let btnNovo = null;
 
 
     // ========================================================
@@ -112,33 +76,85 @@ export function createToolbar(config = {}) {
 
     function iniciar() {
 
-        renderizar();
+        console.log(
+            `TOOLBAR ${engine.entity} → INICIAR`
+        );
 
-        localizarToolbar();
+
+        localizarElementos();
 
         registrarEventos();
 
-        return api;
+
+        console.log(
+            `TOOLBAR ${engine.entity} → INICIADO`
+        );
 
     }
 
 
     // ========================================================
-    // RENDERIZAR
+    // LOCALIZAR ELEMENTOS
     // ========================================================
 
-    function renderizar() {
+    function localizarElementos() {
+
+        btnNovo =
+            container.querySelector(
+                "[data-engine-novo]"
+            );
+
 
         /*
-         * Se o module.js já criou a toolbar,
-         * não devemos duplicá-la.
+         * Se o botão não existe, criar.
          */
 
-        toolbar =
+        if (
+            !btnNovo &&
+            options.permitirNovo !== false
+        ) {
+
+            criarBotaoNovo();
+
+        }
+
+
+        if (btnNovo) {
+
+            console.log(
+                `TOOLBAR ${engine.entity} → BOTÃO NOVO ENCONTRADO`
+            );
+
+        } else {
+
+            console.warn(
+                `TOOLBAR ${engine.entity} → BOTÃO NOVO NÃO ENCONTRADO`
+            );
+
+        }
+
+    }
+
+
+    // ========================================================
+    // CRIAR BOTÃO NOVO
+    // ========================================================
+
+    function criarBotaoNovo() {
+
+        /*
+         * Procurar a toolbar.
+         */
+
+        let toolbar =
             container.querySelector(
                 "[data-engine-toolbar]"
             );
 
+
+        /*
+         * Se não existir, criar.
+         */
 
         if (!toolbar) {
 
@@ -147,8 +163,10 @@ export function createToolbar(config = {}) {
                     "div"
                 );
 
+
             toolbar.className =
                 "engine-toolbar";
+
 
             toolbar.setAttribute(
                 "data-engine-toolbar",
@@ -156,145 +174,66 @@ export function createToolbar(config = {}) {
             );
 
 
-            container.prepend(
-                toolbar
-            );
-
-        }
-
-
-        const titulo =
-            options.titulo ||
-            entity;
+            const header =
+                container.querySelector(
+                    ".engine-header"
+                );
 
 
-        const permitirNovo =
-            options.permitirNovo !== false;
+            if (header) {
 
+                header.appendChild(
+                    toolbar
+                );
 
-        const actions =
-            options.toolbarActions ||
-            {};
+            } else {
 
-
-        let html = `
-
-            <div class="engine-toolbar-left">
-
-                <h1 class="engine-title">
-
-                    ${escaparHTML(
-                        titulo
-                    )}
-
-                </h1>
-
-            </div>
-
-            <div class="engine-toolbar-right">
-
-        `;
-
-
-        // ====================================================
-        // NOVO
-        // ====================================================
-
-        if (permitirNovo) {
-
-            html += `
-
-                <button
-                    type="button"
-                    class="engine-btn engine-btn-primary"
-                    data-toolbar-novo
-                >
-
-                    Novo
-
-                </button>
-
-            `;
-
-        }
-
-
-        // ====================================================
-        // ACTIONS PERSONALIZADAS
-        // ====================================================
-
-        Object.keys(
-            actions
-        )
-        .forEach(
-            nome => {
-
-                if (
-                    typeof actions[nome] !==
-                    "function"
-                ) {
-
-                    return;
-
-                }
-
-
-                html += `
-
-                    <button
-                        type="button"
-                        class="engine-btn"
-                        data-toolbar-action="${escaparAtributo(
-                            nome
-                        )}"
-                    >
-
-                        ${escaparHTML(
-                            obterTituloAction(
-                                nome
-                            )
-                        )}
-
-                    </button>
-
-                `;
+                container.prepend(
+                    toolbar
+                );
 
             }
+
+        }
+
+
+        /*
+         * Criar botão.
+         */
+
+        btnNovo =
+            document.createElement(
+                "button"
+            );
+
+
+        btnNovo.type =
+            "button";
+
+
+        btnNovo.className =
+            "btn btn-primary";
+
+
+        btnNovo.setAttribute(
+            "data-engine-novo",
+            ""
         );
 
 
-        html += `
-
-            </div>
-
-        `;
+        btnNovo.textContent =
+            options.textoNovo ||
+            "Novo";
 
 
-        toolbar.innerHTML =
-            html;
-
-    }
-
-
-    // ========================================================
-    // LOCALIZAR TOOLBAR
-    // ========================================================
-
-    function localizarToolbar() {
-
-        toolbar =
-            container.querySelector(
-                "[data-engine-toolbar]"
-            );
+        toolbar.appendChild(
+            btnNovo
+        );
 
 
-        if (!toolbar) {
-
-            throw new Error(
-                `Toolbar ${entity}: toolbar não encontrada.`
-            );
-
-        }
+        console.log(
+            `TOOLBAR ${engine.entity} → BOTÃO NOVO CRIADO`
+        );
 
     }
 
@@ -305,236 +244,104 @@ export function createToolbar(config = {}) {
 
     function registrarEventos() {
 
-        if (!toolbar) {
-            return;
-        }
-
-
-        toolbar.addEventListener(
-            "click",
-            tratarClique
-        );
-
-    }
-
-
-    // ========================================================
-    // TRATAR CLIQUE
-    // ========================================================
-
-    function tratarClique(
-        evento
-    ) {
-
-        // ====================================================
-        // NOVO
-        // ====================================================
-
-        const botaoNovo =
-            evento.target.closest(
-                "[data-toolbar-novo]"
-            );
-
-
-        if (botaoNovo) {
-
-            novo();
+        if (!btnNovo) {
 
             return;
 
         }
 
 
-        // ====================================================
-        // ACTION
-        // ====================================================
-
-        const botaoAction =
-            evento.target.closest(
-                "[data-toolbar-action]"
-            );
-
-
-        if (botaoAction) {
-
-            const nome =
-                botaoAction.getAttribute(
-                    "data-toolbar-action"
-                );
-
-
-            if (!nome) {
-                return;
-            }
-
-
-            if (
-                typeof engine.action ===
-                "function"
-            ) {
-
-                engine.action(
-                    nome,
-                    null
-                );
-
-            }
-
-        }
-
-    }
-
-
-    // ========================================================
-    // NOVO
-    // ========================================================
-
-    function novo() {
-
-        console.log(
-            `TOOLBAR ${entity} → NOVO`
-        );
-
+        /*
+         * Evitar registrar duas vezes.
+         */
 
         if (
-            typeof engine.novo !==
-            "function"
+            btnNovo.dataset.engineEvento ===
+            "true"
         ) {
-
-            console.error(
-                `Toolbar ${entity}: engine.novo() não está disponível.`
-            );
 
             return;
 
         }
 
 
-        engine.novo();
-
-    }
-
-
-    // ========================================================
-    // TÍTULO DE ACTION
-    // ========================================================
-
-    function obterTituloAction(
-        nome
-    ) {
-
-        const titulos = {
-
-            atualizar:
-                "Atualizar",
-
-            recarregar:
-                "Recarregar",
-
-            exportar:
-                "Exportar",
-
-            imprimir:
-                "Imprimir",
-
-            visualizar:
-                "Visualizar",
-
-            checklist:
-                "Checklist"
-
-        };
+        btnNovo.dataset.engineEvento =
+            "true";
 
 
-        return (
-            titulos[nome] ||
-            nome
+        btnNovo.addEventListener(
+            "click",
+            evento => {
+
+                evento.preventDefault();
+
+
+                console.log(
+                    `TOOLBAR ${engine.entity} → NOVO`
+                );
+
+
+                if (
+                    typeof engine.novo ===
+                    "function"
+                ) {
+
+                    engine.novo();
+
+                }
+
+            }
         );
 
     }
 
 
     // ========================================================
-    // ESCAPAR HTML
+    // MOSTRAR
     // ========================================================
 
-    function escaparHTML(
-        valor
-    ) {
+    function mostrar() {
 
-        return String(
-            valor ?? ""
-        )
+        if (btnNovo) {
 
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
-    }
-
-
-    // ========================================================
-    // ESCAPAR ATRIBUTO
-    // ========================================================
-
-    function escaparAtributo(
-        valor
-    ) {
-
-        return escaparHTML(
-            valor
-        );
-
-    }
-
-
-    // ========================================================
-    // DESTRUIR
-    // ========================================================
-
-    function destruir() {
-
-        if (toolbar) {
-
-            toolbar.removeEventListener(
-                "click",
-                tratarClique
-            );
+            btnNovo.hidden =
+                false;
 
         }
 
+    }
 
-        toolbar =
-            null;
+
+    // ========================================================
+    // OCULTAR
+    // ========================================================
+
+    function ocultar() {
+
+        if (btnNovo) {
+
+            btnNovo.hidden =
+                true;
+
+        }
 
     }
 
 
     // ========================================================
-    // RETORNAR
+    // API PÚBLICA
     // ========================================================
 
-    return api;
+    return {
+
+        iniciar,
+
+        mostrar,
+
+        ocultar,
+
+        criarBotaoNovo
+
+    };
 
 }
