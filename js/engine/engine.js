@@ -691,21 +691,25 @@ else {
 
 
     /*
-     * O ID precisa ser gerado antes
-     * de enviar o registro para o CRUD.
+     * Gerar ID antes de enviar
+     * para o Supabase.
      */
 
-    const id = await gerarId( entity );
-    
+    const id =
+        await gerarId(
+            entity
+        );
+
+
     const dadosCriar = {
 
-        ...dados
+        ...dados,
 
         id
 
     };
 
-  
+
     console.log(
         `ENGINE ${entity} → NOVO ID:`,
         id
