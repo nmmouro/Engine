@@ -320,68 +320,91 @@ export function createModule(config = {}) {
 
             try {
 
-                /* ============================================
-                   FORM
-                ============================================ */
+                ```js
+/* ============================================
+   FORM
+============================================ */
 
-                if (
-                    form &&
-                    typeof form.iniciar === "function"
-                ) {
+if (
+    form &&
+    typeof form.iniciar === "function"
+) {
 
-                    await form.iniciar();
+    await form.iniciar();
 
-                }
-
-
-                /* ============================================
-                   TABLE
-                ============================================ */
-
-                if (
-                    table &&
-                    typeof table.iniciar === "function"
-                ) {
-
-                    await table.iniciar();
-
-                }
+}
 
 
-                /* ============================================
-                   TOOLBAR
-                ============================================ */
+/* ============================================
+   TABLE
+============================================ */
 
-                if (
-                    toolbar &&
-                    typeof toolbar.iniciar === "function"
-                ) {
+if (
+    table &&
+    typeof table.iniciar === "function"
+) {
 
-                    await toolbar.iniciar();
+    await table.iniciar();
 
-                }
-
-
-                /* ============================================
-                   ENGINE
-                ============================================ */
-
-                if (
-                    engine &&
-                    typeof engine.iniciar === "function"
-                ) {
-
-                    await engine.iniciar();
-
-                }
+}
 
 
-                console.log(
-                    `MODULE → INICIADO → ${entity}`
-                );
+/* ============================================
+   TOOLBAR
+============================================ */
+
+if (
+    toolbar &&
+    typeof toolbar.iniciar === "function"
+) {
+
+    await toolbar.iniciar();
+
+}
 
 
-                return module;
+/* ============================================
+   VINCULAR COMPONENTES AO ENGINE
+============================================ */
+
+if (
+    engine &&
+    typeof engine.setComponents === "function"
+) {
+
+    engine.setComponents({
+
+        form,
+        table,
+        toolbar
+
+    });
+
+}
+
+
+/* ============================================
+   ENGINE
+============================================ */
+
+if (
+    engine &&
+    typeof engine.iniciar === "function"
+) {
+
+    await engine.iniciar();
+
+}
+
+
+console.log(
+    `MODULE → INICIADO → ${entity}`
+);
+
+
+return module;
+```
+
 
             }
 
