@@ -207,71 +207,97 @@ export function createModule(
         });
 
 
-    // ========================================================
-    // TABLE
-    // ========================================================
+// ========================================================
+// TABLE
+// ========================================================
 
-    const table =
-        createTable({
+const table =
+    createTable({
 
-            container:
-                areas.tabela,
+        /*
+         * IMPORTANTE:
+         *
+         * Passamos o container principal.
+         * O table.js localiza internamente:
+         *
+         * [data-engine-table]
+         */
 
-            schema,
+        container,
 
-            state,
+        schema,
 
-            engine,
+        state,
 
-            options
+        engine,
 
-        });
+        options
 
-
-    // ========================================================
-    // FORM
-    // ========================================================
-
-    const form =
-        createForm({
-
-            container:
-                areas.formulario,
-
-            schema,
-
-            state,
-
-            engine,
-
-            options
-
-        });
+    });
 
 
-    // ========================================================
-    // TOOLBAR
-    // ========================================================
+// ========================================================
+// FORM
+// ========================================================
 
-    const toolbar =
-        createToolbar({
+const form =
+    createForm({
 
-            container:
-                areas.toolbar,
+        /*
+         * IMPORTANTE:
+         *
+         * Passamos o container principal.
+         * O form.js localiza internamente:
+         *
+         * [data-engine-form]
+         */
 
-            schema,
+        container,
 
-            state,
+        schema,
 
-            engine,
+        state,
 
-            form,
+        engine,
 
-            table,
+        options
 
-            options
+    });
 
-        });
+
+// ========================================================
+// TOOLBAR
+// ========================================================
+
+const toolbar =
+    createToolbar({
+
+        /*
+         * IMPORTANTE:
+         *
+         * Passamos o container principal.
+         * O toolbar.js localiza internamente:
+         *
+         * [data-engine-toolbar]
+         */
+
+        container,
+
+        schema,
+
+        state,
+
+        engine,
+
+        form,
+
+        table,
+
+        options
+
+    });
+
+
 
 
     // ========================================================
