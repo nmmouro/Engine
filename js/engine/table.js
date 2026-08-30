@@ -3,32 +3,21 @@
  * TABLE
  * Painel Frota
  *
- * Responsabilidades:
- *
- * - Renderizar somente a tabela
- * - Editar
- * - Excluir
+ * Responsabilidade:
+ * - Renderizar tabela
  * - Paginação
- * - Filtro
+ * - Formatação
+ * - Botões de ação
  *
- * NÃO altera:
- *
- * - Toolbar
- * - Formulário
- * - Container principal
+ * Não conhece Supabase.
+ * Não conhece PostgreSQL.
  * ============================================================
  */
 
+export function createTable(config = {}) {
 
-export function createTable(
-    config = {}
-) {
-
-    const container =
-        config.container || null;
-
-    const engine =
-        config.engine || null;
+    const entity =
+        config.entity || "";
 
     const schema =
         config.schema || {};
@@ -36,26 +25,20 @@ export function createTable(
     const options =
         config.options || {};
 
+    const container =
+        config.container;
 
-    // ========================================================
-    // VALIDAR
-    // ========================================================
+    const state =
+        config.state;
+
+    const engine =
+        config.engine;
+
 
     if (!container) {
-
         throw new Error(
-            "Table: container não informado."
+            `Table ${entity}: container não informado.`
         );
-
-    }
-
-
-    if (!engine) {
-
-        throw new Error(
-            "Table: engine não informado."
-        );
-
     }
 
 
@@ -66,18 +49,13 @@ export function createTable(
     function iniciar() {
 
         console.log(
-            `TABLE ${engine.entity} → INICIAR`
+            `TABLE ${entity} → INICIAR`
         );
-
-
-        registrarEventos();
-
 
         renderizar();
 
-
         console.log(
-            `TABLE ${engine.entity} → INICIADO`
+            `TABLE ${entity} → INICIADO`
         );
 
     }
@@ -89,45 +67,19 @@ export function createTable(
 
     function renderizar() {
 
-        /*
-         * IMPORTANTE:
-         *
-         * Somente o elemento da tabela
-         * pode ser alterado.
-         */
-
-        const tabela =
-            container.querySelector(
-                "[data-engine-table]"
-            );
-
-
-        if (!tabela) {
-
-            console.warn(
-                `TABLE ${engine.entity}: ` +
-                "[data-engine-table] não encontrado."
-            );
-
-            return;
-
-        }
-
-
         const registros =
-            obterRegistros();
+            obterRegistrosPagina();
 
 
         if (!registros.length) {
 
-            tabela.innerHTML = `
+            container.innerHTML = `
                 <div class="engine-empty">
                     Nenhum registro encontrado.
                 </div>
             `;
 
             return;
-
         }
 
 
@@ -139,158 +91,103 @@ export function createTable(
             <table class="engine-table">
 
                 <thead>
-
                     <tr>
         `;
 
 
-        // ====================================================
-        // CABEÇALHO
-        // ====================================================
-
-        colunas.forEach(
-            coluna => {
-
-                html += `
-                    <th>
-                        ${escaparHTML(
-                            obterTitulo(
-                                coluna
-                            )
-                        )}
-                    </th>
-                `;
-
-            }
-        );
-
-
-        if (
-            options.permitirEditar !== false ||
-            options.permitirExcluir !== false
-        ) {
+        colunas.forEach(coluna => {
 
             html += `
-                <th>Ações</th>
+                <th>
+                    ${escaparHTML(
+                        obterTituloColuna(coluna)
+                    )}
+                </th>
             `;
 
-        }
+        });
 
 
         html += `
+                <th>Ações</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
         `;
 
 
-        // ====================================================
-        // LINHAS
-        // ====================================================
+        registros.forEach(registro => {
 
-        registros.forEach(
-            registro => {
-
-                const id =
-                    obterId(
-                        registro
-                    );
+            const id =
+                obterId(registro);
 
 
-                html += `
-                    <tr>
-                `;
+            html += `
+                <tr>
+            `;
 
 
-                colunas.forEach(
-                    coluna => {
+            colunas.forEach(coluna => {
 
-                        const nome =
-                            obterNome(
-                                coluna
-                            );
+                const nome =
+                    obterNomeColuna(coluna);
 
-
-                        html += `
-                            <td>
-                                ${formatarValor(
-                                    registro?.[nome],
-                                    coluna
-                                )}
-                            </td>
-                        `;
-
-                    }
-                );
-
-
-                // ============================================
-                // AÇÕES
-                // ============================================
-
-                if (
-                    options.permitirEditar !== false ||
-                    options.permitirExcluir !== false
-                ) {
-
-                    html += `
-                        <td class="engine-actions">
-                    `;
-
-
-                    if (
-                        options.permitirEditar !== false
-                    ) {
-
-                        html += `
-                            <button
-                                type="button"
-                                data-action="editar"
-                                data-id="${escaparAtributo(
-                                    id
-                                )}"
-                            >
-                                Editar
-                            </button>
-                        `;
-
-                    }
-
-
-                    if (
-                        options.permitirExcluir !== false
-                    ) {
-
-                        html += `
-                            <button
-                                type="button"
-                                data-action="excluir"
-                                data-id="${escaparAtributo(
-                                    id
-                                )}"
-                            >
-                                Excluir
-                            </button>
-                        `;
-
-                    }
-
-
-                    html += `
-                        </td>
-                    `;
-
-                }
+                const valor =
+                    registro?.[nome];
 
 
                 html += `
-                    </tr>
+                    <td>
+                        ${formatarCelula(
+                            valor,
+                            coluna
+                        )}
+                    </td>
                 `;
 
-            }
-        );
+            });
+
+
+            html += `
+                    <td class="engine-actions">
+
+                        ${
+                            options.permitirEditar !== false
+                                ? `
+                                    <button
+                                        type="button"
+                                        data-action="editar"
+                                        data-id="${escaparAtributo(id)}"
+                                    >
+                                        Editar
+                                    </button>
+                                  `
+                                : ""
+                        }
+
+
+                        ${
+                            options.permitirExcluir !== false
+                                ? `
+                                    <button
+                                        type="button"
+                                        data-action="excluir"
+                                        data-id="${escaparAtributo(id)}"
+                                    >
+                                        Excluir
+                                    </button>
+                                  `
+                                : ""
+                        }
+
+                        ${renderizarActions(registro)}
+
+                    </td>
+                </tr>
+            `;
+
+        });
 
 
         html += `
@@ -300,44 +197,48 @@ export function createTable(
         `;
 
 
-        /*
-         * SOMENTE a tabela é alterada.
-         *
-         * Nunca:
-         *
-         * container.innerHTML
-         *
-         */
-
-        tabela.innerHTML =
+        container.innerHTML =
             html;
 
     }
 
 
     // ========================================================
-    // OBTER REGISTROS
+    // REGISTROS DA PÁGINA
     // ========================================================
 
-    function obterRegistros() {
+    function obterRegistrosPagina() {
 
-        if (
-            typeof engine.obterRegistrosFiltrados ===
-            "function"
-        ) {
+        const registros =
+            typeof state.obterRegistrosFiltrados === "function"
+                ? state.obterRegistrosFiltrados()
+                : (
+                    Array.isArray(state.registros)
+                        ? state.registros
+                        : []
+                );
 
-            return engine.obterRegistrosFiltrados();
 
-        }
+        const tamanho =
+            Number(
+                state.paginaTamanho || 10
+            );
 
 
-        return Array.isArray(
-            engine.state?.registros
-        )
+        const pagina =
+            Number(
+                state.paginaAtual || 1
+            );
 
-            ? engine.state.registros
 
-            : [];
+        const inicio =
+            (pagina - 1) * tamanho;
+
+
+        return registros.slice(
+            inicio,
+            inicio + tamanho
+        );
 
     }
 
@@ -349,109 +250,88 @@ export function createTable(
     function obterColunas() {
 
         if (
-            Array.isArray(
-                options.colunas
-            )
+            Array.isArray(options.colunas)
         ) {
 
-            return options.colunas;
+            return options.colunas.filter(
+                coluna =>
+                    obterNomeColuna(coluna) !== "id" &&
+                    obterNomeColuna(coluna) !== "ID"
+            );
 
         }
 
 
         if (
-            Array.isArray(
-                schema.fields
-            )
+            Array.isArray(schema.fields)
         ) {
 
             return schema.fields.filter(
+                campo => {
 
-                campo =>
+                    const nome =
+                        obterNomeColuna(campo);
 
-                    campo?.visible !== false &&
+                    return (
+                        campo.visible !== false &&
+                        campo.hidden !== true &&
+                        nome !== "id" &&
+                        nome !== "ID"
+                    );
 
-                    campo?.hidden !== true &&
-
-                    campo?.name !== "ID" &&
-
-                    campo?.name !== "id"
-
+                }
             );
 
         }
 
 
         const primeiro =
-            obterRegistros()[0];
+            state.registros?.[0] || {};
 
 
-        if (!primeiro) {
-
-            return [];
-
-        }
-
-
-        return Object.keys(
-            primeiro
-        )
-        .filter(
-            nome =>
-                nome !== "ID" &&
-                nome !== "id"
-        )
-        .map(
-            nome => ({
-                name: nome,
-                label: nome
-            })
-        );
+        return Object.keys(primeiro)
+            .filter(
+                nome =>
+                    nome !== "id" &&
+                    nome !== "ID"
+            )
+            .map(
+                nome => ({
+                    name: nome,
+                    label: nome
+                })
+            );
 
     }
 
 
     // ========================================================
-    // NOME
+    // NOME DA COLUNA
     // ========================================================
 
-    function obterNome(
-        coluna
-    ) {
+    function obterNomeColuna(coluna) {
 
         return (
-
             coluna?.name ||
-
             coluna?.campo ||
-
             coluna
-
         );
 
     }
 
 
     // ========================================================
-    // TÍTULO
+    // TÍTULO DA COLUNA
     // ========================================================
 
-    function obterTitulo(
-        coluna
-    ) {
+    function obterTituloColuna(coluna) {
 
         return (
-
             coluna?.label ||
-
             coluna?.titulo ||
-
             coluna?.name ||
-
             coluna?.campo ||
-
             coluna
-
         );
 
     }
@@ -461,45 +341,26 @@ export function createTable(
     // ID
     // ========================================================
 
-    function obterId(
-        registro
-    ) {
+    function obterId(registro) {
 
         return (
-
             registro?.id ??
-
             registro?.ID ??
-
-            registro?.Id ??
-
             ""
-
         );
 
     }
 
 
     // ========================================================
-    // FORMATAR VALOR
+    // FORMATAR CÉLULA
     // ========================================================
 
-    function formatarValor(
-        valor,
-        coluna
-    ) {
+    function formatarCelula(valor, coluna) {
 
         if (
             valor === null ||
-            valor === undefined
-        ) {
-
-            return "";
-
-        }
-
-
-        if (
+            valor === undefined ||
             valor === ""
         ) {
 
@@ -521,149 +382,105 @@ export function createTable(
 
 
         return escaparHTML(
-            String(
-                valor
-            )
+            String(valor)
         );
 
     }
 
 
     // ========================================================
-    // EVENTOS
+    // ACTIONS PERSONALIZADAS
     // ========================================================
 
-    function registrarEventos() {
+    function renderizarActions(registro) {
 
-        if (
-            container.dataset.tableEventos ===
-            "true"
-        ) {
-
-            return;
-
-        }
+        const actions =
+            options.actions || {};
 
 
-        container.dataset.tableEventos =
-            "true";
+        return Object.keys(actions)
 
-
-        container.addEventListener(
-            "click",
-            evento => {
-
-                const botao =
-                    evento.target.closest(
-                        "[data-action]"
-                    );
-
-
-                if (!botao) {
-
-                    return;
-
-                }
-
-
-                const acao =
-                    botao.getAttribute(
-                        "data-action"
-                    );
-
-
-                const id =
-                    botao.getAttribute(
-                        "data-id"
-                    );
-
+            .map(nome => {
 
                 if (
-                    !id
+                    typeof actions[nome] !== "function"
                 ) {
 
-                    console.error(
-
-                        `TABLE ${engine.entity} → ` +
-                        `${acao.toUpperCase()} → ` +
-                        "botão sem data-id",
-
-                        botao
-
-                    );
-
-                    return;
+                    return "";
 
                 }
 
 
-                console.log(
+                return `
+                    <button
+                        type="button"
+                        data-engine-action="${escaparAtributo(nome)}"
+                        data-id="${escaparAtributo(
+                            obterId(registro)
+                        )}"
+                    >
+                        ${escaparHTML(
+                            obterTituloAction(nome)
+                        )}
+                    </button>
+                `;
 
-                    `TABLE ${engine.entity} → ` +
-                    `${acao.toUpperCase()} → ID:`,
+            })
 
-                    id
+            .join("");
 
-                );
-
-
-                if (
-                    acao === "editar"
-                ) {
-
-                    engine.editar(
-                        id
-                    );
-
-                    return;
-
-                }
+    }
 
 
-                if (
-                    acao === "excluir"
-                ) {
+    // ========================================================
+    // TÍTULO ACTION
+    // ========================================================
 
-                    engine.excluir(
-                        id
-                    );
+    function obterTituloAction(nome) {
 
-                    return;
+        const titulos = {
 
-                }
+            abrirChecklist: "Checklist",
+            abastecer: "Abastecer",
+            visualizar: "Visualizar",
+            finalizar: "Finalizar"
 
-            }
+        };
+
+
+        return (
+            titulos[nome] ||
+            nome
         );
 
     }
 
 
     // ========================================================
-    // EVENTO ENGINE → RENDERIZAR
+    // ESCAPAR HTML
     // ========================================================
 
-    function registrarEventosEngine() {
+    function escaparHTML(valor) {
 
-        if (
-            !container
-        ) {
+        return String(
+            valor ?? ""
+        )
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
-            return;
-
-        }
+    }
 
 
-        container.addEventListener(
+    // ========================================================
+    // ESCAPAR ATRIBUTO
+    // ========================================================
 
-            "engine:renderizar",
+    function escaparAtributo(valor) {
 
-            () => {
-
-                renderizar();
-
-            }
-
-        );
+        return escaparHTML(valor);
 
     }
 
