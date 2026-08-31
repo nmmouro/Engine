@@ -402,6 +402,18 @@ async function carregarModulo(
     switch (pagina) {
 
 
+            case "home":
+
+                console.log(
+                "APP → PÁGINA INICIAL"
+            );
+
+                return {
+                    pagina: "home",
+                    inicializado: true
+    };
+
+
         /* ====================================================
            VEÍCULOS
            ==================================================== */
