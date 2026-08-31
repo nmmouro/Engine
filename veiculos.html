@@ -69,40 +69,29 @@
 ></main>
 
 
-<!-- ============================================================
-     JAVASCRIPT
-============================================================ -->
-
-<script type="module">
-
-    import {
-        iniciarHeader
-    } from "js/components/header.js";
-
-
-    /*
-     * Inicia o Header global.
-     */
-
-    iniciarHeader({
-
-        logo: "assets/logo.png",
-
-        tituloPadrao: "Painel Frota"
-
-    });
-
-</script>
-
-
-<!-- ============================================================
-     PÁGINA VEÍCULOS
-============================================================ -->
-
-<script
-    type="module"
-    src="js/pages/veiculos.js"
-></script>
+<!-- ======================================================== APP PRINCIPAL ========================================================= -->
+     
+     <script
+          
+          type="module"
+          src="./js/app.js"
+          ></script>
+     
+     <!-- ======================================================== HEADER ========================================================= -->
+     
+     <script type="module">
+          
+          import {
+               iniciarHeader
+          } from "./js/components/header.js";
+          
+          iniciarHeader({
+               
+               logo: "./assets/logo.png",
+               tituloPadrao: "Painel Frota"
+          });
+     
+     </script>
 
 
 </body>
