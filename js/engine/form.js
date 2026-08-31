@@ -1023,14 +1023,7 @@ export function createForm(config = {}) {
     }
 
 
-   /*
-     * ========================================================
-     * APLICA REGRAS DOS CAMPOS
-     * ========================================================
-     */
-
-                                                                                           aplicarCaixaAltaFormulario();
-}
+  
 
 
     /*
