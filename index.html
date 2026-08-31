@@ -1,207 +1,210 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
 
-    <!-- ============================================================
-         CONFIGURAÇÕES
-    ============================================================ -->
 
-    <meta charset="UTF-8">
+<!-- ============================================================
+     CONFIGURAÇÕES
+============================================================ -->
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta charset="UTF-8">
 
-    <meta
-        name="description"
-        content="Painel Frota - Sistema de gerenciamento de frota"
-    >
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-    <title>
-        Painel Frota
-    </title>
+<meta
+    name="description"
+    content="Painel Frota - Sistema de gerenciamento de frota"
+>
+
+<title>Painel Frota</title>
 
 
-    <!-- ============================================================
-         CSS
-    ============================================================ -->
+<!-- ============================================================
+     CSS
+============================================================ -->
 
-    <link
-        rel="stylesheet"
-        href="./css/style.css"
-    >
+<link
+    rel="stylesheet"
+    href="./css/style.css"
+>
 
-    <link
-        rel="stylesheet"
-        href="./css/components.css"
-    >
+<link
+    rel="stylesheet"
+    href="./css/components.css"
+>
+
 
 </head>
-
 
 <body>
 
 
-    <!-- ============================================================
-         PÁGINA INICIAL
-    ============================================================ -->
+<!-- ============================================================
+     CABEÇALHO
+============================================================ -->
 
-    <main
-        id="app"
-        class="app-container"
+<header
+    data-header
+    class="app-header"
+></header>
+
+
+<!-- ============================================================
+     PÁGINA INICIAL
+============================================================ -->
+
+<main
+    id="app"
+    class="app-container"
+>
+
+    <!-- ========================================================
+         MENU PRINCIPAL
+    ======================================================== -->
+
+    <section
+        class="menu-home"
+        aria-label="Menu principal"
     >
 
-        <!-- ========================================================
-             CABEÇALHO
-        ======================================================== -->
-<header data-header></header>
 
+        <!-- ====================================================
+             VEÍCULOS
+        ==================================================== -->
 
-        <!-- ========================================================
-             MENU PRINCIPAL
-        ======================================================== -->
-
-        <section
-            class="menu-home"
-            aria-label="Menu principal"
+        <a
+            href="./veiculos.html"
+            class="menu-card"
         >
 
-
-            <!-- ====================================================
-                 VEÍCULOS
-            ==================================================== -->
-
-            <a
-                href="./veiculos.html"
-                class="menu-card"
+            <span
+                class="menu-card-icon"
+                aria-hidden="true"
             >
+                🚗
+            </span>
 
-                <span
-                    class="menu-card-icon"
-                    aria-hidden="true"
-                >
-                    🚗
-                </span>
-
-                <span
-                    class="menu-card-title"
-                >
-                    Veículos
-                </span>
-
-                <span
-                    class="menu-card-description"
-                >
-                    Cadastro e gerenciamento dos veículos
-                </span>
-
-            </a>
-
-
-            <!-- ====================================================
-                 EMPREGADOS
-            ==================================================== -->
-
-            <a
-                href="./empregados.html"
-                class="menu-card"
+            <span
+                class="menu-card-title"
             >
+                Veículos
+            </span>
 
-                <span
-                    class="menu-card-icon"
-                    aria-hidden="true"
-                >
-                    👤
-                </span>
-
-                <span
-                    class="menu-card-title"
-                >
-                    Empregados
-                </span>
-
-                <span
-                    class="menu-card-description"
-                >
-                    Cadastro e gerenciamento dos empregados
-                </span>
-
-            </a>
-
-
-            <!-- ====================================================
-                 LANÇAMENTOS
-            ==================================================== -->
-
-            <a
-                href="./lancamentos.html"
-                class="menu-card"
+            <span
+                class="menu-card-description"
             >
+                Cadastro e gerenciamento dos veículos
+            </span>
 
-                <span
-                    class="menu-card-icon"
-                    aria-hidden="true"
-                >
-                    📋
-                </span>
-
-                <span
-                    class="menu-card-title"
-                >
-                    Lançamentos
-                </span>
-
-                <span
-                    class="menu-card-description"
-                >
-                    Controle das ocorrências e utilização dos veículos
-                </span>
-
-            </a>
+        </a>
 
 
-            <!-- ====================================================
-                 DASHBOARD
-            ==================================================== -->
+        <!-- ====================================================
+             EMPREGADOS
+        ==================================================== -->
 
-            <a
-                href="./dashboard.html"
-                class="menu-card"
+        <a
+            href="./empregados.html"
+            class="menu-card"
+        >
+
+            <span
+                class="menu-card-icon"
+                aria-hidden="true"
             >
+                👤
+            </span>
 
-                <span
-                    class="menu-card-icon"
-                    aria-hidden="true"
-                >
-                    📊
-                </span>
+            <span
+                class="menu-card-title"
+            >
+                Empregados
+            </span>
 
-                <span
-                    class="menu-card-title"
-                >
-                    Dashboard
-                </span>
+            <span
+                class="menu-card-description"
+            >
+                Cadastro e gerenciamento dos empregados
+            </span>
 
-                <span
-                    class="menu-card-description"
-                >
-                    Visão geral da frota
-                </span>
-
-            </a>
+        </a>
 
 
-        </section>
+        <!-- ====================================================
+             LANÇAMENTOS
+        ==================================================== -->
+
+        <a
+            href="./lancamentos.html"
+            class="menu-card"
+        >
+
+            <span
+                class="menu-card-icon"
+                aria-hidden="true"
+            >
+                📋
+            </span>
+
+            <span
+                class="menu-card-title"
+            >
+                Lançamentos
+            </span>
+
+            <span
+                class="menu-card-description"
+            >
+                Controle das ocorrências e utilização dos veículos
+            </span>
+
+        </a>
 
 
-    </main>
+        <!-- ====================================================
+             DASHBOARD
+        ==================================================== -->
 
-    <script
-    type="module"
-    src="./js/components/header.js">
-</script>
+        <a
+            href="./dashboard.html"
+            class="menu-card"
+        >
+
+            <span
+                class="menu-card-icon"
+                aria-hidden="true"
+            >
+                📊
+            </span>
+
+            <span
+                class="menu-card-title"
+            >
+                Dashboard
+            </span>
+
+            <span
+                class="menu-card-description"
+            >
+                Visão geral da frota
+            </span>
+
+        </a>
+
+
+    </section>
+
+</main>
+
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
 
 <script type="module">
 
@@ -209,7 +212,14 @@
         iniciarHeader
     } from "./js/components/header.js";
 
-    iniciarHeader();
+
+    iniciarHeader({
+
+        logo: "./assets/logo.png",
+
+        tituloPadrao: "Painel Frota"
+
+    });
 
 </script>
 
