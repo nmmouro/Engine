@@ -1023,9 +1023,6 @@ export function createForm(config = {}) {
     }
 
 
-  
-
-
     /*
      * ========================================================
      * GERAR ELEMENTO
@@ -2083,7 +2080,14 @@ export function createForm(config = {}) {
             campo.value;
 
 
-       
+        /*
+         * NUMBER
+         *
+         * Não convertemos automaticamente.
+         *
+         * O backend/PostgreSQL pode tratar o tipo.
+         * Isso evita problemas com valores vazios.
+         */
 
         if (
             campo.type === "number" &&
