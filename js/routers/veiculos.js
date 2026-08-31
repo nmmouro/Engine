@@ -1,4 +1,3 @@
-```javascript
 /**
  * ============================================================
  * ROUTER — VEÍCULOS
@@ -386,4 +385,3 @@ export function prepararVeiculoParaExcluir(
 // ============================================================
 
 export default ROUTER_VEICULOS;
-```
