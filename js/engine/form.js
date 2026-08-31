@@ -2041,34 +2041,6 @@ export function createForm(config = {}) {
         }
 
 
-
-let valorTexto =
-    valor === null ||
-    valor === undefined
-        ? ""
-        : String(valor);
-
-/*
- * ========================================================
- * CAIXA ALTA
- * ========================================================
- */
-
-if (
-    campo.type === "text" ||
-    campo.type === "email" ||
-    campo.tagName === "TEXTAREA"
-) {
-    valorTexto =
-        valorTexto.toLocaleUpperCase(
-            "pt-BR"
-        );
-}
-
-campo.value = valorTexto;
-       
-
-/*
         campo.value =
             valor === null ||
             valor === undefined
@@ -2076,7 +2048,7 @@ campo.value = valorTexto;
                 : String(valor);
 
     }
-*/
+
 
     /*
      * ========================================================
@@ -2113,51 +2085,7 @@ campo.value = valorTexto;
 
         }
 
-let valor =
-    campo.value;
 
-/*
- * ========================================================
- * CAIXA ALTA
- * ========================================================
- */
-
-if (
-    campo.type === "text" ||
-    campo.type === "email" ||
-    campo.tagName === "TEXTAREA"
-) {
-
-    valor =
-        String(valor ?? "")
-            .toLocaleUpperCase(
-                "pt-BR"
-            );
-}
-
-
-/*
- * ========================================================
- * NUMBER
- * ========================================================
- */
-
-if (
-    campo.type === "number" &&
-    valor === ""
-) {
-    return null;
-}
-
-return valor;
-
-
-
-
-
-       
-
-/*
         let valor =
             campo.value;
 
@@ -2177,7 +2105,7 @@ return valor;
         return valor;
 
     }
-*/
+
 
     /*
      * ========================================================
