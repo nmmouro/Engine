@@ -57,25 +57,60 @@
              CABEÇALHO
         ======================================================== -->
 
-        <header class="page-header">
+        <header class="app-header">
 
-            <div class="page-header-content">
+    <div class="app-header-logo">
+        <img
+            src="assets/logo.png"
+            alt="Painel Frota"
+            class="app-logo"
+        >
+    </div>
 
-                <div>
 
-                    <h1>
-                        Painel Frota
-                    </h1>
+    <div class="app-header-title">
 
-                    <p>
-                        Sistema de gerenciamento de frota
-                    </p>
+        <h1 id="app-title">
+            Painel Frota
+        </h1>
 
-                </div>
+    </div>
 
-            </div>
 
-        </header>
+    <div class="app-header-right">
+
+        <div class="app-datetime">
+
+            <span
+                id="app-date"
+                class="app-date"
+            >
+                00/00/0000
+            </span>
+
+            <span
+                id="app-time"
+                class="app-time"
+            >
+                00:00
+            </span>
+
+        </div>
+
+
+        <button
+            type="button"
+            id="btn-fullscreen"
+            class="btn-fullscreen"
+            title="Tela cheia"
+            aria-label="Tela cheia"
+        >
+            ⛶
+        </button>
+
+    </div>
+
+</header>
 
 
         <!-- ========================================================
