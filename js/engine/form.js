@@ -2041,6 +2041,34 @@ export function createForm(config = {}) {
         }
 
 
+
+let valorTexto =
+    valor === null ||
+    valor === undefined
+        ? ""
+        : String(valor);
+
+/*
+ * ========================================================
+ * CAIXA ALTA
+ * ========================================================
+ */
+
+if (
+    campo.type === "text" ||
+    campo.type === "email" ||
+    campo.tagName === "TEXTAREA"
+) {
+    valorTexto =
+        valorTexto.toLocaleUpperCase(
+            "pt-BR"
+        );
+}
+
+campo.value = valorTexto;
+       
+
+/*
         campo.value =
             valor === null ||
             valor === undefined
@@ -2048,7 +2076,7 @@ export function createForm(config = {}) {
                 : String(valor);
 
     }
-
+*/
 
     /*
      * ========================================================
@@ -2085,19 +2113,56 @@ export function createForm(config = {}) {
 
         }
 
+let valor =
+    campo.value;
 
+/*
+ * ========================================================
+ * CAIXA ALTA
+ * ========================================================
+ */
+
+if (
+    campo.type === "text" ||
+    campo.type === "email" ||
+    campo.tagName === "TEXTAREA"
+) {
+
+    valor =
+        String(valor ?? "")
+            .toLocaleUpperCase(
+                "pt-BR"
+            );
+}
+
+
+/*
+ * ========================================================
+ * NUMBER
+ * ========================================================
+ */
+
+if (
+    campo.type === "number" &&
+    valor === ""
+) {
+    return null;
+}
+
+return valor;
+
+
+
+
+
+       
+
+/*
         let valor =
             campo.value;
 
 
-        /*
-         * NUMBER
-         *
-         * Não convertemos automaticamente.
-         *
-         * O backend/PostgreSQL pode tratar o tipo.
-         * Isso evita problemas com valores vazios.
-         */
+       
 
         if (
             campo.type === "number" &&
@@ -2112,7 +2177,7 @@ export function createForm(config = {}) {
         return valor;
 
     }
-
+*/
 
     /*
      * ========================================================
@@ -2518,7 +2583,7 @@ export function createForm(config = {}) {
 
 }
 
-
+/*
 // ============================================================
 // CAIXA ALTA
 // ============================================================
@@ -2575,3 +2640,4 @@ export function createForm(config = {}) {
         }
     );
 }
+*/
