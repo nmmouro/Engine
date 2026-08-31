@@ -1,60 +1,108 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 
 <head>
 
-    <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<!-- ============================================================
+     CONFIGURAÇÕES
+============================================================ -->
 
-    <title>
-        Painel Frota - Veículos
-    </title>
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<meta
+    name="description"
+    content="Painel Frota - Cadastro e gerenciamento de veículos"
+>
+
+<title>Painel Frota - Veículos</title>
 
 
-    <!-- ========================================================
-         CSS GLOBAL
-    ========================================================= -->
+<!-- ============================================================
+     CSS GLOBAL
+============================================================ -->
 
-    <link
-        rel="stylesheet"
-        href="./css/style.css"
-    >
+<link
+    rel="stylesheet"
+    href="./css/style.css"
+>
 
-    <link
-        rel="stylesheet"
-        href="./css/components.css"
-    >
+<link
+    rel="stylesheet"
+    href="./css/components.css"
+>
 
 
 </head>
 
-
-<body>
-
-
-    <!-- ========================================================
-         APLICAÇÃO
-    ========================================================= -->
-
-    <main
-        id="app"
-        class="app-container"
-    >
-    </main>
+<body
+    data-page-title="Veículos"
+>
 
 
-    <!-- ========================================================
-         JAVASCRIPT
-    ========================================================= -->
+<!-- ============================================================
+     CABEÇALHO
+============================================================ -->
 
-    <script
-        type="module"
-        src="./js/pages/veiculos.js"
-    ></script>
+<header
+    data-header
+    class="app-header"
+></header>
+
+
+<!-- ============================================================
+     APLICAÇÃO
+     
+     IMPORTANTE:
+     O Engine utiliza este elemento como container.
+============================================================ -->
+
+<main
+    id="app"
+    class="app-container"
+></main>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+
+<script type="module">
+
+    import {
+        iniciarHeader
+    } from "./js/components/header.js";
+
+
+    /*
+     * Inicia o Header global.
+     */
+
+    iniciarHeader({
+
+        logo: "./assets/logo.png",
+
+        tituloPadrao: "Painel Frota"
+
+    });
+
+</script>
+
+
+<!-- ============================================================
+     PÁGINA VEÍCULOS
+============================================================ -->
+
+<script
+    type="module"
+    src="./js/pages/veiculos.js"
+></script>
 
 
 </body>
