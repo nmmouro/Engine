@@ -406,3 +406,191 @@ body {
     padding-top: 100px;
 
 }
+
+
+/* ============================================================
+   CORREÇÃO DO HEADER
+   ------------------------------------------------------------
+   header.js utiliza:
+       .header-logo
+       .header-titulo
+       .header-acoes
+       .header-datahora
+       .header-data
+       .header-hora
+       .header-fullscreen
+
+   Os estilos antigos usavam .app-header-logo etc.
+   Isso fazia o logo ser exibido em seu tamanho natural.
+   ============================================================ */
+
+.app-header .header-logo {
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    overflow: hidden;
+}
+
+.app-header .header-logo img,
+.app-header [data-header-logo] {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 150px;
+    max-height: 52px;
+
+    object-fit: contain;
+}
+
+.app-header .header-titulo {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+.app-header .header-titulo h1 {
+    margin: 0;
+
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+
+    color: #111827;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-header .header-acoes {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 12px;
+}
+
+.app-header .header-datahora {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 5px;
+
+    white-space: nowrap;
+}
+
+.app-header .header-data {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.app-header .header-separador {
+    color: #9ca3af;
+}
+
+.app-header .header-hora {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.app-header .header-fullscreen {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+
+    padding: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+
+    background: #ffffff;
+    color: #374151;
+
+    cursor: pointer;
+}
+
+.app-header .header-fullscreen:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.app-header .header-fullscreen-text {
+    display: none;
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVO — HEADER
+   ------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+
+    .app-header .header-logo img,
+    .app-header [data-header-logo] {
+        max-width: 120px;
+        max-height: 48px;
+    }
+
+    .app-header .header-titulo h1 {
+        font-size: 1.15rem;
+    }
+
+}
+
+@media (max-width: 650px) {
+
+    .app-header {
+        grid-template-columns:
+            80px
+            minmax(0, 1fr)
+            auto;
+
+        min-height: 72px;
+        height: auto;
+
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .app-header .header-logo img,
+    .app-header [data-header-logo] {
+        max-width: 70px;
+        max-height: 44px;
+    }
+
+    .app-header .header-titulo h1 {
+        font-size: 1rem;
+    }
+
+    .app-header .header-datahora {
+        display: none;
+    }
+
+    .app-header .header-fullscreen {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+
+}
