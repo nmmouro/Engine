@@ -2507,3 +2507,61 @@ export function createForm(config = {}) {
     return form;
 
 }
+
+
+// ============================================================
+// CAIXA ALTA
+// ============================================================
+
+   function aplicarCaixaAlta(input, campo) {
+
+       if (!input || !campo) {
+        return;
+       }
+
+       const tiposTexto = [
+           "text",
+           "textarea",
+           "email"
+       ];
+
+       if (!tiposTexto.includes(campo.type)) {
+           return;
+       }   
+
+       input.addEventListener(
+           "input",
+           () => {
+
+               const inicio =
+                   input.selectionStart;
+
+               const fim =
+                   input.selectionEnd;
+
+               input.value =
+                   input.value.toLocaleUpperCase(
+                       "pt-BR"
+                   );
+
+            // ----------------------------------------------------
+            // Mantém a posição do cursor
+            // ----------------------------------------------------
+
+            try {
+
+                input.setSelectionRange(
+                    inicio,
+                    fim
+                );
+
+            } catch (erro) {
+
+                // Alguns elementos podem não
+                // suportar seleção de texto.
+
+            }
+
+        }
+    );
+}
