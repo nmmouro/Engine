@@ -56,61 +56,7 @@
         <!-- ========================================================
              CABEÇALHO
         ======================================================== -->
-
-        <header class="app-header">
-
-    <div class="app-header-logo">
-        <img
-            src="assets/logo.png"
-            alt="Painel Frota"
-            class="app-logo"
-        >
-    </div>
-
-
-    <div class="app-header-title">
-
-        <h1 id="app-title">
-            Painel Frota
-        </h1>
-
-    </div>
-
-
-    <div class="app-header-right">
-
-        <div class="app-datetime">
-
-            <span
-                id="app-date"
-                class="app-date"
-            >
-                00/00/0000
-            </span>
-
-            <span
-                id="app-time"
-                class="app-time"
-            >
-                00:00
-            </span>
-
-        </div>
-
-
-        <button
-            type="button"
-            id="btn-fullscreen"
-            class="btn-fullscreen"
-            title="Tela cheia"
-            aria-label="Tela cheia"
-        >
-            ⛶
-        </button>
-
-    </div>
-
-</header>
+<header data-header></header>
 
 
         <!-- ========================================================
@@ -251,6 +197,21 @@
 
 
     </main>
+
+    <script
+    type="module"
+    src="./js/components/header.js">
+</script>
+
+<script type="module">
+
+    import {
+        iniciarHeader
+    } from "./js/components/header.js";
+
+    iniciarHeader();
+
+</script>
 
 
 </body>
