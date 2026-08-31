@@ -1,81 +1,8 @@
 /* ============================================================
-   PAINEL FROTA
-   COMPONENTES DO ENGINE
+   COMPONENTS.CSS
+   Painel Frota
+   Componentes reutilizáveis
    ============================================================ */
-
-
-/* ============================================================
-   ENGINE
-   ============================================================ */
-
-.engine-toolbar-container,
-.engine-form-container,
-.engine-table-container {
-    width: 100%;
-}
-
-
-/* ============================================================
-   TOOLBAR
-   ============================================================ */
-
-.engine-toolbar {
-
-    width: 100%;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 16px;
-
-    padding: 18px 20px;
-
-    margin-bottom: 20px;
-
-    background: #ffffff;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 10px;
-
-    box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-
-.engine-toolbar-left {
-
-    display: flex;
-
-    align-items: center;
-
-    min-width: 0;
-}
-
-
-.engine-toolbar-right {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: flex-end;
-
-    gap: 8px;
-}
-
-
-.engine-toolbar-title {
-
-    font-size: 22px;
-
-    font-weight: 600;
-
-    color: #1f2937;
-}
 
 
 /* ============================================================
@@ -83,77 +10,74 @@
    ============================================================ */
 
 .btn {
+    appearance: none;
 
     display: inline-flex;
 
     align-items: center;
-
     justify-content: center;
 
-    gap: 6px;
+    gap: 8px;
 
-    min-height: 38px;
+    min-height: 40px;
 
-    padding: 8px 16px;
+    padding: 9px 16px;
 
     border: 1px solid transparent;
 
-    border-radius: 6px;
+    border-radius: 8px;
 
-    font-size: 14px;
+    font-family: inherit;
 
-    font-weight: 500;
+    font-size: 0.9rem;
+
+    font-weight: 600;
 
     line-height: 1;
 
+    cursor: pointer;
+
     transition:
-        background-color 0.15s ease,
-        border-color 0.15s ease,
-        opacity 0.15s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
         transform 0.1s ease;
 }
 
 
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-
 .btn:active {
-    transform: translateY(0);
+    transform: translateY(1px);
 }
 
 
-/* ============================================================
-   BOTÃO PRIMÁRIO
-   ============================================================ */
+.btn:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
 
 .btn-primary {
-
     background: #2563eb;
+    border-color: #2563eb;
 
     color: #ffffff;
-
-    border-color: #2563eb;
 }
 
 
 .btn-primary:hover {
     background: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
 
-/* ============================================================
-   BOTÃO SECUNDÁRIO
-   ============================================================ */
-
 .btn-secondary {
-
     background: #ffffff;
+    border-color: #d1d5db;
 
     color: #374151;
-
-    border-color: #d1d5db;
 }
 
 
@@ -162,55 +86,85 @@
 }
 
 
-/* ============================================================
-   BOTÃO EDITAR
-   ============================================================ */
-
-.btn-edit {
-
-    background: #f59e0b;
-
-    color: #ffffff;
-
-    border-color: #f59e0b;
-}
-
-
-.btn-edit:hover {
-    background: #d97706;
-}
-
-
-/* ============================================================
-   BOTÃO EXCLUIR
-   ============================================================ */
-
-.btn-delete {
-
+.btn-danger {
     background: #dc2626;
+    border-color: #dc2626;
 
     color: #ffffff;
-
-    border-color: #dc2626;
 }
 
 
-.btn-delete:hover {
+.btn-danger:hover {
     background: #b91c1c;
 }
 
 
 /* ============================================================
-   BOTÕES PEQUENOS
+   BOTÃO TELA CHEIA
    ============================================================ */
 
-.btn-sm {
+.btn-fullscreen {
+    width: 40px;
+    height: 40px;
 
-    min-height: 32px;
+    min-width: 40px;
 
-    padding: 6px 10px;
+    padding: 0;
 
-    font-size: 12px;
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #374151;
+
+    font-size: 1.1rem;
+
+    cursor: pointer;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.btn-fullscreen:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
+
+.engine-toolbar {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+
+    padding: 14px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
 }
 
 
@@ -219,46 +173,59 @@
    ============================================================ */
 
 .engine-form-container {
+    width: 100%;
 
     margin-bottom: 20px;
 }
 
 
-.engine-form {
-
+.engine-form-wrapper {
     width: 100%;
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(220px, 1fr)
-        );
-
-    gap: 16px;
 
     padding: 20px;
 
-    margin-bottom: 20px;
-
     background: #ffffff;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e5e7eb;
 
     border-radius: 10px;
 
     box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.05);
+        0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 
-/* ============================================================
-   GRUPO DO CAMPO
-   ============================================================ */
+.engine-form-header {
+    margin-bottom: 20px;
 
-.form-group {
+    padding-bottom: 12px;
 
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+.engine-form-header h2 {
+    margin: 0;
+
+    font-size: 1.2rem;
+
+    font-weight: 700;
+
+    color: #111827;
+}
+
+
+.engine-form-fields {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+}
+
+
+.engine-field {
     display: flex;
 
     flex-direction: column;
@@ -269,9 +236,8 @@
 }
 
 
-.form-group label {
-
-    font-size: 13px;
+.engine-field label {
+    font-size: 0.86rem;
 
     font-weight: 600;
 
@@ -279,84 +245,69 @@
 }
 
 
-/* ============================================================
-   INPUTS
-   ============================================================ */
-
-.form-control {
-
+.engine-field input,
+.engine-field select,
+.engine-field textarea {
     width: 100%;
 
     min-height: 40px;
 
-    padding: 8px 10px;
+    padding: 9px 11px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 7px;
 
     background: #ffffff;
 
-    color: #1f2937;
+    color: #111827;
 
-    border: 1px solid #cbd5e1;
+    font-family: inherit;
 
-    border-radius: 6px;
+    font-size: 0.9rem;
+
+    outline: none;
 
     transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 
-.form-control:focus {
-
-    border-color: #2563eb;
-
-    box-shadow:
-        0 0 0 3px rgba(
-            37,
-            99,
-            235,
-            0.12
-        );
-}
-
-
-textarea.form-control {
-
+.engine-field textarea {
     min-height: 100px;
 
     resize: vertical;
 }
 
 
-.form-control:read-only {
+.engine-field input:focus,
+.engine-field select:focus,
+.engine-field textarea:focus {
+    border-color: #2563eb;
 
-    background: #f1f5f9;
-
-    color: #64748b;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 
-/* ============================================================
-   CHECKBOX
-   ============================================================ */
+.engine-field input:disabled,
+.engine-field select:disabled,
+.engine-field textarea:disabled {
+    background: #f3f4f6;
 
-.form-checkbox {
-
-    width: 18px;
-
-    height: 18px;
-
-    margin-top: 8px;
+    cursor: not-allowed;
 }
 
 
-/* ============================================================
-   AÇÕES DO FORMULÁRIO
-   ============================================================ */
+.engine-required {
+    margin-left: 3px;
+
+    color: #dc2626;
+}
+
 
 .engine-form-actions {
-
-    grid-column: 1 / -1;
-
     display: flex;
 
     align-items: center;
@@ -365,9 +316,51 @@ textarea.form-control {
 
     gap: 10px;
 
-    padding-top: 10px;
+    margin-top: 22px;
+
+    padding-top: 16px;
 
     border-top: 1px solid #e5e7eb;
+}
+
+
+.engine-checkbox {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    cursor: pointer;
+}
+
+
+.engine-checkbox input {
+    width: auto;
+
+    min-height: auto;
+}
+
+
+.engine-radio-group {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 14px;
+}
+
+
+.engine-radio-group label {
+    display: inline-flex;
+
+    flex-direction: row;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-weight: 400;
 }
 
 
@@ -376,105 +369,65 @@ textarea.form-control {
    ============================================================ */
 
 .engine-table-container {
-
-    width: 100%;
-}
-
-
-.engine-table-wrapper {
-
     width: 100%;
 
     overflow-x: auto;
 
     background: #ffffff;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e5e7eb;
 
     border-radius: 10px;
-
-    box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 
 .engine-table {
-
     width: 100%;
-
-    min-width: 800px;
 
     border-collapse: collapse;
 
-    background: #ffffff;
-}
-
-
-/* ============================================================
-   CABEÇALHO
-   ============================================================ */
-
-.engine-table thead {
-
-    background: #f8fafc;
+    min-width: 700px;
 }
 
 
 .engine-table th {
-
     padding: 12px 14px;
+
+    background: #f9fafb;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    color: #374151;
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
 
     text-align: left;
 
     white-space: nowrap;
-
-    font-size: 12px;
-
-    font-weight: 700;
-
-    text-transform: uppercase;
-
-    letter-spacing: 0.02em;
-
-    color: #475569;
-
-    border-bottom: 2px solid #e2e8f0;
 }
 
-
-/* ============================================================
-   CÉLULAS
-   ============================================================ */
 
 .engine-table td {
-
     padding: 11px 14px;
 
+    border-bottom: 1px solid #f0f1f3;
+
+    color: #374151;
+
+    font-size: 0.88rem;
+
     vertical-align: middle;
-
-    white-space: nowrap;
-
-    color: #334155;
-
-    border-bottom: 1px solid #e5e7eb;
-}
-
-
-.engine-table tbody tr {
-
-    transition:
-        background-color 0.15s ease;
 }
 
 
 .engine-table tbody tr:hover {
-
-    background: #f8fafc;
+    background: #f9fafb;
 }
 
 
 .engine-table tbody tr:last-child td {
-
     border-bottom: none;
 }
 
@@ -484,72 +437,22 @@ textarea.form-control {
    ============================================================ */
 
 .engine-table-actions {
-
     display: flex;
 
     align-items: center;
 
     gap: 6px;
+
+    white-space: nowrap;
 }
 
 
-.engine-table-actions-header {
+.btn-table {
+    min-height: 32px;
 
-    text-align: center;
-}
+    padding: 6px 10px;
 
-
-/* ============================================================
-   VALOR VAZIO
-   ============================================================ */
-
-.engine-table-empty {
-
-    color: #94a3b8;
-}
-
-
-/* ============================================================
-   ESTADO VAZIO
-   ============================================================ */
-
-.engine-table-empty-state {
-
-    width: 100%;
-
-    padding: 50px 20px;
-
-    text-align: center;
-
-    background: #ffffff;
-
-    color: #64748b;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 10px;
-}
-
-
-/* ============================================================
-   LOADING
-   ============================================================ */
-
-.engine-table-loading {
-
-    width: 100%;
-
-    padding: 50px 20px;
-
-    text-align: center;
-
-    background: #ffffff;
-
-    color: #64748b;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 10px;
+    font-size: 0.78rem;
 }
 
 
@@ -558,18 +461,18 @@ textarea.form-control {
    ============================================================ */
 
 .status {
-
     display: inline-flex;
 
     align-items: center;
-
     justify-content: center;
+
+    min-width: 82px;
 
     padding: 4px 9px;
 
     border-radius: 999px;
 
-    font-size: 11px;
+    font-size: 0.74rem;
 
     font-weight: 700;
 
@@ -577,35 +480,57 @@ textarea.form-control {
 }
 
 
-.status-ativo {
-
+.status-livre {
     background: #dcfce7;
-
     color: #166534;
 }
 
 
-.status-inativo {
-
+.status-ocupado {
     background: #fee2e2;
-
     color: #991b1b;
 }
 
 
-.status-andamento {
-
-    background: #fef3c7;
-
-    color: #92400e;
+.status-viagem {
+    background: #dbeafe;
+    color: #1e40af;
 }
 
 
 .status-manutencao {
+    background: #fef3c7;
+    color: #92400e;
+}
 
-    background: #e0e7ff;
 
-    color: #3730a3;
+.status-andamento {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+
+.status-agendado {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+
+.status-concluido {
+    background: #dcfce7;
+    color: #166534;
+}
+
+
+.status-cancelado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+
+.status-default {
+    background: #f3f4f6;
+    color: #4b5563;
 }
 
 
@@ -613,308 +538,268 @@ textarea.form-control {
    CARDS
    ============================================================ */
 
-.card {
-
-    background: #ffffff;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 10px;
-
-    box-shadow:
-        0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-
-.card-header {
-
-    padding: 16px 20px;
-
-    border-bottom: 1px solid #e5e7eb;
-}
-
-
-.card-body {
-
-    padding: 20px;
-}
-
-
-/* ============================================================
-   RESPONSIVIDADE
-   ============================================================ */
-
-@media (max-width: 768px) {
-
-    .engine-toolbar {
-
-        align-items: stretch;
-
-        flex-direction: column;
-
-    }
-
-
-    .engine-toolbar-left,
-    .engine-toolbar-right {
-
-        width: 100%;
-    }
-
-
-    .engine-toolbar-right {
-
-        justify-content: flex-start;
-    }
-
-
-    .engine-form {
-
-        grid-template-columns: 1fr;
-
-    }
-
-
-    .engine-form-actions {
-
-        justify-content: stretch;
-
-        flex-direction: column;
-
-    }
-
-
-    .engine-form-actions .btn {
-
-        width: 100%;
-    }
-
-
-    .engine-table-wrapper {
-
-        border-radius: 6px;
-    }
-
-}
-
-
-@media (max-width: 480px) {
-
-    .engine-toolbar {
-
-        padding: 14px;
-    }
-
-
-    .engine-toolbar-title {
-
-        font-size: 19px;
-    }
-
-
-    .engine-form {
-
-        padding: 14px;
-    }
-
-
-    .engine-table th,
-    .engine-table td {
-
-        padding: 9px 10px;
-    }
-
-}
-
-/* ============================================================
-   MENU PRINCIPAL
-   ============================================================ */
-
-.menu-grid {
-
+.cards-container {
     display: grid;
 
     grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(220px, 1fr)
-        );
+        repeat(auto-fit, minmax(220px, 1fr));
 
     gap: 16px;
 }
 
 
+.card {
+    padding: 18px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+
+.card-title {
+    margin-bottom: 8px;
+
+    font-size: 0.85rem;
+
+    font-weight: 600;
+
+    color: #6b7280;
+}
+
+
+.card-value {
+    font-size: 1.5rem;
+
+    font-weight: 700;
+
+    color: #111827;
+}
+
+
+/* ============================================================
+   RESUMO
+   ============================================================ */
+
+.resumo-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+
+    gap: 14px;
+
+    margin-bottom: 20px;
+}
+
+
+.resumo-item {
+    padding: 16px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
+}
+
+
+.resumo-item-label {
+    font-size: 0.8rem;
+
+    color: #6b7280;
+}
+
+
+.resumo-item-value {
+    margin-top: 4px;
+
+    font-size: 1.35rem;
+
+    font-weight: 700;
+
+    color: #111827;
+}
+
+
+/* ============================================================
+   HOME MENU
+   ============================================================ */
+
 .menu-card {
+    min-height: 140px;
+
+    padding: 22px;
 
     display: flex;
 
     flex-direction: column;
 
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
 
-    padding: 20px;
+    gap: 10px;
 
     background: #ffffff;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e5e7eb;
 
-    border-radius: 10px;
+    border-radius: 12px;
+
+    text-decoration: none;
+
+    color: #111827;
+
+    cursor: pointer;
 
     transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease,
-        border-color 0.15s ease;
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
 }
 
 
 .menu-card:hover {
-
     transform: translateY(-2px);
 
-    border-color: #2563eb;
+    border-color: #cbd5e1;
 
     box-shadow:
-        0 5px 14px rgba(0, 0, 0, 0.08);
+        0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 
 .menu-card-title {
+    font-size: 1rem;
 
-    font-size: 18px;
-
-    font-weight: 600;
-
-    color: #1f2937;
+    font-weight: 700;
 }
 
 
 .menu-card-description {
+    font-size: 0.82rem;
 
-    font-size: 13px;
+    color: #6b7280;
 
-    color: #64748b;
+    text-align: center;
 }
 
 
 /* ============================================================
-   ENGINE HEADER
+   LOADING
    ============================================================ */
 
-.engine-header {
+.loading-overlay {
+    position: fixed;
 
-    width: 100%;
+    inset: 0;
 
-    min-height: 70px;
+    z-index: 9999;
 
     display: flex;
 
     align-items: center;
-
-    gap: 20px;
-
-    padding: 10px 20px;
-
-    box-sizing: border-box;
-
-}
-
-
-/* ============================================================
-   LOGO
-   ============================================================ */
-
-.engine-header-logo {
-
-    display: flex;
-
-    align-items: center;
-
     justify-content: center;
 
-    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.82);
 
+    backdrop-filter: blur(2px);
 }
 
 
-.engine-header-logo-img {
-
-    display: block;
-
-    max-height: 55px;
-
-    max-width: 180px;
-
-    width: auto;
-
-    height: auto;
-
-    object-fit: contain;
-
-}
-
-
-/* ============================================================
-   TÍTULO
-   ============================================================ */
-
-.engine-header-title {
-
-    margin: 0;
-
-    font-size: 1.5rem;
-
-    font-weight: 700;
-
-    text-transform: uppercase;
-
-    white-space: nowrap;
-
-}
-
-
-/* ============================================================
-   DATA / HORA
-   ============================================================ */
-
-.engine-header-datetime {
-
-    margin-left: auto;
-
-    font-size: 0.95rem;
-
-    font-weight: 600;
-
-    white-space: nowrap;
-
-}
-
-
-/* ============================================================
-   BOTÃO TELA CHEIA
-   ============================================================ */
-
-.engine-header-fullscreen {
-
-    width: 42px;
-
-    height: 42px;
-
+.loading-content {
     display: flex;
+
+    flex-direction: column;
 
     align-items: center;
 
-    justify-content: center;
+    gap: 12px;
 
-    border: none;
+    padding: 24px;
 
-    border-radius: 6px;
+    background: #ffffff;
 
-    cursor: pointer;
+    border: 1px solid #e5e7eb;
 
-    font-size: 1.5rem;
+    border-radius: 10px;
 
-    flex-shrink: 0;
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.12);
+}
 
+
+.loading-spinner {
+    width: 34px;
+    height: 34px;
+
+    border: 3px solid #e5e7eb;
+
+    border-top-color: #2563eb;
+
+    border-radius: 50%;
+
+    animation:
+        engine-spin 0.8s linear infinite;
+}
+
+
+@keyframes engine-spin {
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.toast {
+    position: fixed;
+
+    right: 20px;
+    bottom: 20px;
+
+    z-index: 10000;
+
+    max-width: 380px;
+
+    padding: 13px 16px;
+
+    background: #111827;
+
+    color: #ffffff;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.18);
+
+    font-size: 0.88rem;
+}
+
+
+/* ============================================================
+   VAZIO
+   ============================================================ */
+
+.engine-form-empty,
+.engine-table-empty {
+    padding: 35px 20px;
+
+    text-align: center;
+
+    color: #6b7280;
+
+    font-size: 0.9rem;
 }
 
 
@@ -924,44 +809,39 @@ textarea.form-control {
 
 @media (max-width: 700px) {
 
-    .engine-header {
-
-        gap: 10px;
-
-        padding: 8px 12px;
-
+    .engine-form-fields {
+        grid-template-columns: 1fr;
     }
 
 
-    .engine-header-logo-img {
-
-        max-width: 100px;
-
-        max-height: 45px;
-
+    .engine-form-wrapper {
+        padding: 15px;
     }
 
 
-    .engine-header-title {
+    .engine-toolbar {
+        align-items: stretch;
 
-        font-size: 1.1rem;
-
+        flex-direction: column;
     }
 
 
-    .engine-header-datetime {
+    .engine-form-actions {
+        flex-direction: column-reverse;
 
-        font-size: 0.8rem;
-
+        align-items: stretch;
     }
 
 
-    .engine-header-fullscreen {
+    .engine-form-actions .btn {
+        width: 100%;
+    }
 
-        width: 36px;
 
-        height: 36px;
+    .page-header {
+        flex-direction: column;
 
+        align-items: flex-start;
     }
 
 }
